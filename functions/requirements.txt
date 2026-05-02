@@ -1,0 +1,9 @@
+anthropic>=0.40.0
+firebase-functions>=0.4.0
+firebase-admin>=6.5.0
+sympy>=1.13.0
+# Required by sympy.parsing.latex.parse_latex — without it, SYMPY_AVAILABLE
+# in correct_submission.py falls back to False and every step pays for an
+# extra Claude round-trip.
+antlr4-python3-runtime==4.11
+google-cloud-storage>=2.18.0
