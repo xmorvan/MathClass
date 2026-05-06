@@ -13,6 +13,7 @@ Correction process:
 import json
 import os
 import re
+import time
 
 import anthropic
 from firebase_functions import https_fn
@@ -187,6 +188,40 @@ def claude_check_equivalence(
         return False
 
 
+def _persist_correction(
+    submission_id: str,
+    step_results: list[bool],
+    first_error_index: int | None,
+    final_result: str,
+) -> Exception | None:
+    """Write the correction result to /submissions/{id} via Admin SDK.
+
+    Retries up to 3 times with short backoff. Returns None on success, or
+    the last raised exception so the caller can decide whether to surface
+    a failure to the client (ISSUE-004).
+    """
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            db = _get_firestore()
+            db.collection("submissions").document(submission_id).update({
+                "correctionResult": {
+                    "stepResults": step_results,
+                    "firstErrorIndex": first_error_index,
+                },
+                "finalResult": final_result,
+            })
+            return None
+        except Exception as e:  # noqa: BLE001 — retry any failure
+            last_error = e
+            print(
+                f"[correct_submission] Firestore persist attempt "
+                f"{attempt + 1}/3 failed for {submission_id}: {e}"
+            )
+            time.sleep(0.4 * (attempt + 1))
+    return last_error
+
+
 def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
     """Handle the correct_submission Cloud Function call.
 
@@ -304,64 +339,83 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
 
         if not pairs:
             # Claude couldn't structure the steps — all marked as incorrect
-            return {
-                "stepResults": [False] * len(student_steps),
-                "firstErrorIndex": 0,
-                "allCorrect": False,
-            }
+            step_results = [False] * len(student_steps)
+            first_error_index = 0
+            all_correct = False
+        else:
+            # Phase 2: Verify each step pair.
+            # ISSUE-006: Claude can return fewer pairs than studentSteps. Pair
+            # by index up to the shorter list and treat any unpaired tail as
+            # "could not verify" → False (counts as wrong, conservative). This
+            # keeps len(stepResults) == len(studentSteps), which the iOS
+            # client relies on when rendering per-step marks.
+            step_results: list[bool] = []
+            first_error_index: int | None = None
 
-        # Phase 2: Verify each step pair
-        step_results = []
-        first_error_index = None
+            paired_count = min(len(pairs), len(student_steps))
+            for i in range(paired_count):
+                pair = pairs[i]
+                student_expr = pair.get("studentExpr", "")
+                reference_expr = pair.get("referenceExpr", "")
+                description = pair.get("description", "")
 
-        for i, pair in enumerate(pairs):
-            student_expr = pair.get("studentExpr", "")
-            reference_expr = pair.get("referenceExpr", "")
-            description = pair.get("description", "")
+                sympy_result = sympy_check_equivalence(student_expr, reference_expr)
 
-            # Try SymPy first
-            sympy_result = sympy_check_equivalence(student_expr, reference_expr)
+                if sympy_result is not None:
+                    is_correct = sympy_result
+                else:
+                    is_correct = claude_check_equivalence(
+                        client, student_expr, reference_expr, description
+                    )
 
-            if sympy_result is not None:
-                # SymPy could determine the result
-                is_correct = sympy_result
-            else:
-                # Fallback to Claude
-                is_correct = claude_check_equivalence(
-                    client, student_expr, reference_expr, description
+                step_results.append(is_correct)
+                if not is_correct and first_error_index is None:
+                    first_error_index = i
+
+            # Pad any unpaired tail as wrong + log so the mismatch is visible.
+            if paired_count < len(student_steps):
+                missing = len(student_steps) - paired_count
+                print(
+                    f"[correct_submission] Phase-1 pair shortfall: "
+                    f"{paired_count} pairs vs {len(student_steps)} student steps "
+                    f"(padding {missing} as incorrect)"
                 )
+                for i in range(paired_count, len(student_steps)):
+                    step_results.append(False)
+                    if first_error_index is None:
+                        first_error_index = i
 
-            step_results.append(is_correct)
-
-            if not is_correct and first_error_index is None:
-                first_error_index = i
-
-        all_correct = all(step_results)
+            all_correct = all(step_results)
 
         # Persist the correction result on the submission doc using the
         # Admin SDK so it bypasses firestore.rules (the rule on submissions
-        # update is `isTeacher()`, and students have no Firebase Auth —
-        # the previous client-side write silently failed; see ISSUE-040).
+        # update is `isTeacher()`, and students have no Firebase Auth).
         if all_correct:
             final_result = "success_1st" if attempt_number == 1 else "success_2nd"
         else:
             final_result = "failed"
 
-        try:
-            db = _get_firestore()
-            db.collection("submissions").document(submission_id).update({
-                "correctionResult": {
-                    "stepResults": step_results,
-                    "firstErrorIndex": first_error_index,
-                },
-                "finalResult": final_result,
-            })
-        except Exception as persist_error:
-            # Do not fail the whole call — the iOS client already has the
-            # correction in memory and can render feedback. The teacher
-            # inbox just won't see this submission until the next manual
-            # retry. Log and continue.
-            print(f"[correct_submission] Firestore persist failed: {persist_error}")
+        # ISSUE-004: previously a persist failure was logged and swallowed,
+        # so the teacher's inbox would never see a submission whose write
+        # had failed. Now we retry a few times and then surface the failure
+        # to the iOS client via HttpsError so it can prompt the student to
+        # retry submission. The in-memory result is still returned on
+        # success, so the student gets feedback on the happy path.
+        persist_error = _persist_correction(
+            submission_id=submission_id,
+            step_results=step_results,
+            first_error_index=first_error_index,
+            final_result=final_result,
+        )
+        if persist_error is not None:
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.UNAVAILABLE,
+                message=(
+                    "La correction a réussi mais l'enregistrement a échoué. "
+                    "Réessayez dans quelques instants."
+                ),
+                details={"reason": str(persist_error)},
+            )
 
         return {
             "stepResults": step_results,

@@ -38,12 +38,19 @@ struct TeacherView: View {
                     }
                     .tag(2)
 
+                SubmissionInboxView_iOS(viewModel: viewModel)
+                    .navigationTitle("Soumissions")
+                    .tabItem {
+                        Label("Soumissions", systemImage: "tray.and.arrow.down")
+                    }
+                    .tag(3)
+
                 StatisticsView(viewModel: viewModel)
                     .navigationTitle("Statistiques")
                     .tabItem {
                         Label("Statistiques", systemImage: "chart.bar")
                     }
-                    .tag(3)
+                    .tag(4)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 /// Sheet for adding an exercise on iPad (teacher).
 /// Two creation modes: WYSIWYG (text + LaTeX) and Image Import.
@@ -23,9 +24,19 @@ struct AddExerciseView: View {
     @State private var errorMessage: String?
     @State private var showError: Bool = false
 
+    // Image import (ISSUE-012 — iPad teachers need parity with macOS).
+    @State private var pickedImage: PhotosPickerItem?
+    @State private var importedImageURL: String?
+    @State private var isExtracting: Bool = false
+    @State private var importedPreviewImage: UIImage?
+    @State private var creationMethod: ExerciseCreationMethod = .wysiwyg
+
     var body: some View {
         NavigationView {
             Form {
+                // Image import (optional)
+                imageImportSection
+
                 // Title
                 Section(header: Text("Titre de l'exercice")) {
                     TextField("Entrez le titre", text: $title)
@@ -119,6 +130,96 @@ struct AddExerciseView: View {
         }
     }
 
+    // MARK: - Image Import (ISSUE-012)
+
+    @ViewBuilder
+    private var imageImportSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Photographiez ou choisissez une image de l'énoncé pour pré-remplir automatiquement le titre, l'énoncé et la réponse attendue.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                HStack(spacing: 12) {
+                    PhotosPicker(
+                        selection: $pickedImage,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        Label("Choisir une photo", systemImage: "photo")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isExtracting)
+
+                    if isExtracting {
+                        ProgressView()
+                            .scaleEffect(0.85)
+                        Text("Extraction…")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                if let preview = importedPreviewImage {
+                    Image(uiImage: preview)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 160)
+                        .cornerRadius(6)
+                }
+            }
+        } header: {
+            Text("Importer depuis une photo")
+        }
+        .onChange(of: pickedImage) { _, newItem in
+            guard let newItem else { return }
+            Task { await handleImagePicked(newItem) }
+        }
+    }
+
+    private func handleImagePicked(_ item: PhotosPickerItem) async {
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else {
+            errorMessage = "Impossible de lire l'image sélectionnée."
+            showError = true
+            return
+        }
+
+        importedPreviewImage = image
+        isExtracting = true
+        defer { isExtracting = false }
+
+        do {
+            // Re-encode as JPEG @0.85 to keep upload size reasonable. The
+            // Cloud Function detects MIME from the file extension, so we
+            // must upload to a `.jpg` path.
+            let payload = image.jpegData(compressionQuality: 0.85) ?? data
+            let path = "exercises/\(UUID().uuidString).jpg"
+            let stored = try await DataService.shared.uploadData(payload, path: path)
+            importedImageURL = stored
+
+            let extraction = try await ExerciseExtractionService.shared
+                .extractExercise(storagePath: stored)
+
+            if statement.isEmpty { statement = extraction.statement }
+            if expectedAnswer.isEmpty { expectedAnswer = extraction.expectedAnswer }
+            if title.isEmpty {
+                // Use the first non-empty line of the statement as a tentative
+                // title. The teacher can rename before saving.
+                let firstLine = extraction.statement
+                    .split(whereSeparator: \.isNewline)
+                    .first
+                    .map(String.init) ?? ""
+                title = String(firstLine.prefix(60))
+            }
+            creationMethod = .image
+            showPreview = true
+        } catch {
+            errorMessage = "Échec de l'extraction : \(error.localizedDescription)"
+            showError = true
+        }
+    }
+
     private func addExercise() {
         // Previously this method silently `return`-ed when the auth state was
         // missing, leaving the user staring at an "Ajouter" button that did
@@ -131,10 +232,11 @@ struct AddExerciseView: View {
         let newExercise = Exercise(
             title: title,
             statement: statement,
+            statementImageURL: importedImageURL,
             expectedAnswer: expectedAnswer,
             chapterID: selectedChapterID,
             difficultyLevel: difficultyLevel,
-            creationMethod: .wysiwyg,
+            creationMethod: creationMethod,
             teacherID: teacherID
         )
         Task {

@@ -18,10 +18,18 @@ class SubmissionRepository: ObservableObject {
 
     private let firebase = FirebaseService.shared
     private var listener: ListenerRegistration?
+    /// Multi-chunk listeners for the cross-assignment teacher inbox. Firestore
+    /// `whereField(_:in:)` is capped at 30 values, so the inbox query is
+    /// fanned out and the per-chunk results are merged here, keyed by
+    /// submissionID (ISSUE-005). Empty when only the single-listener APIs
+    /// are in use.
+    private var teacherChunkListeners: [ListenerRegistration] = []
+    private var teacherChunkResults: [Int: [Submission]] = [:]
     private let collectionPath = "submissions"
 
     deinit {
         listener?.remove()
+        teacherChunkListeners.forEach { $0.remove() }
     }
 
     // MARK: - Real-time Listeners
@@ -39,49 +47,76 @@ class SubmissionRepository: ObservableObject {
     }
 
     /// Listen for all recent submissions across the teacher's active
-    /// assignments. Powers `SubmissionInboxView_macOS`.
+    /// assignments. Powers `SubmissionInboxView_macOS` and
+    /// `SubmissionInboxView_iOS`.
     ///
-    /// Firestore caps `whereField(_:in:)` at 10 values. For MVP we listen
-    /// on the first 10 assignment IDs and log a warning if the teacher has
-    /// more — this keeps the listener simple and is sufficient for early
-    /// classroom use. A future fix would fan out one listener per chunk
-    /// and merge the results.
+    /// Firestore caps `whereField(_:in:)` at 30 values. We fan out one
+    /// listener per chunk and merge results keyed by submissionID, so a
+    /// teacher with many assignments still sees every submission live
+    /// (ISSUE-005).
     func startListeningForTeacher(classAssignmentIDs: [String]) {
+        // Tear down anything from a previous run (single or multi-chunk).
         listener?.remove()
+        listener = nil
+        teacherChunkListeners.forEach { $0.remove() }
+        teacherChunkListeners = []
+        teacherChunkResults = [:]
 
         guard !classAssignmentIDs.isEmpty else {
             submissions = []
             return
         }
 
-        let chunked = classAssignmentIDs.chunked(into: 10)
-        let firstChunk = chunked[0]
-        if chunked.count > 1 {
-            print("SubmissionRepository: listening on first 10 of \(classAssignmentIDs.count) assignment IDs (Firestore 'in' cap)")
-        }
+        let chunks = classAssignmentIDs.chunked(into: 30)
+        for (index, chunk) in chunks.enumerated() {
+            let query = firebase.db.collection(collectionPath)
+                .whereField("assignmentID", in: chunk)
+                .order(by: "timestamp", descending: true)
+                .limit(to: 100)
 
-        let query = firebase.db.collection(collectionPath)
-            .whereField("assignmentID", in: firstChunk)
-            .order(by: "timestamp", descending: true)
-            .limit(to: 100)
+            let registration = query.addSnapshotListener { [weak self] snapshot, error in
+                guard let self else { return }
+                if let error = error {
+                    print("Erreur écoute soumissions enseignant (chunk \(index)): \(error.localizedDescription)")
+                    self.teacherChunkResults[index] = []
+                    self.recomputeMergedTeacherSubmissions()
+                    return
+                }
+                guard let documents = snapshot?.documents else {
+                    self.teacherChunkResults[index] = []
+                    self.recomputeMergedTeacherSubmissions()
+                    return
+                }
+                do {
+                    let parsed = try documents.map { try $0.data(as: Submission.self) }
+                    self.teacherChunkResults[index] = parsed
+                } catch {
+                    print("Erreur décodage soumissions enseignant (chunk \(index)): \(error.localizedDescription)")
+                    self.teacherChunkResults[index] = []
+                }
+                self.recomputeMergedTeacherSubmissions()
+            }
+            teacherChunkListeners.append(registration)
+        }
+    }
 
-        listener = query.addSnapshotListener { [weak self] snapshot, error in
-            if let error = error {
-                print("Erreur écoute soumissions enseignant: \(error.localizedDescription)")
-                self?.submissions = []
-                return
-            }
-            guard let documents = snapshot?.documents else {
-                self?.submissions = []
-                return
-            }
-            do {
-                self?.submissions = try documents.map { try $0.data(as: Submission.self) }
-            } catch {
-                print("Erreur décodage soumissions enseignant: \(error.localizedDescription)")
-                self?.submissions = []
+    /// Merge per-chunk submission results into a single ordered list,
+    /// deduplicated by submissionID.
+    private func recomputeMergedTeacherSubmissions() {
+        var seen: Set<String> = []
+        var merged: [Submission] = []
+        for chunkResults in teacherChunkResults.values {
+            for submission in chunkResults {
+                guard let id = submission.id else { continue }
+                if seen.insert(id).inserted {
+                    merged.append(submission)
+                }
             }
         }
+        merged.sort { $0.timestamp > $1.timestamp }
+        // Cap to 100 like the previous single-listener behaviour, post-merge,
+        // so the inbox stays responsive when many assignments are active.
+        submissions = Array(merged.prefix(100))
     }
 
     /// Listen for a student's submissions within an assignment.
@@ -114,6 +149,9 @@ class SubmissionRepository: ObservableObject {
     func stopListening() {
         listener?.remove()
         listener = nil
+        teacherChunkListeners.forEach { $0.remove() }
+        teacherChunkListeners = []
+        teacherChunkResults = [:]
     }
 
     // MARK: - CRUD
@@ -157,6 +195,23 @@ class SubmissionRepository: ObservableObject {
             whereField: "assignmentID",
             isEqualTo: assignmentID
         )
+    }
+
+    /// Get all submissions across a batch of assignment IDs in a single
+    /// Firestore round-trip. The caller is responsible for keeping the input
+    /// at or below the Firestore `in`-query cap (30 values) — typically by
+    /// chunking. Used by `StatisticsView` to avoid the N round-trips it
+    /// previously did per class change (ISSUE-014).
+    func getSubmissions(inAssignments assignmentIDs: [String]) async throws -> [Submission] {
+        guard !assignmentIDs.isEmpty else { return [] }
+        precondition(
+            assignmentIDs.count <= 30,
+            "Firestore 'in' queries support at most 30 values — chunk first."
+        )
+        let snapshot = try await firebase.db.collection(collectionPath)
+            .whereField("assignmentID", in: assignmentIDs)
+            .getDocuments()
+        return try snapshot.documents.map { try $0.data(as: Submission.self) }
     }
 
     /// Check if a student has already submitted for an exercise within an assignment.

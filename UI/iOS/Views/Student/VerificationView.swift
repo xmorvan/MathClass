@@ -144,10 +144,29 @@ struct VerificationView: View {
             Text("Aucune étape reconnue")
                 .font(.headline)
 
-            Text("La reconnaissance automatique sera disponible prochainement.\nVous pouvez soumettre directement votre travail.")
+            Text("La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou réessayez la reconnaissance.")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+
+            HStack(spacing: 12) {
+                Button {
+                    onCancel()
+                } label: {
+                    Label("Retour au dessin", systemImage: "arrow.uturn.left")
+                }
+                .buttonStyle(.bordered)
+
+                if viewModel.canRetryRecognition {
+                    Button {
+                        Task { await viewModel.retryRecognition() }
+                    } label: {
+                        Label("Réessayer", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
@@ -155,23 +174,49 @@ struct VerificationView: View {
 
     private var stepsListView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Étapes reconnues")
-                .font(.headline)
+            HStack {
+                Text("Étapes reconnues")
+                    .font(.headline)
+                Spacer()
+                if viewModel.canRetryRecognition {
+                    Button {
+                        Task { await viewModel.retryRecognition() }
+                    } label: {
+                        Label("Reconnaître à nouveau", systemImage: "arrow.clockwise")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
 
-            Text("Vérifiez que ces étapes correspondent à votre travail.")
+            Text("Vérifiez que ces étapes correspondent à votre travail. Modifiez si besoin.")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
+            // ISSUE-011: Per-step inline KaTeX preview so a student typing
+            // a correction sees the rendered math right under the field.
             ForEach(editableSteps.indices, id: \.self) { index in
-                HStack(alignment: .top) {
-                    Text("Étape \(index + 1)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(width: 60, alignment: .leading)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .top) {
+                        Text("Étape \(index + 1)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(width: 60, alignment: .leading)
 
-                    TextField("LaTeX", text: $editableSteps[index])
-                        .font(.system(.body, design: .monospaced))
-                        .textFieldStyle(.roundedBorder)
+                        TextField("LaTeX", text: $editableSteps[index])
+                            .font(.system(.body, design: .monospaced))
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    if !editableSteps[index].trimmingCharacters(in: .whitespaces).isEmpty {
+                        KaTeXView(
+                            content: "$\(editableSteps[index])$",
+                            mode: .preview,
+                            fontSize: 16,
+                            minHeight: 28
+                        )
+                        .padding(.leading, 60)
+                    }
                 }
             }
         }
@@ -203,7 +248,7 @@ struct VerificationView: View {
                     .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(viewModel.phase == .submitting)
+            .disabled(viewModel.phase == .submitting || editableSteps.isEmpty)
         }
         .padding()
     }

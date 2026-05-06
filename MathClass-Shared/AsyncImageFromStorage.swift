@@ -45,8 +45,26 @@ struct AsyncImageFromStorage: View {
             } else if isLoading {
                 ProgressView("Chargement de l'image...")
             } else if let errorMessage = errorMessage {
-                Text("Erreur: \(errorMessage)")
-                    .foregroundColor(.red)
+                // ISSUE-016 — when the PNG can't be loaded (deleted file,
+                // permission denied, transient network error), surface a
+                // retry affordance instead of a dead red text node.
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                    Text("Image indisponible")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(errorMessage)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Réessayer") {
+                        self.errorMessage = nil
+                        loadImage()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(.vertical, 8)
             } else {
                 Color.clear.onAppear(perform: loadImage)
             }

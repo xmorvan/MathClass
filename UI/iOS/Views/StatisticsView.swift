@@ -299,22 +299,41 @@ struct StatisticsView: View {
 
     private func loadSubmissions() async {
         isLoadingStats = true
-        do {
-            var allSubmissions: [Submission] = []
-            let assignmentsToLoad = selectedClassID != nil
-                ? viewModel.assignments.filter { $0.classID == selectedClassID }
-                : viewModel.assignments
+        defer { isLoadingStats = false }
 
-            for assignment in assignmentsToLoad {
-                guard let id = assignment.id else { continue }
-                let subs = try await viewModel.submissionRepo.getSubmissions(assignmentID: id)
-                allSubmissions.append(contentsOf: subs)
+        // ISSUE-014: replace one fetch per assignment with chunked
+        // `assignmentID in [...]` queries. Firestore caps `in` at 30 values.
+        let assignmentsToLoad = selectedClassID != nil
+            ? viewModel.assignments.filter { $0.classID == selectedClassID }
+            : viewModel.assignments
+        let assignmentIDs = assignmentsToLoad.compactMap { $0.id }
+
+        guard !assignmentIDs.isEmpty else {
+            self.submissions = []
+            return
+        }
+
+        let chunks = assignmentIDs.chunked(into: 30)
+        do {
+            // Fire chunks concurrently — each is a single Firestore query.
+            let merged = try await withThrowingTaskGroup(of: [Submission].self) { group in
+                for chunk in chunks {
+                    group.addTask { @MainActor in
+                        try await viewModel.submissionRepo.getSubmissions(
+                            inAssignments: chunk
+                        )
+                    }
+                }
+                var collected: [Submission] = []
+                for try await batch in group {
+                    collected.append(contentsOf: batch)
+                }
+                return collected
             }
-            self.submissions = allSubmissions
+            self.submissions = merged
         } catch {
             print("Erreur chargement statistiques: \(error.localizedDescription)")
         }
-        isLoadingStats = false
     }
 
     private func buildExerciseCompetencyMap() -> [String: [String]] {

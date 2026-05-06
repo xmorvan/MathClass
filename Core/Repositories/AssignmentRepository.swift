@@ -24,13 +24,17 @@ class AssignmentRepository: ObservableObject {
 
     private let firebase = FirebaseService.shared
     private var assignmentsListener: ListenerRegistration?
-    private var teacherAssignmentsListener: ListenerRegistration?
+    /// Multi-chunk listeners for the cross-class teacher view. Firestore
+    /// `whereField(_:in:)` is capped at 30 values, so we fan out and merge
+    /// the per-chunk results keyed by assignmentID (ISSUE-005).
+    private var teacherChunkListeners: [ListenerRegistration] = []
+    private var teacherChunkResults: [Int: [Assignment]] = [:]
     private var exerciseListeners: [String: ListenerRegistration] = [:]
     private let collectionPath = "assignments"
 
     deinit {
         assignmentsListener?.remove()
-        teacherAssignmentsListener?.remove()
+        teacherChunkListeners.forEach { $0.remove() }
         exerciseListeners.values.forEach { $0.remove() }
     }
 
@@ -65,8 +69,9 @@ class AssignmentRepository: ObservableObject {
     func stopListening() {
         assignmentsListener?.remove()
         assignmentsListener = nil
-        teacherAssignmentsListener?.remove()
-        teacherAssignmentsListener = nil
+        teacherChunkListeners.forEach { $0.remove() }
+        teacherChunkListeners = []
+        teacherChunkResults = [:]
         teacherAssignments = []
         exerciseListeners.values.forEach { $0.remove() }
         exerciseListeners.removeAll()
@@ -74,43 +79,64 @@ class AssignmentRepository: ObservableObject {
 
     /// Listen for all assignments across the teacher's classes (cross-class
     /// scope, powers the submission inbox). Independent of the per-class
-    /// `startListening(classID:)`. Limited to 10 class IDs per Firestore
-    /// `whereField(_:in:)` cap; surplus classes log a warning.
+    /// `startListening(classID:)`. Fans out one listener per 30-class chunk
+    /// and merges the results keyed by assignmentID (ISSUE-005 — previously
+    /// truncated at 10 and silently lost the rest).
     func startListeningAcrossClasses(classIDs: [String]) {
-        teacherAssignmentsListener?.remove()
+        teacherChunkListeners.forEach { $0.remove() }
+        teacherChunkListeners = []
+        teacherChunkResults = [:]
 
         guard !classIDs.isEmpty else {
             teacherAssignments = []
             return
         }
 
-        let chunks = classIDs.chunked(into: 10)
-        let firstChunk = chunks[0]
-        if chunks.count > 1 {
-            print("AssignmentRepository: listening on first 10 of \(classIDs.count) class IDs (Firestore 'in' cap)")
-        }
+        let chunks = classIDs.chunked(into: 30)
+        for (index, chunk) in chunks.enumerated() {
+            let query = firebase.db.collection(collectionPath)
+                .whereField("classID", in: chunk)
 
-        let query = firebase.db.collection(collectionPath)
-            .whereField("classID", in: firstChunk)
+            let registration = query.addSnapshotListener { [weak self] snapshot, error in
+                guard let self else { return }
+                if let error = error {
+                    print("Erreur écoute devoirs enseignant (chunk \(index)): \(error.localizedDescription)")
+                    self.teacherChunkResults[index] = []
+                    self.recomputeMergedTeacherAssignments()
+                    return
+                }
+                guard let documents = snapshot?.documents else {
+                    self.teacherChunkResults[index] = []
+                    self.recomputeMergedTeacherAssignments()
+                    return
+                }
+                do {
+                    let parsed = try documents.map { try $0.data(as: Assignment.self) }
+                    self.teacherChunkResults[index] = parsed
+                } catch {
+                    print("Erreur décodage devoirs enseignant (chunk \(index)): \(error.localizedDescription)")
+                    self.teacherChunkResults[index] = []
+                }
+                self.recomputeMergedTeacherAssignments()
+            }
+            teacherChunkListeners.append(registration)
+        }
+    }
 
-        teacherAssignmentsListener = query.addSnapshotListener { [weak self] snapshot, error in
-            if let error = error {
-                print("Erreur écoute devoirs enseignant: \(error.localizedDescription)")
-                self?.teacherAssignments = []
-                return
-            }
-            guard let documents = snapshot?.documents else {
-                self?.teacherAssignments = []
-                return
-            }
-            do {
-                self?.teacherAssignments = try documents.map { try $0.data(as: Assignment.self) }
-                    .sorted { $0.createdAt > $1.createdAt }
-            } catch {
-                print("Erreur décodage devoirs enseignant: \(error.localizedDescription)")
-                self?.teacherAssignments = []
+    /// Merge per-chunk teacher assignments by ID, sorted newest first.
+    private func recomputeMergedTeacherAssignments() {
+        var seen: Set<String> = []
+        var merged: [Assignment] = []
+        for chunk in teacherChunkResults.values {
+            for assignment in chunk {
+                guard let id = assignment.id else { continue }
+                if seen.insert(id).inserted {
+                    merged.append(assignment)
+                }
             }
         }
+        merged.sort { $0.createdAt > $1.createdAt }
+        teacherAssignments = merged
     }
 
     private func startExerciseListener(assignmentID: String) {

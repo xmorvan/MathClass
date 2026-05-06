@@ -14,6 +14,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/classes/$(classId)).data.teacherID == request.auth.uid;
     }
 
+    // Helper: check if the teacher owns the class an assignment belongs to.
+    // Used for /assignments writes so a teacher cannot edit another teacher's
+    // assignments even after authenticating (ISSUE-013).
+    function isAssignmentOwner(assignmentId) {
+      return isTeacher()
+        && isClassOwner(get(/databases/$(database)/documents/assignments/$(assignmentId)).data.classID);
+    }
+
     // ────────────────────────────────────────────────
     // Users (teacher profiles)
     // ────────────────────────────────────────────────
@@ -76,14 +84,30 @@ service cloud.firestore {
     // ────────────────────────────────────────────────
     match /assignments/{assignmentId} {
       allow read: if true; // Students need to read their assignments
-      allow create: if isTeacher();
-      allow update, delete: if isTeacher();
+      // Create: must own the target class (ISSUE-013 — previously any teacher
+      // could create assignments under any class).
+      allow create: if isTeacher()
+        && isClassOwner(request.resource.data.classID);
+      // Update/delete: must own the existing assignment's class.
+      allow update, delete: if isAssignmentOwner(assignmentId);
 
-      // Assignment exercises subcollection
+      // Assignment exercises subcollection — gate on the parent assignment's
+      // owner so only that teacher can mutate the exercise roster.
       match /exercises/{aeId} {
         allow read: if true;
-        allow write: if isTeacher();
+        allow write: if isAssignmentOwner(assignmentId);
       }
+    }
+
+    // ────────────────────────────────────────────────
+    // Levels-mode progress (per student per assignment)
+    // ────────────────────────────────────────────────
+    // Stored under classes/{classId}/students/{studentId}/levelProgress/{assignmentId}.
+    // Open to public read/write because students have no Firebase Auth — same
+    // posture as /submissions.
+    match /classes/{classId}/students/{studentId}/levelProgress/{assignmentId} {
+      allow read: if true;
+      allow write: if true;
     }
 
     // ────────────────────────────────────────────────

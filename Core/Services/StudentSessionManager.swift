@@ -16,6 +16,16 @@ import FirebaseFirestore
 final class StudentSessionManager: ObservableObject {
     static let shared = StudentSessionManager()
 
+    /// Coarse-grained restoration state for ContentView gating (ISSUE-007).
+    /// `loading` covers cold-start until the Keychain → Firestore lookup
+    /// finishes; the UI must wait on this before deciding what to render.
+    enum SessionState {
+        case loading
+        case signedIn
+        case signedOut
+    }
+
+    @Published private(set) var sessionState: SessionState = .loading
     @Published private(set) var currentStudent: Student?
     @Published private(set) var currentClassID: String?
     @Published private(set) var isLoggedIn: Bool = false
@@ -81,6 +91,7 @@ final class StudentSessionManager: ObservableObject {
         self.currentStudent = student
         self.currentClassID = classID
         self.isLoggedIn = true
+        self.sessionState = .signedIn
         self.loginError = nil
 
         // Set student role on AuthenticationService
@@ -98,6 +109,7 @@ final class StudentSessionManager: ObservableObject {
         currentStudent = nil
         currentClassID = nil
         isLoggedIn = false
+        sessionState = .signedOut
         loginError = nil
 
         // Clear student role
@@ -117,9 +129,13 @@ final class StudentSessionManager: ObservableObject {
               let classIDData = KeychainHelper.shared.read(key: classIDKey),
               let studentID = String(data: studentIDData, encoding: .utf8),
               let classID = String(data: classIDData, encoding: .utf8) else {
+            // No persisted session: leave loading and immediately settle.
+            self.sessionState = .signedOut
             return
         }
 
+        // Stay in `.loading` while the Firestore round-trip resolves so the
+        // UI doesn't flash a "signed out" screen on cold start (ISSUE-007).
         Task {
             do {
                 let student: Student = try await FirebaseService.shared.getDocument(
@@ -131,12 +147,14 @@ final class StudentSessionManager: ObservableObject {
                 self.currentStudent = student
                 self.currentClassID = classID
                 self.isLoggedIn = true
+                self.sessionState = .signedIn
 
                 AuthenticationService.shared.setStudentRole()
             } catch {
-                // Invalid session — clear it
+                // Invalid session — clear it and settle to signed-out.
                 _ = KeychainHelper.shared.delete(key: studentIDKey)
                 _ = KeychainHelper.shared.delete(key: classIDKey)
+                self.sessionState = .signedOut
             }
         }
     }

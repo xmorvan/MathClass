@@ -49,6 +49,7 @@ class SubmissionViewModel: ObservableObject {
     private let recognitionService: ClaudeRecognitionService
     private let correctionService: CorrectionService
     private let modeHandler: AssignmentModeHandler
+    private let levelProgressRepo: LevelProgressRepository
     private var currentAttempt: Int = 1
     private var pngURL: String?
     private var timeSpent: TimeInterval = 0
@@ -61,7 +62,8 @@ class SubmissionViewModel: ObservableObject {
         studentViewModel: StudentViewModel,
         recognitionService: ClaudeRecognitionService = .shared,
         correctionService: CorrectionService = .shared,
-        modeHandler: AssignmentModeHandler = .shared
+        modeHandler: AssignmentModeHandler = .shared,
+        levelProgressRepo: LevelProgressRepository = .shared
     ) {
         self.exercise = exercise
         self.assignmentMode = assignmentMode
@@ -69,12 +71,38 @@ class SubmissionViewModel: ObservableObject {
         self.recognitionService = recognitionService
         self.correctionService = correctionService
         self.modeHandler = modeHandler
+        self.levelProgressRepo = levelProgressRepo
 
         // Check if already on 2nd attempt
         if let exerciseID = exercise.id {
             let existing = studentViewModel.existingSubmissions(for: exerciseID)
             if existing.contains(where: { $0.attemptNumber == 1 && $0.finalResult != nil }) {
                 currentAttempt = 2
+            }
+        }
+
+        // Levels mode: load any persisted progress so the UI can render the
+        // current level / streak before the next submission lands (ISSUE-008).
+        if assignmentMode == .levels,
+           let assignmentID = studentViewModel.selectedAssignment?.id {
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    let stored = try await self.levelProgressRepo.getProgress(
+                        classID: self.studentViewModel.classID,
+                        studentID: self.studentViewModel.studentID,
+                        assignmentID: assignmentID
+                    )
+                    if let stored {
+                        self.levelProgress = AssignmentModeHandler.LevelProgress(
+                            consecutiveCorrect: stored.consecutiveCorrect,
+                            currentLevel: stored.currentLevel,
+                            didAdvance: false
+                        )
+                    }
+                } catch {
+                    print("Erreur chargement progression niveaux: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -100,20 +128,7 @@ class SubmissionViewModel: ObservableObject {
             self.recognizedSteps = result.latexSteps
             self.phase = .verifying
         } catch let recognitionError as RecognitionError {
-            switch recognitionError {
-            case .lowConfidence:
-                // Low confidence — still show steps but warn
-                self.error = recognitionError.errorDescription
-                self.showError = true
-                self.phase = .verifying
-            default:
-                self.error = recognitionError.errorDescription ?? "Erreur de reconnaissance."
-                self.showError = true
-                // On recognition failure, go to verification with empty steps
-                // so the student can manually enter LaTeX or submit directly
-                self.recognizedSteps = []
-                self.phase = .verifying
-            }
+            handleRecognitionFailure(recognitionError)
         } catch {
             self.error = "Erreur lors de l'envoi: \(error.localizedDescription)"
             self.showError = true
@@ -121,6 +136,55 @@ class SubmissionViewModel: ObservableObject {
             self.recognizedSteps = []
             self.phase = .verifying
         }
+    }
+
+    /// Re-run recognition against the PNG that was already uploaded for this
+    /// attempt. Surfaced from `VerificationView` when the first call returned
+    /// no steps or timed out (ISSUE-003).
+    func retryRecognition() async {
+        guard let imagePath = pngURL else {
+            // No PNG was ever uploaded — caller should send the student back
+            // to the canvas instead of staying on this screen.
+            self.error = "Aucun dessin à reconnaître. Veuillez retourner au dessin."
+            self.showError = true
+            return
+        }
+        phase = .recognizing
+        do {
+            let result = try await recognitionService.recognizeFromStorage(path: imagePath)
+            self.recognizedSteps = result.latexSteps
+            self.phase = .verifying
+        } catch let recognitionError as RecognitionError {
+            handleRecognitionFailure(recognitionError)
+        } catch {
+            self.error = "Erreur lors de la reconnaissance: \(error.localizedDescription)"
+            self.showError = true
+            self.phase = .verifying
+        }
+    }
+
+    private func handleRecognitionFailure(_ recognitionError: RecognitionError) {
+        switch recognitionError {
+        case .lowConfidence:
+            // Low confidence — still show whatever steps came back, but warn
+            // and let the student decide whether to retry / redraw.
+            self.error = recognitionError.errorDescription
+            self.showError = true
+            self.phase = .verifying
+        default:
+            self.error = recognitionError.errorDescription ?? "Erreur de reconnaissance."
+            self.showError = true
+            // Go to verification with empty steps so the student can retry
+            // recognition, manually enter LaTeX, or go back to the canvas.
+            self.recognizedSteps = []
+            self.phase = .verifying
+        }
+    }
+
+    /// Whether the student can ask for another recognition pass on the
+    /// already-uploaded PNG (no point if no PNG was ever uploaded).
+    var canRetryRecognition: Bool {
+        pngURL != nil && phase != .recognizing && phase != .submitting
     }
 
     // MARK: - Step 2: Confirm LaTeX and Submit
@@ -164,11 +228,32 @@ class SubmissionViewModel: ObservableObject {
             // Compute level progression for levels mode
             if assignmentMode == .levels, let exerciseID = exercise.id {
                 let existingSubmissions = studentViewModel.existingSubmissions(for: exerciseID)
-                self.levelProgress = modeHandler.computeLevelProgress(
+                let progress = modeHandler.computeLevelProgress(
                     existingSubmissions: existingSubmissions,
                     newResult: result,
                     attemptNumber: currentAttempt
                 )
+                self.levelProgress = progress
+                // Persist so the next session sees the same streak / level
+                // (ISSUE-008). Failure is non-fatal — log only.
+                if let assignmentID = studentViewModel.selectedAssignment?.id {
+                    Task { [weak self] in
+                        guard let self else { return }
+                        do {
+                            try await self.levelProgressRepo.setProgress(
+                                classID: self.studentViewModel.classID,
+                                studentID: self.studentViewModel.studentID,
+                                assignmentID: assignmentID,
+                                progress: LevelProgressRepository.LevelProgressDoc(
+                                    consecutiveCorrect: progress.consecutiveCorrect,
+                                    currentLevel: progress.currentLevel
+                                )
+                            )
+                        } catch {
+                            print("Erreur sauvegarde progression niveaux: \(error.localizedDescription)")
+                        }
+                    }
+                }
             }
 
             self.phase = .feedback

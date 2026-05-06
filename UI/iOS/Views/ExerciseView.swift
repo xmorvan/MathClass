@@ -197,12 +197,29 @@ struct ExerciseView: View {
         guard let start = startTime else { return }
         let duration = Date().timeIntervalSince(start)
 
-        let bounds = canvasView.drawing.bounds
-        let image = canvasView.drawing.image(from: bounds, scale: 2.0)
-        guard let imageData = image.pngData() else { return }
+        guard let imageData = renderCanvasPNG(canvasView: canvasView) else { return }
 
         showingFlowSheet = true
         Task { await submissionVM.verify(imageData: imageData, duration: duration) }
+    }
+
+    /// Render the PencilKit drawing to a PNG sized for upload + recognition.
+    ///
+    /// On a 12.9" iPad Pro, the previous `scale: 2.0` rendering produced
+    /// 5–10 MB images that strained the recognize_handwriting upload and
+    /// burned the Cloud Function timeout (ISSUE-009). We now render at 1×
+    /// and downscale further if the long edge exceeds `maxLongEdge` so the
+    /// payload is consistently in the hundreds-of-KB range.
+    private func renderCanvasPNG(canvasView: PKCanvasView) -> Data? {
+        let bounds = canvasView.drawing.bounds
+        guard !bounds.isEmpty else { return nil }
+
+        let maxLongEdge: CGFloat = 1600
+        let longEdge = max(bounds.width, bounds.height)
+        let scale: CGFloat = longEdge > maxLongEdge ? (maxLongEdge / longEdge) : 1.0
+
+        let image = canvasView.drawing.image(from: bounds, scale: scale)
+        return image.pngData()
     }
 }
 

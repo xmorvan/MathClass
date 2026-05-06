@@ -193,39 +193,27 @@ final class StatisticsService {
         let totalTime = allStudentStats.reduce(0.0) { $0 + $1.averageTime * Double($1.totalAttempts) }
         let averageTime = totalSubmissions > 0 ? totalTime / Double(totalSubmissions) : 0
 
-        // Weakest competencies (aggregate across all students)
-        var competencyCorrect: [String: Int] = [:]
-        var competencyTotal: [String: Int] = [:]
-
-        for stats in allStudentStats {
-            for (comp, rate) in stats.competencyRates {
-                // Reconstruct from rate + totals
-                let studentCompTotal = stats.totalAttempts > 0 ? 1 : 0
-                competencyTotal[comp, default: 0] += studentCompTotal
-                if rate >= 0.5 {
-                    competencyCorrect[comp, default: 0] += 1
-                }
-            }
-        }
-
-        // Recalculate properly from raw submissions
-        var compCorrectRaw: [String: Int] = [:]
-        var compTotalRaw: [String: Int] = [:]
+        // Weakest competencies — aggregate from the best (student, exercise)
+        // submission pairs so multiple attempts on the same exercise don't
+        // double-count. ISSUE-017 removed an earlier shadowed pass that
+        // built per-student rates and threw them away here.
+        var compCorrect: [String: Int] = [:]
+        var compTotal: [String: Int] = [:]
 
         let bestPerStudentExercise = bestResultsGrouped(classSubmissions)
         for submission in bestPerStudentExercise {
             let competencies = exerciseCompetencyMap[submission.exerciseID] ?? []
             for comp in competencies {
-                compTotalRaw[comp, default: 0] += 1
+                compTotal[comp, default: 0] += 1
                 if submission.finalResult?.isSuccess == true {
-                    compCorrectRaw[comp, default: 0] += 1
+                    compCorrect[comp, default: 0] += 1
                 }
             }
         }
 
-        let weakestCompetencies = compTotalRaw
+        let weakestCompetencies = compTotal
             .map { comp, total in
-                (competencyID: comp, successRate: total > 0 ? Double(compCorrectRaw[comp, default: 0]) / Double(total) : 0.0)
+                (competencyID: comp, successRate: total > 0 ? Double(compCorrect[comp, default: 0]) / Double(total) : 0.0)
             }
             .sorted { $0.successRate < $1.successRate }
 

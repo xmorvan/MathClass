@@ -52,8 +52,6 @@ final class KaTeXRenderer {
         fontSize: CGFloat = 18,
         mathColor: String = "black"
     ) -> String {
-        let escapedContent = escapeForJS(content)
-
         return """
         <!DOCTYPE html>
         <html>
@@ -320,19 +318,68 @@ final class KaTeXRenderer {
 
     // MARK: - Validation
 
-    /// Basic LaTeX syntax validation (balanced braces/brackets).
+    /// Basic LaTeX syntax validation. Catches common authoring slips before
+    /// the WebView renders red error text. KaTeX itself is the final source
+    /// of truth — this is a fast-fail layer for obvious mistakes
+    /// (ISSUE-018).
     func validateLaTeX(_ latex: String) -> (isValid: Bool, error: String?) {
-        let openBraces = latex.filter { $0 == "{" }.count
-        let closeBraces = latex.filter { $0 == "}" }.count
-        let openBrackets = latex.filter { $0 == "[" }.count
-        let closeBrackets = latex.filter { $0 == "]" }.count
+        // 1. Balanced braces / brackets / parens — most frequent mistake.
+        var openBraces = 0, openBrackets = 0, openParens = 0
+        var prev: Character = " "
+        for ch in latex {
+            switch ch {
+            case "{" where prev != "\\": openBraces += 1
+            case "}" where prev != "\\": openBraces -= 1
+            case "[": openBrackets += 1
+            case "]": openBrackets -= 1
+            case "(": openParens += 1
+            case ")": openParens -= 1
+            default: break
+            }
+            if openBraces < 0 {
+                return (false, "Accolade fermante en trop dans le LaTeX.")
+            }
+            if openBrackets < 0 {
+                return (false, "Crochet fermant en trop dans le LaTeX.")
+            }
+            if openParens < 0 {
+                return (false, "Parenthèse fermante en trop dans le LaTeX.")
+            }
+            prev = ch
+        }
+        if openBraces != 0 {
+            return (false, "Accolades non équilibrées dans le LaTeX.")
+        }
+        if openBrackets != 0 {
+            return (false, "Crochets non équilibrés dans le LaTeX.")
+        }
+        if openParens != 0 {
+            return (false, "Parenthèses non équilibrées dans le LaTeX.")
+        }
 
-        if openBraces != closeBraces {
-            return (false, "Accolades non équilibrées dans le LaTeX")
+        // 2. `\frac`, `\sqrt[n]`, etc. — flag commands that take a required
+        //    argument but are immediately followed by a space or end-of-string.
+        //    This is heuristic, not exhaustive — KaTeX still has the final say.
+        let needsArg: Set<String> = ["frac", "sqrt", "binom", "overline", "underline", "vec", "hat", "tilde"]
+        let pattern = #"\\([a-zA-Z]+)\s*(\{)?"#
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            let range = NSRange(latex.startIndex..., in: latex)
+            let matches = regex.matches(in: latex, range: range)
+            for match in matches where match.numberOfRanges >= 3 {
+                guard let cmdRange = Range(match.range(at: 1), in: latex) else { continue }
+                let cmd = String(latex[cmdRange])
+                if needsArg.contains(cmd), match.range(at: 2).location == NSNotFound {
+                    return (false, "La commande \\\(cmd) attend un argument entre accolades.")
+                }
+            }
         }
-        if openBrackets != closeBrackets {
-            return (false, "Crochets non équilibrés dans le LaTeX")
+
+        // 3. `\frac{a}` with only one arg — count braces after the command.
+        //    Lightweight check: \frac followed by exactly one {…} block.
+        if latex.range(of: #"\\frac\{[^{}]*\}(?!\s*\{)"#, options: .regularExpression) != nil {
+            return (false, "\\frac attend deux arguments : \\frac{numérateur}{dénominateur}.")
         }
+
         return (true, nil)
     }
 

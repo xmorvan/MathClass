@@ -20,6 +20,11 @@ struct ContentView: View {
             if authService.userRole == .teacher, authService.currentUser != nil {
                 // Teacher is authenticated via Firebase Auth
                 TeacherView()
+            } else if sessionManager.sessionState == .loading {
+                // Still restoring the keychain → Firestore session — show a
+                // neutral splash so we don't flash RoleSelectionView while
+                // the lookup is in flight (ISSUE-007).
+                ProgressView("Chargement...")
             } else if sessionManager.isLoggedIn,
                       let student = sessionManager.currentStudent,
                       let studentID = student.id,

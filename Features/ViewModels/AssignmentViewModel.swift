@@ -29,6 +29,10 @@ class AssignmentViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let teacherViewModel: TeacherViewModel
+    /// Tracks the last class ID we issued a student-listener attach for, so
+    /// rapid picker changes (A → B → C) don't re-attach to the same class
+    /// or interleave attaches for stale selections (ISSUE-015).
+    private var lastLoadedClassID: String?
 
     init(teacherViewModel: TeacherViewModel) {
         self.teacherViewModel = teacherViewModel
@@ -77,8 +81,17 @@ class AssignmentViewModel: ObservableObject {
     }
 
     /// Ensure student data is loaded for the selected class.
+    /// Cheap to call repeatedly — guards against re-attaching to the same
+    /// class and against a stale selection clobbering the live one
+    /// (ISSUE-015). The underlying `studentRepo.startListening` also tears
+    /// down its previous listener, so at most one listener is ever live.
     func loadStudentsForSelectedClass() {
-        guard let classID = selectedClassID else { return }
+        guard let classID = selectedClassID else {
+            lastLoadedClassID = nil
+            return
+        }
+        guard classID != lastLoadedClassID else { return }
+        lastLoadedClassID = classID
         teacherViewModel.studentRepo.startListening(classID: classID)
     }
 
