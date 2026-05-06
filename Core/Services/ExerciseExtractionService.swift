@@ -42,6 +42,12 @@ final class ExerciseExtractionService {
             throw ExtractionError.invalidResponse
         }
 
+        let trimmedStatement = statement.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAnswer = expectedAnswer.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedStatement.isEmpty && trimmedAnswer.isEmpty {
+            throw ExtractionError.empty
+        }
+
         return ExtractionResult(
             statement: statement,
             expectedAnswer: expectedAnswer
@@ -50,11 +56,14 @@ final class ExerciseExtractionService {
 
     enum ExtractionError: LocalizedError {
         case invalidResponse
+        case empty
 
         var errorDescription: String? {
             switch self {
             case .invalidResponse:
                 return "La réponse du service d'extraction est invalide."
+            case .empty:
+                return "Aucun contenu détecté — réessayez ou éditez manuellement."
             }
         }
     }

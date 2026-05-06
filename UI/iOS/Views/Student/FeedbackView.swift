@@ -39,6 +39,11 @@ struct FeedbackView: View {
 
             actionButtons
         }
+        .alert("Erreur", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.error ?? "Une erreur est survenue.")
+        }
     }
 
     // MARK: - Header

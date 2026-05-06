@@ -161,6 +161,15 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
         statement = result.get("statement", "")
         expected_answer = result.get("expectedAnswer", "")
 
+        # Defence in depth (ISSUE-009): if Claude returned blank fields,
+        # the source image was either empty or not a math exercise. Reject
+        # rather than letting the editor populate empty fields.
+        if not (statement or "").strip() and not (expected_answer or "").strip():
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+                message="Aucun contenu détecté dans l'image.",
+            )
+
         return {
             "statement": statement,
             "expectedAnswer": expected_answer,

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 // Per CLAUDE.md, ViewModels must not import SwiftUI. FirebaseStorage is
 // owned by DataService (we delegate to `uploadExerciseImage` →
 // `DataService.uploadData`). FirebaseFirestore was unused.
@@ -36,6 +37,10 @@ class TeacherViewModel: ObservableObject {
     /// Currently selected class for detail views
     @Published var selectedClassID: String?
 
+    // MARK: - Combine
+
+    private var cancellables: Set<AnyCancellable> = []
+
     // MARK: - Computed Convenience
 
     var classes: [ClassRoom] { classRepo.classes }
@@ -43,6 +48,13 @@ class TeacherViewModel: ObservableObject {
     var exercises: [Exercise] { exerciseRepo.exercises }
     var chapters: [Chapter] { chapterRepo.chapters }
     var assignments: [Assignment] { assignmentRepo.assignments }
+
+    /// Submissions across all the teacher's classes (powers the inbox).
+    var recentSubmissions: [Submission] { submissionRepo.submissions }
+
+    /// Best-effort cross-class student directory used by the submission inbox
+    /// to display student names. Refreshed when the class list changes.
+    @Published private(set) var studentDirectory: [String: Student] = [:]
 
     /// Students filtered by a class ID
     func studentsInClass(_ classID: String) -> [Student] {
@@ -72,6 +84,28 @@ class TeacherViewModel: ObservableObject {
     func startListening(teacherID: String) {
         classRepo.startListening(teacherID: teacherID)
         exerciseRepo.startListening(teacherID: teacherID)
+
+        // Cross-class chain that powers the submission inbox:
+        //   classRepo.classes  ->  assignmentRepo.teacherAssignments
+        //                      ->  submissionRepo.submissions
+        // Each upstream change re-arms the next listener in the chain.
+        classRepo.$classes
+            .map { $0.compactMap(\.id) }
+            .removeDuplicates()
+            .sink { [weak self] classIDs in
+                guard let self = self else { return }
+                self.assignmentRepo.startListeningAcrossClasses(classIDs: classIDs)
+                Task { await self.refreshStudentDirectory(classIDs: classIDs) }
+            }
+            .store(in: &cancellables)
+
+        assignmentRepo.$teacherAssignments
+            .map { $0.compactMap(\.id) }
+            .removeDuplicates()
+            .sink { [weak self] assignmentIDs in
+                self?.submissionRepo.startListeningForTeacher(classAssignmentIDs: assignmentIDs)
+            }
+            .store(in: &cancellables)
     }
 
     /// Start listeners for a specific class detail view.
@@ -83,11 +117,34 @@ class TeacherViewModel: ObservableObject {
     }
 
     func stopListening() {
+        cancellables.removeAll()
         classRepo.stopListening()
         studentRepo.stopListening()
         exerciseRepo.stopListening()
         chapterRepo.stopListening()
         assignmentRepo.stopListening()
+        submissionRepo.stopListening()
+    }
+
+    /// One-shot fetch of all students across the teacher's classes. Used by
+    /// the submission inbox to display student names regardless of which
+    /// class is currently selected. Best-effort — failures are logged and
+    /// the inbox falls back to the student ID prefix.
+    private func refreshStudentDirectory(classIDs: [String]) async {
+        var directory: [String: Student] = [:]
+        for classID in classIDs {
+            do {
+                let students = try await studentRepo.getStudents(classID: classID)
+                for student in students {
+                    if let id = student.id {
+                        directory[id] = student
+                    }
+                }
+            } catch {
+                print("Erreur chargement annuaire élèves (\(classID)): \(error.localizedDescription)")
+            }
+        }
+        self.studentDirectory = directory
     }
 
     // MARK: - Class Management

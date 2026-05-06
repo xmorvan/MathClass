@@ -8,56 +8,40 @@ Functions:
   - correct_submission: Hybrid correction pipeline using Claude + SymPy
 """
 
-from firebase_functions import https_fn, options
+from firebase_functions import https_fn, options, params
 
 # Set region for all functions
 options.set_global_options(region=options.SupportedRegion.EUROPE_WEST6)
 
-# Import function implementations
-from extract_exercise import extract_exercise_handler
-from recognize_handwriting import recognize_handwriting_handler
-from correct_submission import correct_submission_handler
+# Anthropic API key sourced from Firebase Secret Manager rather than a plain
+# env var (ISSUE-014). Set it once with:
+#   firebase functions:secrets:set ANTHROPIC_API_KEY
+# The decorator binding below makes the secret available inside each handler
+# as `os.environ["ANTHROPIC_API_KEY"]`, so the per-handler implementations
+# don't need to know about SecretParam.
+ANTHROPIC_KEY = params.SecretParam("ANTHROPIC_API_KEY")
+
+# Handler modules are imported lazily inside each function — the top-level
+# imports of anthropic, firebase_admin, sympy, etc. are collectively too
+# heavy and blow the 10-second deployment introspection timeout.
 
 
-@https_fn.on_call()
+@https_fn.on_call(secrets=[ANTHROPIC_KEY])
 def extract_exercise(req: https_fn.CallableRequest) -> dict:
-    """Extract LaTeX statement and expected answer from an exercise image.
-
-    Args:
-        req.data["storagePath"]: Cloud Storage path to the exercise image.
-
-    Returns:
-        dict with "statement" (LaTeX/text) and "expectedAnswer" (LaTeX).
-    """
+    """Extract LaTeX statement and expected answer from an exercise image."""
+    from extract_exercise import extract_exercise_handler
     return extract_exercise_handler(req)
 
 
-@https_fn.on_call()
+@https_fn.on_call(secrets=[ANTHROPIC_KEY])
 def recognize_handwriting(req: https_fn.CallableRequest) -> dict:
-    """Recognize student handwriting from a PencilKit PNG export.
-
-    Args:
-        req.data["storagePath"]: Cloud Storage path to the PNG, OR
-        req.data["imageBase64"]: Base64-encoded PNG image.
-        req.data["format"]: Image format (default: "png").
-
-    Returns:
-        dict with "steps" (list of LaTeX strings) and "confidence" (float 0-1).
-    """
+    """Recognize student handwriting from a PencilKit PNG export."""
+    from recognize_handwriting import recognize_handwriting_handler
     return recognize_handwriting_handler(req)
 
 
-@https_fn.on_call()
+@https_fn.on_call(secrets=[ANTHROPIC_KEY])
 def correct_submission(req: https_fn.CallableRequest) -> dict:
-    """Correct a student's submission using hybrid Claude + SymPy pipeline.
-
-    Args:
-        req.data["studentSteps"]: List of LaTeX strings (student's work).
-        req.data["expectedAnswer"]: LaTeX string (correct answer).
-        req.data["statement"]: Exercise statement for context.
-
-    Returns:
-        dict with "stepResults" (list of booleans), "firstErrorIndex" (int or null),
-        and "allCorrect" (boolean).
-    """
+    """Correct a student's submission using hybrid Claude + SymPy pipeline."""
+    from correct_submission import correct_submission_handler
     return correct_submission_handler(req)

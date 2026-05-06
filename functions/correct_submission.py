@@ -17,20 +17,46 @@ import re
 import anthropic
 from firebase_functions import https_fn
 
-# Try importing sympy AND its LaTeX parser. parse_latex needs the
-# `antlr4-python3-runtime` package at call time, but a missing antlr does
-# not raise on import — it raises the first time parse_latex actually runs.
-# Force-trigger a tiny parse so we either confirm everything is wired up
-# or fall back to Claude-only verification fast (instead of paying for an
-# extra Claude round-trip per step on every correction).
-try:
-    import sympy
-    from sympy.parsing.latex import parse_latex
+# SymPy is imported lazily on first call — `import sympy` alone takes
+# several seconds and blows the 10-second Cloud Functions deployment
+# introspection timeout when combined with the other heavy imports
+# (anthropic, firebase_functions, etc.).
+sympy = None
+parse_latex = None
+SYMPY_AVAILABLE = False
 
-    _ = parse_latex("1+1")  # raises ImportError if antlr4 is missing
-    SYMPY_AVAILABLE = True
-except Exception:
-    SYMPY_AVAILABLE = False
+
+def _ensure_sympy():
+    """Lazy-load sympy + parse_latex on first use."""
+    global sympy, parse_latex, SYMPY_AVAILABLE
+    if sympy is not None:
+        return
+    try:
+        import sympy as _sympy
+        from sympy.parsing.latex import parse_latex as _parse_latex
+
+        # parse_latex needs antlr4-python3-runtime, but a missing antlr does
+        # not raise on import — it raises the first time parse_latex runs.
+        # Probe here so SYMPY_AVAILABLE reflects actual usability.
+        _parse_latex("1+1")
+
+        sympy = _sympy
+        parse_latex = _parse_latex
+        SYMPY_AVAILABLE = True
+    except Exception:
+        SYMPY_AVAILABLE = False
+
+
+def _get_firestore():
+    """Lazy-load firebase_admin.firestore() — kept off the import path so the
+    deployment introspection step doesn't pay for it. Initialises the default
+    app if no other handler did so first."""
+    import firebase_admin
+    from firebase_admin import firestore
+
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app()
+    return firestore.client()
 
 
 # System prompt for structuring step pairs (Phase 1 of correction)
@@ -88,6 +114,7 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
     Returns:
         True if equivalent, False if not, None if SymPy can't determine.
     """
+    _ensure_sympy()
     if not SYMPY_AVAILABLE:
         return None
 
@@ -168,7 +195,12 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             - studentSteps: list of LaTeX strings (student's work)
             - expectedAnswer: LaTeX string (the correct answer)
             - statement: Exercise statement for context
-            - submissionID: Firestore document ID (for logging/debugging)
+            - submissionID: Firestore document ID — the function will patch
+              correctionResult + finalResult on this doc via Admin SDK.
+              Required because students have no Firebase Auth and the
+              firestore.rules update guard is `isTeacher()`; the client
+              cannot persist correction results itself.
+            - attemptNumber: 1 or 2 (used to compute success_1st vs success_2nd).
 
     Returns:
         dict with:
@@ -188,6 +220,34 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
     student_steps = req.data.get("studentSteps", [])
     expected_answer = req.data.get("expectedAnswer", "")
     statement = req.data.get("statement", "")
+    submission_id = req.data.get("submissionID")
+    attempt_number = req.data.get("attemptNumber")
+
+    if not isinstance(student_steps, list):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="'studentSteps' doit être une liste.",
+        )
+
+    # Bound the input — a runaway list would burn Anthropic credits and
+    # blow the 60s function timeout (ISSUE-013).
+    if len(student_steps) > 30:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Trop d'étapes (maximum 30).",
+        )
+
+    if not isinstance(submission_id, str) or not submission_id:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="'submissionID' est requis.",
+        )
+
+    if attempt_number not in (1, 2):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="'attemptNumber' doit être 1 ou 2.",
+        )
 
     if not student_steps:
         return {
@@ -277,6 +337,31 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                 first_error_index = i
 
         all_correct = all(step_results)
+
+        # Persist the correction result on the submission doc using the
+        # Admin SDK so it bypasses firestore.rules (the rule on submissions
+        # update is `isTeacher()`, and students have no Firebase Auth —
+        # the previous client-side write silently failed; see ISSUE-040).
+        if all_correct:
+            final_result = "success_1st" if attempt_number == 1 else "success_2nd"
+        else:
+            final_result = "failed"
+
+        try:
+            db = _get_firestore()
+            db.collection("submissions").document(submission_id).update({
+                "correctionResult": {
+                    "stepResults": step_results,
+                    "firstErrorIndex": first_error_index,
+                },
+                "finalResult": final_result,
+            })
+        except Exception as persist_error:
+            # Do not fail the whole call — the iOS client already has the
+            # correction in memory and can render feedback. The teacher
+            # inbox just won't see this submission until the next manual
+            # retry. Log and continue.
+            print(f"[correct_submission] Firestore persist failed: {persist_error}")
 
         return {
             "stepResults": step_results,

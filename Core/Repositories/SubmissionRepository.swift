@@ -38,6 +38,52 @@ class SubmissionRepository: ObservableObject {
         }
     }
 
+    /// Listen for all recent submissions across the teacher's active
+    /// assignments. Powers `SubmissionInboxView_macOS`.
+    ///
+    /// Firestore caps `whereField(_:in:)` at 10 values. For MVP we listen
+    /// on the first 10 assignment IDs and log a warning if the teacher has
+    /// more — this keeps the listener simple and is sufficient for early
+    /// classroom use. A future fix would fan out one listener per chunk
+    /// and merge the results.
+    func startListeningForTeacher(classAssignmentIDs: [String]) {
+        listener?.remove()
+
+        guard !classAssignmentIDs.isEmpty else {
+            submissions = []
+            return
+        }
+
+        let chunked = classAssignmentIDs.chunked(into: 10)
+        let firstChunk = chunked[0]
+        if chunked.count > 1 {
+            print("SubmissionRepository: listening on first 10 of \(classAssignmentIDs.count) assignment IDs (Firestore 'in' cap)")
+        }
+
+        let query = firebase.db.collection(collectionPath)
+            .whereField("assignmentID", in: firstChunk)
+            .order(by: "timestamp", descending: true)
+            .limit(to: 100)
+
+        listener = query.addSnapshotListener { [weak self] snapshot, error in
+            if let error = error {
+                print("Erreur écoute soumissions enseignant: \(error.localizedDescription)")
+                self?.submissions = []
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                self?.submissions = []
+                return
+            }
+            do {
+                self?.submissions = try documents.map { try $0.data(as: Submission.self) }
+            } catch {
+                print("Erreur décodage soumissions enseignant: \(error.localizedDescription)")
+                self?.submissions = []
+            }
+        }
+    }
+
     /// Listen for a student's submissions within an assignment.
     func startListening(studentID: String, assignmentID: String) {
         listener?.remove()

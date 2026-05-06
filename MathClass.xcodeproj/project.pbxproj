@@ -59,6 +59,8 @@
 				macOS/Views/Statistics/ExerciseErrorAnalysisView.swift,
 				macOS/Views/Statistics/StudentStatsDetailView.swift,
 				macOS/Views/StatisticsView_macOS.swift,
+                macOS/Views/Submissions/SubmissionDetailView_macOS.swift,
+                macOS/Views/Submissions/SubmissionInboxView_macOS.swift,
 				macOS/Views/TeacherProfileView_macOS.swift,
 				macOS/Views/TeacherSignUpView_macOS.swift,
 				macOS/Views/TeacherView_macOS.swift,

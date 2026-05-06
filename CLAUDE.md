@@ -5,9 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Run
 
 - **iOS / macOS:** Open `MathClass.xcodeproj` in Xcode, select target, `Cmd+R`
-- **Firebase functions:** `firebase deploy --only functions`
+- **Firebase functions:** `firebase deploy --only functions,firestore:indexes`
 - **Firebase emulator:** `firebase emulators:start`
 - Requires `GoogleService-Info.plist` in the project root (not in source control)
+- Anthropic API key is stored as a Firebase secret. Before first deploy: `firebase functions:secrets:set ANTHROPIC_API_KEY`
 
 ## Architecture
 

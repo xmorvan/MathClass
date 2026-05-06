@@ -141,9 +141,14 @@ class AssignmentViewModel: ObservableObject {
     }
 
     /// Set target student IDs for an exercise (differentiation mode).
+    /// An empty array is normalised to `nil` so the read path interprets it
+    /// as "all students" (per `AssignmentRepository.getExercisesForStudent`),
+    /// preventing the bug where deselecting every student in the targeting
+    /// popover hides the exercise from everyone.
     func setTargetStudents(exerciseIndex: Int, studentIDs: [String]?, groupName: String?) {
         guard exerciseIndex < selectedExercises.count else { return }
-        selectedExercises[exerciseIndex].targetStudentIDs = studentIDs
+        let normalized: [String]? = (studentIDs?.isEmpty ?? true) ? nil : studentIDs
+        selectedExercises[exerciseIndex].targetStudentIDs = normalized
         selectedExercises[exerciseIndex].targetGroupName = groupName
     }
 

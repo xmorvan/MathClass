@@ -52,6 +52,11 @@ struct VerificationView: View {
         .onChange(of: viewModel.recognizedSteps) { _, newValue in
             editableSteps = newValue
         }
+        .alert("Erreur", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.error ?? "Une erreur est survenue.")
+        }
     }
 
     // MARK: - Header

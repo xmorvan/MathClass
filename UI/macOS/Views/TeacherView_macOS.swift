@@ -30,6 +30,9 @@ struct TeacherView_macOS: View {
                     NavigationLink(value: 3) {
                         Label("Devoirs", systemImage: "tray.full")
                     }
+                    NavigationLink(value: 5) {
+                        Label("Soumissions", systemImage: "tray.and.arrow.down")
+                    }
                     NavigationLink(value: 4) {
                         Label("Statistiques", systemImage: "chart.bar")
                     }
@@ -85,6 +88,8 @@ struct TeacherView_macOS: View {
                     AssignmentListView_macOS(viewModel: viewModel)
                 case 4:
                     StatisticsView_macOS(viewModel: viewModel)
+                case 5:
+                    SubmissionInboxView_macOS(viewModel: viewModel)
                 default:
                     Text("Sélectionnez une section")
                 }

@@ -401,7 +401,11 @@ struct CreateAssignmentView_macOS: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(assignmentVM.isCreating)
+                .disabled(
+                    assignmentVM.isCreating
+                        || assignmentVM.selectedExercises.isEmpty
+                        || assignmentVM.selectedClassID == nil
+                )
             } else {
                 Button("Suivant") {
                     withAnimation {
@@ -416,7 +420,10 @@ struct CreateAssignmentView_macOS: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(currentStep == .configure && assignmentVM.selectedClassID == nil)
+                .disabled(
+                    (currentStep == .configure && assignmentVM.selectedClassID == nil)
+                        || (currentStep == .selectExercises && assignmentVM.selectedExercises.isEmpty)
+                )
             }
         }
         .padding()

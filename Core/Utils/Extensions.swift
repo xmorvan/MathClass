@@ -156,6 +156,20 @@ extension NSImage {
 }
 #endif
 
+// MARK: - Extensions Array
+
+extension Array {
+    /// Splits the array into chunks of at most `size` elements.
+    /// Used to fit Firestore `whereField(... in: ...)` queries under the
+    /// 10-element cap.
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else { return [self] }
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
+        }
+    }
+}
+
 // MARK: - Extensions Date
 
 extension Date {

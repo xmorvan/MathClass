@@ -16,15 +16,21 @@ import Combine
 class AssignmentRepository: ObservableObject {
     @Published private(set) var assignments: [Assignment] = []
     @Published private(set) var assignmentExercises: [String: [AssignmentExercise]] = [:] // assignmentID -> exercises
+    /// All assignments across the teacher's classes — populated by
+    /// `startListeningAcrossClasses(classIDs:)`. Independent of the per-class
+    /// `assignments` listener; used by the submission inbox.
+    @Published private(set) var teacherAssignments: [Assignment] = []
     @Published var error: String?
 
     private let firebase = FirebaseService.shared
     private var assignmentsListener: ListenerRegistration?
+    private var teacherAssignmentsListener: ListenerRegistration?
     private var exerciseListeners: [String: ListenerRegistration] = [:]
     private let collectionPath = "assignments"
 
     deinit {
         assignmentsListener?.remove()
+        teacherAssignmentsListener?.remove()
         exerciseListeners.values.forEach { $0.remove() }
     }
 
@@ -59,8 +65,52 @@ class AssignmentRepository: ObservableObject {
     func stopListening() {
         assignmentsListener?.remove()
         assignmentsListener = nil
+        teacherAssignmentsListener?.remove()
+        teacherAssignmentsListener = nil
+        teacherAssignments = []
         exerciseListeners.values.forEach { $0.remove() }
         exerciseListeners.removeAll()
+    }
+
+    /// Listen for all assignments across the teacher's classes (cross-class
+    /// scope, powers the submission inbox). Independent of the per-class
+    /// `startListening(classID:)`. Limited to 10 class IDs per Firestore
+    /// `whereField(_:in:)` cap; surplus classes log a warning.
+    func startListeningAcrossClasses(classIDs: [String]) {
+        teacherAssignmentsListener?.remove()
+
+        guard !classIDs.isEmpty else {
+            teacherAssignments = []
+            return
+        }
+
+        let chunks = classIDs.chunked(into: 10)
+        let firstChunk = chunks[0]
+        if chunks.count > 1 {
+            print("AssignmentRepository: listening on first 10 of \(classIDs.count) class IDs (Firestore 'in' cap)")
+        }
+
+        let query = firebase.db.collection(collectionPath)
+            .whereField("classID", in: firstChunk)
+
+        teacherAssignmentsListener = query.addSnapshotListener { [weak self] snapshot, error in
+            if let error = error {
+                print("Erreur écoute devoirs enseignant: \(error.localizedDescription)")
+                self?.teacherAssignments = []
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                self?.teacherAssignments = []
+                return
+            }
+            do {
+                self?.teacherAssignments = try documents.map { try $0.data(as: Assignment.self) }
+                    .sorted { $0.createdAt > $1.createdAt }
+            } catch {
+                print("Erreur décodage devoirs enseignant: \(error.localizedDescription)")
+                self?.teacherAssignments = []
+            }
+        }
     }
 
     private func startExerciseListener(assignmentID: String) {

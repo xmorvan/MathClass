@@ -14,16 +14,15 @@ import FirebaseFunctions
 /// 1. Receives student LaTeX steps, expected answer, and exercise statement
 /// 2. Calls the `correct_submission` Cloud Function
 /// 3. The Cloud Function uses Claude to structure step pairs, SymPy for algebraic verification
-/// 4. Returns a `CorrectionResult` with per-step correctness and first error index
-/// 5. Optionally updates the Submission document in Firestore via FirebaseService
+/// 4. The Cloud Function persists `correctionResult` + `finalResult` on the
+///    submission doc using the Admin SDK (firestore.rules block client-side
+///    updates from students, who have no Firebase Auth — see ISSUE-040)
+/// 5. Returns a `CorrectionResult` with per-step correctness and first error index
 final class CorrectionService {
 
     static let shared = CorrectionService()
 
     private let functions = Functions.functions(region: "europe-west6")
-    // Per CLAUDE.md, all Firestore writes must go through FirebaseService.
-    // The previous `private let db = Firestore.firestore()` violated that.
-    private let firebase = FirebaseService.shared
 
     /// Timeout for the correction Cloud Function call (60 seconds — correction is slower)
     private let functionTimeout: TimeInterval = 60
@@ -31,17 +30,22 @@ final class CorrectionService {
     private init() {}
 
     /// Correct a student's submission and return the result.
+    /// The Cloud Function also persists the result on the submission doc.
     ///
     /// - Parameters:
+    ///   - submissionID: The Firestore document ID of the submission.
     ///   - studentSteps: The LaTeX steps confirmed by the student.
     ///   - expectedAnswer: The correct answer in LaTeX.
     ///   - statement: The exercise statement for context.
+    ///   - attemptNumber: 1 or 2 (used to compute success_1st vs success_2nd).
     /// - Returns: A `CorrectionResult` with per-step booleans and first error index.
     /// - Throws: `CorrectionServiceError` on failure.
     func correctSubmission(
+        submissionID: String,
         studentSteps: [String],
         expectedAnswer: String,
-        statement: String
+        statement: String,
+        attemptNumber: Int
     ) async throws -> CorrectionResult {
         guard !studentSteps.isEmpty else {
             return CorrectionResult(stepResults: [], firstErrorIndex: nil)
@@ -50,7 +54,9 @@ final class CorrectionService {
         let data: [String: Any] = [
             "studentSteps": studentSteps,
             "expectedAnswer": expectedAnswer,
-            "statement": statement
+            "statement": statement,
+            "submissionID": submissionID,
+            "attemptNumber": attemptNumber
         ]
 
         do {
@@ -80,7 +86,11 @@ final class CorrectionService {
         }
     }
 
-    /// Correct a submission and update the Firestore document with the result.
+    /// Correct a submission and return both the per-step result and the
+    /// derived final outcome. The Firestore persistence happens server-side
+    /// inside the Cloud Function (Admin SDK) — the client computes the same
+    /// `finalResult` locally so the UI can render feedback before the
+    /// teacher's submissions listener round-trips.
     ///
     /// - Parameters:
     ///   - submissionID: The Firestore document ID of the submission.
@@ -101,48 +111,20 @@ final class CorrectionService {
             throw CorrectionServiceError.noSubmissionID
         }
 
-        // Get correction result
         let correctionResult = try await correctSubmission(
+            submissionID: submissionID,
             studentSteps: studentSteps,
             expectedAnswer: expectedAnswer,
-            statement: statement
+            statement: statement,
+            attemptNumber: attemptNumber
         )
 
-        // Determine final result based on correction and attempt
         let allCorrect = correctionResult.stepResults.allSatisfy { $0 }
         let finalResult: SubmissionResult = allCorrect
             ? (attemptNumber == 1 ? .success1st : .success2nd)
             : .failed
-        // Note: if attemptNumber == 1 and mode allows 2nd chance, the
-        // SubmissionViewModel will offer retry. We still record .failed for
-        // this attempt — the 2nd attempt creates a new submission row.
-
-        // Update Firestore submission document via FirebaseService (per
-        // CLAUDE.md: never call `Firestore.firestore()` directly).
-        let patch = SubmissionPatch(
-            correctionResult: CorrectionResultPatch(
-                stepResults: correctionResult.stepResults,
-                firstErrorIndex: correctionResult.firstErrorIndex
-            ),
-            finalResult: finalResult.rawValue
-        )
-        try await firebase.updateDocument(patch, in: "submissions", documentID: submissionID)
 
         return (correctionResult, finalResult)
-    }
-
-    // MARK: - Encodable patch types
-
-    /// Encodable shape for the partial-update payload — keeps the call site
-    /// type-safe and avoids passing `[String: Any]` through the gateway.
-    private struct SubmissionPatch: Encodable {
-        let correctionResult: CorrectionResultPatch
-        let finalResult: String
-    }
-
-    private struct CorrectionResultPatch: Encodable {
-        let stepResults: [Bool]
-        let firstErrorIndex: Int?
     }
 }
 
