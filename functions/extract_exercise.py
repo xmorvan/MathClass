@@ -26,32 +26,41 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app()
 
 
-# System prompt for exercise extraction
-EXTRACTION_PROMPT = """Tu es un assistant spécialisé dans l'extraction d'exercices de mathématiques à partir d'images.
+# System prompt for exercise extraction. The prompt receives the teacher's
+# competency catalog (a list of {id, label} pairs) and asks Claude to
+# pick up to 5 IDs that best fit the exercise. If the catalog is empty
+# or no competency fits, Claude returns an empty list.
+EXTRACTION_PROMPT_TEMPLATE = """Tu es un assistant spécialisé dans l'extraction d'exercices de mathématiques à partir d'images.
 
 Analyse l'image fournie et extrais :
 1. L'énoncé de l'exercice en LaTeX/texte mixte
 2. La réponse attendue en LaTeX
+3. Les compétences pertinentes (jusqu'à 5) sélectionnées dans le catalogue de l'enseignant
 
 Règles de formatage :
 - Utilise $...$ pour les expressions mathématiques en ligne
 - Utilise $$...$$ pour les équations en mode display
 - Le texte explicatif reste en texte brut (pas de LaTeX)
-- Les fractions s'écrivent \\frac{a}{b}
-- Les racines carrées s'écrivent \\sqrt{x}
-- Les puissances s'écrivent x^{n}
-- Les indices s'écrivent x_{i}
-- Les systèmes d'équations utilisent \\begin{cases} ... \\end{cases}
+- Les fractions s'écrivent \\frac{{a}}{{b}}
+- Les racines carrées s'écrivent \\sqrt{{x}}
+- Les puissances s'écrivent x^{{n}}
+- Les indices s'écrivent x_{{i}}
+- Les systèmes d'équations utilisent \\begin{{cases}} ... \\end{{cases}}
+
+Catalogue de compétences disponible (n'utilise que ces IDs, pas de texte libre) :
+{competencies}
 
 Réponds UNIQUEMENT avec un JSON valide, sans markdown ni backticks :
-{
+{{
   "statement": "L'énoncé complet en LaTeX/texte mixte",
-  "expectedAnswer": "La réponse attendue en LaTeX pur (sans délimiteurs $ ou $$)"
-}
+  "expectedAnswer": "La réponse attendue en LaTeX pur (sans délimiteurs $ ou $$)",
+  "competencyIDs": ["id1", "id2"]
+}}
 
 Si tu ne peux pas identifier de réponse attendue, mets une chaîne vide pour expectedAnswer.
-Si l'image n'est pas un exercice de mathématiques, retourne un statement décrivant ce que tu vois
-et une chaîne vide pour expectedAnswer.
+Si aucune compétence du catalogue ne convient, retourne un tableau vide pour competencyIDs.
+Si l'image n'est pas un exercice de mathématiques, retourne un statement décrivant ce que tu vois,
+une chaîne vide pour expectedAnswer, et un tableau vide pour competencyIDs.
 """
 
 
@@ -74,6 +83,28 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="Le champ 'storagePath' est requis.",
         )
+
+    # Optional teacher competency catalog: [{ "id": "abc", "label": "Équations du 1er degré" }, ...].
+    # If absent or empty, the AI will not propose any tags.
+    raw_competencies = req.data.get("competencies") if req.data else None
+    competencies: list = raw_competencies if isinstance(raw_competencies, list) else []
+    valid_competency_ids = set()
+    competency_lines = []
+    for entry in competencies:
+        if not isinstance(entry, dict):
+            continue
+        cid = entry.get("id")
+        label = entry.get("label")
+        if not cid or not label:
+            continue
+        valid_competency_ids.add(cid)
+        # Limit to 60 chars per label to keep the prompt compact.
+        clean_label = str(label)[:60].replace("\n", " ")
+        competency_lines.append(f"- {cid}: {clean_label}")
+    if competency_lines:
+        catalog_block = "\n".join(competency_lines[:80])  # cap to 80 entries
+    else:
+        catalog_block = "(catalogue vide — retourne competencyIDs: [])"
 
     # Get Anthropic API key from environment
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -130,7 +161,9 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
                         },
                         {
                             "type": "text",
-                            "text": EXTRACTION_PROMPT,
+                            "text": EXTRACTION_PROMPT_TEMPLATE.format(
+                                competencies=catalog_block
+                            ),
                         },
                     ],
                 }
@@ -160,6 +193,13 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
 
         statement = result.get("statement", "")
         expected_answer = result.get("expectedAnswer", "")
+        # Filter Claude's suggested competency IDs to those that actually
+        # exist in the supplied catalog — guards against hallucinations.
+        raw_ids = result.get("competencyIDs", []) or []
+        competency_ids: list = [
+            cid for cid in raw_ids
+            if isinstance(cid, str) and cid in valid_competency_ids
+        ][:5]
 
         # Defence in depth (ISSUE-009): if Claude returned blank fields,
         # the source image was either empty or not a math exercise. Reject
@@ -173,6 +213,7 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
         return {
             "statement": statement,
             "expectedAnswer": expected_answer,
+            "competencyIDs": competency_ids,
         }
 
     except https_fn.HttpsError:

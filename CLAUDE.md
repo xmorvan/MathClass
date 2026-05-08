@@ -48,20 +48,33 @@ Students have **no Firebase Auth account**. They log in via QR code or class cod
 
 ### Cloud Functions (Python)
 Three functions in `functions/main.py`:
-1. **`extract_exercise`** — Claude Vision reads an exercise photo → returns LaTeX statement + expected answer
-2. **`recognize_handwriting`** — Claude Vision reads a PencilKit PNG export → returns list of LaTeX steps + confidence score
-3. **`correct_submission`** — Hybrid: Claude structures student steps vs. reference, SymPy verifies algebraic equivalence (fallback to Claude judgment), returns per-step boolean array + first error index
+1. **`extract_exercise`** — Claude Vision reads an exercise photo → returns LaTeX statement + expected answer + AI-suggested `competencyIDs` chosen from the teacher's catalog (request includes `competencies: [{id,label}]`).
+2. **`recognize_handwriting`** — Claude Vision reads a PencilKit PNG export → returns list of LaTeX steps + confidence score.
+3. **`correct_submission`** — Hybrid: Claude structures student steps vs. reference, SymPy verifies algebraic equivalence (fallback to Claude judgment), returns per-step boolean array, first error index, optional `notationNote` when the class has `notationStrict=true`, and per-step `errorTags` (e.g. "sign_error", "arithmetic", "notation"). The request includes `notationStrict: Bool`.
+
+### Localization
+The app is bilingual French/English. FR is the source-of-truth for keys: views call `Text("Foo")` with the French copy as the literal, and `String.tr` looks up the English translation in `Core/Resources/Localizations.swift`. The teacher profile has a language picker; the choice is persisted in `UserDefaults` and the SwiftUI tree rebuilds via `.id(language)` so every visible string flips immediately. `LocalizationManager.shared` is the single source of truth.
 
 ### Data Flow (student solving an exercise)
 Student draws → PencilKit PNG exported → `recognize_handwriting` → student verifies LaTeX → `correct_submission` → per-step feedback in `FeedbackView`
 
 ### Firestore Structure
 ```
-/classes/{classID}/students/{studentID}
+/classes/{classID}                                       (notationStrict, ...)
+/classes/{classID}/students/{studentID}                  (level: 1–5, groupID?)
+/classes/{classID}/groups/{groupID}                      (named subset of students)
+/classes/{classID}/chapters/{chapterID}/competencies/{competencyID}
 /exercises/{exerciseID}
-/assignments/{assignmentID}/exercises/{assignmentExerciseID}
-/submissions/{submissionID}
+/assignments/{assignmentID}/exercises/{assignmentExerciseID}   (legacy, parallel to sessions)
+/periods/{periodID}                                      (one class hour)
+/periods/{periodID}/sessions/{sessionID}                 (ordered slot, mode A/B/C, allowFreeOrder)
+/periods/{periodID}/sessions/{sessionID}/exercises/{ae}  (per-student/per-group exercise list)
+/submissions/{submissionID}                              (correctionResult.notationNote, errorTags)
 ```
+
+The Period+Session schema is the new home for assignments. The legacy
+flat `/assignments/{...}` collection still exists in code for
+transitional callers and is kept compatible.
 
 ## Code Conventions
 - **Imports:** Group by framework (SwiftUI → Foundation → Firebase*)

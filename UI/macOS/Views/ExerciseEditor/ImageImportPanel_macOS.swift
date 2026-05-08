@@ -41,7 +41,7 @@ struct ImageImportPanel_macOS: View {
                     )
 
                 HStack {
-                    Button("Changer l'image") {
+                    Button("Changer l'image".tr) {
                         viewModel.selectImage()
                     }
 
@@ -50,7 +50,7 @@ struct ImageImportPanel_macOS: View {
                     Button {
                         Task { await viewModel.extractFromImage() }
                     } label: {
-                        Label("Extraire avec l'IA", systemImage: "wand.and.stars")
+                        Label("Extraire avec l'IA".tr, systemImage: "wand.and.stars")
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(viewModel.isExtracting)
@@ -64,7 +64,7 @@ struct ImageImportPanel_macOS: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("Extraction en cours…")
+                    Text("Extraction en cours…".tr)
                         .foregroundColor(.secondary)
                 }
             }
@@ -88,14 +88,14 @@ struct ImageImportPanel_macOS: View {
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
 
-            Text("Glissez une image ici")
+            Text("Glissez une image ici".tr)
                 .font(.headline)
                 .foregroundColor(.secondary)
 
             Text("ou")
                 .foregroundColor(.secondary)
 
-            Button("Sélectionner un fichier") {
+            Button("Sélectionner un fichier".tr) {
                 viewModel.selectImage()
             }
             .buttonStyle(.bordered)
@@ -126,7 +126,7 @@ struct ImageImportPanel_macOS: View {
             sectionLabel("Aperçu")
 
             if viewModel.statement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("L'énoncé extrait apparaîtra ici après l'extraction…")
+                Text("L'énoncé extrait apparaîtra ici après l'extraction…".tr)
                     .foregroundColor(.secondary)
                     .italic()
                     .padding()
@@ -143,7 +143,7 @@ struct ImageImportPanel_macOS: View {
 
             sectionLabel("Réponse attendue")
 
-            TextField("Réponse attendue", text: $viewModel.expectedAnswer)
+            TextField("Réponse attendue".tr, text: $viewModel.expectedAnswer)
                 .font(.system(.body, design: .monospaced))
                 .textFieldStyle(.roundedBorder)
                 .padding(8)

@@ -18,39 +18,46 @@ struct TeacherView: View {
         NavigationView {
             TabView(selection: $selectedTab) {
                 ClassManagementView(viewModel: viewModel)
-                    .navigationTitle("Classes")
+                    .navigationTitle("Classes".tr)
                     .tabItem {
-                        Label("Classes", systemImage: "person.3")
+                        Label("Classes".tr, systemImage: "person.3")
                     }
                     .tag(0)
 
                 ExercisesListView(viewModel: viewModel)
-                    .navigationTitle("Exercices")
+                    .navigationTitle("Exercices".tr)
                     .tabItem {
-                        Label("Exercices", systemImage: "book")
+                        Label("Exercices".tr, systemImage: "book")
                     }
                     .tag(1)
 
                 AssignmentListView_iOS(viewModel: viewModel)
-                    .navigationTitle("Devoirs")
+                    .navigationTitle("Devoirs".tr)
                     .tabItem {
-                        Label("Devoirs", systemImage: "tray.full")
+                        Label("Devoirs".tr, systemImage: "tray.full")
                     }
                     .tag(2)
 
                 SubmissionInboxView_iOS(viewModel: viewModel)
-                    .navigationTitle("Soumissions")
+                    .navigationTitle("Soumissions".tr)
                     .tabItem {
-                        Label("Soumissions", systemImage: "tray.and.arrow.down")
+                        Label("Soumissions".tr, systemImage: "tray.and.arrow.down")
                     }
                     .tag(3)
 
-                StatisticsView(viewModel: viewModel)
-                    .navigationTitle("Statistiques")
+                LiveDashboardView_iOS(viewModel: viewModel)
+                    .navigationTitle("En direct".tr)
                     .tabItem {
-                        Label("Statistiques", systemImage: "chart.bar")
+                        Label("En direct".tr, systemImage: "dot.radiowaves.left.and.right")
                     }
                     .tag(4)
+
+                StatisticsView(viewModel: viewModel)
+                    .navigationTitle("Statistiques".tr)
+                    .tabItem {
+                        Label("Statistiques".tr, systemImage: "chart.bar")
+                    }
+                    .tag(5)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -62,10 +69,10 @@ struct TeacherView: View {
                         Button {
                             showingProfile = true
                         } label: {
-                            Label("Mon profil", systemImage: "person.text.rectangle")
+                            Label("Mon profil".tr, systemImage: "person.text.rectangle")
                         }
                         Divider()
-                        Button("Déconnexion", role: .destructive) {
+                        Button("Déconnexion".tr, role: .destructive) {
                             try? AuthenticationService.shared.signOut()
                         }
                     } label: {

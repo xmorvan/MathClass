@@ -116,7 +116,7 @@ struct ExerciseView: View {
     private var drawingArea: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Votre travail")
+                Text("Votre travail".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -124,7 +124,7 @@ struct ExerciseView: View {
                     canvasView.drawing = PKDrawing()
                     hasDrawing = false
                 } label: {
-                    Label("Effacer", systemImage: "trash")
+                    Label("Effacer".tr, systemImage: "trash")
                         .font(.caption)
                         .foregroundColor(.red)
                 }
@@ -149,7 +149,7 @@ struct ExerciseView: View {
             Spacer()
 
             Button(action: startVerification) {
-                Label("Vérifier", systemImage: "checkmark.seal.fill")
+                Label("Vérifier".tr, systemImage: "checkmark.seal.fill")
                     .font(.headline)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -180,7 +180,7 @@ struct ExerciseView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") {
+                    Button("Fermer".tr) {
                         showingFlowSheet = false
                     }
                 }

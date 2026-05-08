@@ -27,25 +27,25 @@ struct EditStudentView_macOS: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Modifier l'élève")
+            Text("Modifier l'élève".tr)
                 .font(.title)
 
             Form {
-                TextField("Prénom", text: $firstName)
+                TextField("Prénom".tr, text: $firstName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Nom", text: $lastName)
+                TextField("Nom".tr, text: $lastName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
 
             HStack {
-                Button("Annuler") {
+                Button("Annuler".tr) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
 
                 Spacer()
 
-                Button("Enregistrer") {
+                Button("Enregistrer".tr) {
                     var updated = student
                     updated.firstName = firstName
                     updated.lastName = lastName
@@ -65,8 +65,8 @@ struct EditStudentView_macOS: View {
         }
         .padding()
         .frame(width: 300, height: 200)
-        .alert("Erreur", isPresented: $showError) {
-            Button("OK", role: .cancel) { }
+        .alert("Erreur".tr, isPresented: $showError) {
+            Button("OK".tr, role: .cancel) { }
         } message: {
             Text(errorMessage)
         }

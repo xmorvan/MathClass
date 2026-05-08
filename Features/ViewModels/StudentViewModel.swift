@@ -38,6 +38,12 @@ class StudentViewModel: ObservableObject {
     private let assignmentRepo: AssignmentRepository
     private let exerciseRepo: ExerciseRepository
     private let submissionRepo: SubmissionRepository
+    private let classRepo: ClassRepository
+
+    /// Class-level notation strictness setting. Read once on demand via the
+    /// class repo. Defaults to true (strict) for legacy classes that don't
+    /// carry the field yet.
+    @Published private(set) var notationStrict: Bool = true
 
     // MARK: - Init
 
@@ -46,7 +52,8 @@ class StudentViewModel: ObservableObject {
         classID: String,
         assignmentRepo: AssignmentRepository? = nil,
         exerciseRepo: ExerciseRepository? = nil,
-        submissionRepo: SubmissionRepository? = nil
+        submissionRepo: SubmissionRepository? = nil,
+        classRepo: ClassRepository? = nil
     ) {
         self.studentID = studentID
         self.classID = classID
@@ -54,6 +61,20 @@ class StudentViewModel: ObservableObject {
         self.assignmentRepo = assignmentRepo ?? dataService.assignmentRepository
         self.exerciseRepo = exerciseRepo ?? dataService.exerciseRepository
         self.submissionRepo = submissionRepo ?? dataService.submissionRepository
+        self.classRepo = classRepo ?? dataService.classRepository
+
+        // Best-effort fetch of the class doc to know notation strictness.
+        // The student session has no auth so the class is publicly
+        // readable per firestore.rules.
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let cls = try await self.classRepo.getClass(id: classID)
+                await MainActor.run { self.notationStrict = cls.isNotationStrict }
+            } catch {
+                // Default stays true (strict).
+            }
+        }
     }
 
     // MARK: - Listeners

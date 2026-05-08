@@ -14,6 +14,10 @@ struct ClassCodeEntryView: View {
     var isLookingUp: Bool
     var onSubmit: () -> Void
 
+    @State private var showScanner: Bool = false
+    @State private var scanError: String?
+    @State private var showScanError: Bool = false
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -22,17 +26,17 @@ struct ClassCodeEntryView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.blue)
 
-            Text("Bienvenue !")
+            Text("Bienvenue !".tr)
                 .font(.largeTitle)
                 .bold()
 
-            Text("Entrez le code de votre classe\npour accéder à vos exercices.")
+            Text("Entrez le code de votre classe\npour accéder à vos exercices.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
 
             // Code input
-            TextField("MX-XXXX", text: $classCode)
+            TextField("MX-XXXX".tr, text: $classCode)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(.title2, design: .monospaced))
                 .multilineTextAlignment(.center)
@@ -43,6 +47,19 @@ struct ClassCodeEntryView: View {
                     if isCodeValid { onSubmit() }
                 }
 
+            // Scan button
+            Button {
+                showScanner = true
+            } label: {
+                Label("Scanner un QR code".tr, systemImage: "qrcode.viewfinder")
+                    .font(.subheadline)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.12))
+                    .foregroundColor(.blue)
+                    .cornerRadius(8)
+            }
+
             // Validate button
             Button {
                 onSubmit()
@@ -52,7 +69,7 @@ struct ClassCodeEntryView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("Valider")
+                    Text("Valider".tr)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -67,13 +84,48 @@ struct ClassCodeEntryView: View {
             Spacer()
 
             // Hint
-            Text("Demandez le code à votre professeur.\nIl ressemble à MX-XXXX.")
+            Text("Demandez le code à votre professeur.\nIl ressemble à MX-XXXX.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 20)
         }
         .padding()
+        .sheet(isPresented: $showScanner) {
+            NavigationView {
+                QRScannerView(
+                    onScan: { raw in
+                        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                        // The QR may encode just the code (MX-XXXX) or a
+                        // longer URL — extract the MX-XXXX substring if so.
+                        if let match = trimmed.range(of: "MX-[A-Z0-9]{4}", options: .regularExpression) {
+                            classCode = String(trimmed[match])
+                        } else {
+                            classCode = trimmed
+                        }
+                        showScanner = false
+                        if isCodeValid { onSubmit() }
+                    },
+                    onError: { message in
+                        scanError = message
+                        showScanError = true
+                        showScanner = false
+                    }
+                )
+                .navigationTitle("Scanner un QR code".tr)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Annuler".tr) { showScanner = false }
+                    }
+                }
+            }
+        }
+        .alert("Erreur".tr, isPresented: $showScanError) {
+            Button("OK".tr, role: .cancel) {}
+        } message: {
+            Text(scanError ?? "")
+        }
     }
 
     private var isCodeValid: Bool {

@@ -28,7 +28,7 @@ struct StudentNameSelectionView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                Text("Sélectionnez votre nom")
+                Text("Sélectionnez votre nom".tr)
                     .font(.headline)
                     .foregroundColor(.secondary)
                     .padding(.top, 4)
@@ -39,7 +39,7 @@ struct StudentNameSelectionView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
-                TextField("Rechercher…", text: $searchText)
+                TextField("Rechercher…".tr, text: $searchText)
                     .textFieldStyle(.roundedBorder)
             }
             .padding(.horizontal)
@@ -67,7 +67,7 @@ struct StudentNameSelectionView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "ipad")
                                     .font(.caption)
-                                Text("lié")
+                                Text("lié".tr)
                                     .font(.caption2)
                             }
                             .foregroundColor(.orange)
@@ -85,7 +85,7 @@ struct StudentNameSelectionView: View {
             Button {
                 onBack()
             } label: {
-                Label("Retour", systemImage: "arrow.left")
+                Label("Retour".tr, systemImage: "arrow.left")
                     .font(.callout)
             }
             .padding()

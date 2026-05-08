@@ -13,29 +13,47 @@ struct EditClassView_macOS: View {
     @ObservedObject var viewModel: TeacherViewModel
     @State var classRoom: ClassRoom
     @State private var newName: String = ""
+    @State private var notationStrict: Bool = true
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Modifier la classe")
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Modifier la classe".tr)
                 .font(.title)
 
-            TextField("Nom de la classe", text: $newName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onAppear {
-                    newName = classRoom.name
+            Form {
+                Section(header: Text("Informations de la classe".tr)) {
+                    TextField("Nom de la classe".tr, text: $newName)
                 }
 
+                Section(header: Text("Réglages de la classe".tr)) {
+                    Toggle(isOn: $notationStrict) {
+                        VStack(alignment: .leading) {
+                            Text("Notation stricte".tr)
+                            Text("L'IA signale les problèmes de notation séparément, sans pénaliser le fond.".tr)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .onAppear {
+                newName = classRoom.name
+                notationStrict = classRoom.isNotationStrict
+            }
+
             HStack {
-                Button("Annuler") {
+                Button("Annuler".tr) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
 
                 Spacer()
 
-                Button("Sauvegarder") {
+                Button("Sauvegarder".tr) {
                     var updated = classRoom
                     updated.name = newName
+                    updated.notationStrict = notationStrict
                     Task {
                         try? await viewModel.updateClass(updated)
                         dismiss()
@@ -46,6 +64,6 @@ struct EditClassView_macOS: View {
             }
         }
         .padding()
-        .frame(width: 400, height: 200)
+        .frame(width: 480, height: 320)
     }
 }

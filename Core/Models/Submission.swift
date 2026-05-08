@@ -69,10 +69,28 @@ struct CorrectionResult: Codable, Hashable {
     var stepResults: [Bool]
     /// Index of the first incorrect step (nil if all steps are correct)
     var firstErrorIndex: Int?
+    /// Optional human-readable note about notation problems detected in
+    /// the submission. Populated when the parent class has
+    /// `notationStrict == true` and the math is correct but the notation
+    /// is sloppy (e.g. "4+-1=3" instead of "4+(-1)=3"). Never causes
+    /// `stepResults` to be marked false — notation is always
+    /// non-blocking. `nil` means no notation issue.
+    var notationNote: String?
+    /// Optional per-step error categories (e.g. "sign_error", "arithmetic",
+    /// "notation"). Same length as `stepResults`. `nil` for steps that
+    /// are correct or don't fit a known category.
+    var errorTags: [String?]?
 
-    init(stepResults: [Bool], firstErrorIndex: Int? = nil) {
+    init(
+        stepResults: [Bool],
+        firstErrorIndex: Int? = nil,
+        notationNote: String? = nil,
+        errorTags: [String?]? = nil
+    ) {
         self.stepResults = stepResults
         self.firstErrorIndex = firstErrorIndex
+        self.notationNote = notationNote
+        self.errorTags = errorTags
     }
 }
 

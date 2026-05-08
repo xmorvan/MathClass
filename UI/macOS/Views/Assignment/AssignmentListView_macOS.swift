@@ -48,7 +48,7 @@ struct AssignmentListView_macOS: View {
                     assignmentVM: assignmentVM
                 )
             } else {
-                Text("Sélectionnez un devoir pour voir les détails")
+                Text("Sélectionnez un devoir pour voir les détails".tr)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -61,15 +61,15 @@ struct AssignmentListView_macOS: View {
             )
             .frame(minWidth: 700, minHeight: 550)
         }
-        .alert("Supprimer le devoir", isPresented: $showingDeleteAlert) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Supprimer le devoir".tr, isPresented: $showingDeleteAlert) {
+            Button("Annuler".tr, role: .cancel) { }
+            Button("Supprimer".tr, role: .destructive) {
                 if let assignment = assignmentToDelete {
                     Task { await assignmentVM.deleteAssignment(assignment) }
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer ce devoir et tous ses exercices associés ?")
+            Text("Êtes-vous sûr de vouloir supprimer ce devoir et tous ses exercices associés ?".tr)
         }
         .onAppear {
             if selectedClassID == nil, let first = viewModel.classes.first {
@@ -90,14 +90,14 @@ struct AssignmentListView_macOS: View {
 
     private var assignmentListHeader: some View {
         HStack {
-            Text("Devoirs")
+            Text("Devoirs".tr)
                 .font(.title2)
                 .bold()
 
             Spacer()
 
-            Picker("Classe", selection: $selectedClassID) {
-                Text("Sélectionner une classe").tag(nil as String?)
+            Picker("Classe".tr, selection: $selectedClassID) {
+                Text("Sélectionner une classe".tr).tag(nil as String?)
                 ForEach(viewModel.classes) { classroom in
                     Text(classroom.name).tag(classroom.id as String?)
                 }
@@ -108,7 +108,7 @@ struct AssignmentListView_macOS: View {
                 assignmentVM.resetCreation()
                 showingCreateSheet = true
             } label: {
-                Label("Nouveau devoir", systemImage: "plus")
+                Label("Nouveau devoir".tr, systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
         }
@@ -122,13 +122,13 @@ struct AssignmentListView_macOS: View {
             Image(systemName: "tray")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            Text("Aucun devoir")
+            Text("Aucun devoir".tr)
                 .font(.headline)
-            Text("Créez un devoir pour assigner des exercices à vos élèves.")
+            Text("Créez un devoir pour assigner des exercices à vos élèves.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Créer un devoir") {
+            Button("Créer un devoir".tr) {
                 assignmentVM.resetCreation()
                 showingCreateSheet = true
             }
@@ -143,7 +143,7 @@ struct AssignmentListView_macOS: View {
     private var assignmentList: some View {
         List(selection: $selectedAssignmentID) {
             if !assignmentVM.activeAssignments.isEmpty {
-                Section("Actifs") {
+                Section("Actifs".tr) {
                     ForEach(assignmentVM.activeAssignments) { assignment in
                         assignmentRow(assignment)
                             .tag(assignment.id)
@@ -152,7 +152,7 @@ struct AssignmentListView_macOS: View {
             }
 
             if !assignmentVM.pastAssignments.isEmpty {
-                Section("Terminés") {
+                Section("Terminés".tr) {
                     ForEach(assignmentVM.pastAssignments) { assignment in
                         assignmentRow(assignment)
                             .tag(assignment.id)
@@ -210,7 +210,7 @@ struct AssignmentListView_macOS: View {
                 assignmentToDelete = assignment
                 showingDeleteAlert = true
             } label: {
-                Label("Supprimer", systemImage: "trash")
+                Label("Supprimer".tr, systemImage: "trash")
             }
         }
     }
@@ -287,7 +287,7 @@ struct AssignmentDetailView_macOS: View {
 
     private var modeDescription: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Mode")
+            Text("Mode".tr)
                 .font(.headline)
 
             HStack(spacing: 16) {
@@ -312,13 +312,13 @@ struct AssignmentDetailView_macOS: View {
 
     private var exerciseList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Exercices")
+            Text("Exercices".tr)
                 .font(.headline)
 
             let assignmentExercises = assignmentVM.exercisesForAssignment(assignment.id ?? "")
 
             if assignmentExercises.isEmpty {
-                Text("Aucun exercice assigné.")
+                Text("Aucun exercice assigné.".tr)
                     .foregroundColor(.secondary)
                     .font(.caption)
             } else {
@@ -342,7 +342,7 @@ struct AssignmentDetailView_macOS: View {
                                 }
                             }
                         } else {
-                            Text("Exercice introuvable")
+                            Text("Exercice introuvable".tr)
                                 .foregroundColor(.red)
                                 .font(.caption)
                         }

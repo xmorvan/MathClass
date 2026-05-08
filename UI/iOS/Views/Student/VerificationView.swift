@@ -12,6 +12,7 @@ import SwiftUI
 /// After recognition, the student can confirm the steps or go back to redraw.
 struct VerificationView: View {
     @ObservedObject var viewModel: SubmissionViewModel
+    @ObservedObject private var network = NetworkMonitor.shared
     @State private var editableSteps: [String] = []
 
     var onCancel: () -> Void
@@ -52,8 +53,8 @@ struct VerificationView: View {
         .onChange(of: viewModel.recognizedSteps) { _, newValue in
             editableSteps = newValue
         }
-        .alert("Erreur", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) {}
+        .alert("Erreur".tr, isPresented: $viewModel.showError) {
+            Button("OK".tr, role: .cancel) {}
         } message: {
             Text(viewModel.error ?? "Une erreur est survenue.")
         }
@@ -62,14 +63,29 @@ struct VerificationView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
-            Text("Vérification")
-                .font(.title2)
-                .bold()
-            Spacer()
-            Text(viewModel.exercise.title)
-                .font(.caption)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Vérification".tr)
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                Text(viewModel.exercise.title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            if !network.isOnline {
+                HStack(spacing: 6) {
+                    Image(systemName: "wifi.slash")
+                        .foregroundColor(.orange)
+                    Text("En attente de connexion".tr)
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(6)
+            }
         }
         .padding()
     }
@@ -81,10 +97,10 @@ struct VerificationView: View {
             Spacer()
             ProgressView()
                 .scaleEffect(1.5)
-            Text("Reconnaissance de l'écriture…")
+            Text("Reconnaissance de l'écriture…".tr)
                 .font(.headline)
                 .foregroundColor(.secondary)
-            Text("Analyse de votre travail en cours.")
+            Text("Analyse de votre travail en cours.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
             Spacer()
@@ -97,7 +113,7 @@ struct VerificationView: View {
             Spacer()
             ProgressView()
                 .scaleEffect(1.5)
-            Text("Soumission en cours…")
+            Text("Soumission en cours…".tr)
                 .font(.headline)
                 .foregroundColor(.secondary)
             Spacer()
@@ -118,7 +134,7 @@ struct VerificationView: View {
 
                 // Preview
                 if !editableSteps.isEmpty {
-                    Text("Aperçu")
+                    Text("Aperçu".tr)
                         .font(.headline)
                         .padding(.top, 8)
 
@@ -141,10 +157,10 @@ struct VerificationView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.secondary)
 
-            Text("Aucune étape reconnue")
+            Text("Aucune étape reconnue".tr)
                 .font(.headline)
 
-            Text("La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou réessayez la reconnaissance.")
+            Text("La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou réessayez la reconnaissance.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -153,7 +169,7 @@ struct VerificationView: View {
                 Button {
                     onCancel()
                 } label: {
-                    Label("Retour au dessin", systemImage: "arrow.uturn.left")
+                    Label("Retour au dessin".tr, systemImage: "arrow.uturn.left")
                 }
                 .buttonStyle(.bordered)
 
@@ -161,7 +177,7 @@ struct VerificationView: View {
                     Button {
                         Task { await viewModel.retryRecognition() }
                     } label: {
-                        Label("Réessayer", systemImage: "arrow.clockwise")
+                        Label("Réessayer".tr, systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -175,21 +191,21 @@ struct VerificationView: View {
     private var stepsListView: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Étapes reconnues")
+                Text("Étapes reconnues".tr)
                     .font(.headline)
                 Spacer()
                 if viewModel.canRetryRecognition {
                     Button {
                         Task { await viewModel.retryRecognition() }
                     } label: {
-                        Label("Reconnaître à nouveau", systemImage: "arrow.clockwise")
+                        Label("Reconnaître à nouveau".tr, systemImage: "arrow.clockwise")
                             .font(.caption)
                     }
                     .buttonStyle(.bordered)
                 }
             }
 
-            Text("Vérifiez que ces étapes correspondent à votre travail. Modifiez si besoin.")
+            Text("Vérifiez que ces étapes correspondent à votre travail. Modifiez si besoin.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -203,7 +219,7 @@ struct VerificationView: View {
                             .foregroundColor(.secondary)
                             .frame(width: 60, alignment: .leading)
 
-                        TextField("LaTeX", text: $editableSteps[index])
+                        TextField("LaTeX".tr, text: $editableSteps[index])
                             .font(.system(.body, design: .monospaced))
                             .textFieldStyle(.roundedBorder)
                     }
@@ -229,7 +245,7 @@ struct VerificationView: View {
             Button {
                 onCancel()
             } label: {
-                Label("Refaire", systemImage: "arrow.uturn.left")
+                Label("Refaire".tr, systemImage: "arrow.uturn.left")
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
             }
@@ -242,7 +258,7 @@ struct VerificationView: View {
                     await viewModel.confirmAndSubmit(confirmedSteps: editableSteps)
                 }
             } label: {
-                Label("Soumettre", systemImage: "paperplane.fill")
+                Label("Soumettre".tr, systemImage: "paperplane.fill")
                     .font(.headline)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 10)

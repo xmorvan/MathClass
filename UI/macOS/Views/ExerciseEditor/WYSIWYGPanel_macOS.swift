@@ -35,7 +35,7 @@ struct WYSIWYGPanel_macOS: View {
 
             sectionLabel("Réponse attendue")
 
-            TextField("ex: x = -3 \\text{ ou } x = 0", text: $viewModel.expectedAnswer)
+            TextField("ex: x = -3 \\text{ ou } x = 0".tr, text: $viewModel.expectedAnswer)
                 .font(.system(.body, design: .monospaced))
                 .textFieldStyle(.roundedBorder)
                 .padding(8)
@@ -90,7 +90,7 @@ struct WYSIWYGPanel_macOS: View {
     private var placeholderView: some View {
         VStack {
             Spacer()
-            Text("L'aperçu apparaîtra ici…")
+            Text("L'aperçu apparaîtra ici…".tr)
                 .foregroundColor(.secondary)
                 .italic()
             Spacer()

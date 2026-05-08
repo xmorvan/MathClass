@@ -26,17 +26,17 @@ struct AddClassView_macOS: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Nouvelle Classe")
+            Text("Nouvelle Classe".tr)
                 .font(.title)
                 .padding(.top)
 
             // Class name
-            TextField("Nom de la classe", text: $className)
+            TextField("Nom de la classe".tr, text: $className)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal)
 
             // Import method picker
-            Picker("Méthode d'import", selection: $importMethod) {
+            Picker("Méthode d'import".tr, selection: $importMethod) {
                 ForEach(ImportMethod.allCases, id: \.self) { method in
                     Text(method.rawValue).tag(method)
                 }
@@ -46,7 +46,7 @@ struct AddClassView_macOS: View {
 
             // Student import area
             VStack(alignment: .leading, spacing: 8) {
-                Text("Liste des élèves")
+                Text("Liste des élèves".tr)
                     .font(.headline)
 
                 switch importMethod {
@@ -57,23 +57,23 @@ struct AddClassView_macOS: View {
                         .border(Color.gray.opacity(0.2))
 
                     if importMethod == .paste {
-                        Text("Collez votre liste. Détection automatique : tabulations, points-virgules, virgules ou espaces. Les en-têtes français (nom, prénom) sont reconnus.")
+                        Text("Collez votre liste. Détection automatique : tabulations, points-virgules, virgules ou espaces. Les en-têtes français (nom, prénom) sont reconnus.".tr)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     } else {
-                        Text("Un élève par ligne au format « Prénom Nom »")
+                        Text("Un élève par ligne au format « Prénom Nom »".tr)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
 
                 case .csv:
-                    Button("Choisir un fichier CSV...") {
+                    Button("Choisir un fichier CSV...".tr) {
                         importCSVFile()
                     }
                     .padding()
 
                     if !studentsText.isEmpty {
-                        Text("Aperçu:")
+                        Text("Aperçu:".tr)
                             .font(.caption).bold()
                         TextEditor(text: .constant(studentsText))
                             .font(.caption)
@@ -87,14 +87,14 @@ struct AddClassView_macOS: View {
 
             // Buttons
             HStack {
-                Button("Annuler") {
+                Button("Annuler".tr) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
 
                 Spacer()
 
-                Button("Créer la classe") {
+                Button("Créer la classe".tr) {
                     Task {
                         do {
                             try await viewModel.addClass(name: className, studentsText: studentsText)
@@ -111,8 +111,8 @@ struct AddClassView_macOS: View {
             .padding()
         }
         .frame(width: 600, height: 500)
-        .alert("Erreur", isPresented: $showError) {
-            Button("OK", role: .cancel) { }
+        .alert("Erreur".tr, isPresented: $showError) {
+            Button("OK".tr, role: .cancel) { }
         } message: {
             Text(errorMessage)
         }

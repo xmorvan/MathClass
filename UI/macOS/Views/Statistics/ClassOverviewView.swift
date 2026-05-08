@@ -76,7 +76,7 @@ struct ClassOverviewView_macOS: View {
                     .font(.title2)
                     .bold()
             } else {
-                Text("Vue d'ensemble")
+                Text("Vue d'ensemble".tr)
                     .font(.title2)
                     .bold()
             }
@@ -113,11 +113,11 @@ struct ClassOverviewView_macOS: View {
     @ViewBuilder
     private func weakestCompetenciesSection(stats: StatisticsService.ClassStats) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Compétences les plus faibles")
+            Text("Compétences les plus faibles".tr)
                 .font(.headline)
 
             if stats.weakestCompetencies.isEmpty {
-                Text("Aucune donnée de compétence disponible.")
+                Text("Aucune donnée de compétence disponible.".tr)
                     .foregroundColor(.secondary)
                     .font(.caption)
             } else {
@@ -159,9 +159,9 @@ struct ClassOverviewView_macOS: View {
     private func studentsInDifficultySection(stats: StatisticsService.ClassStats) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Élèves en difficulté")
+                Text("Élèves en difficulté".tr)
                     .font(.headline)
-                Text("(< 40% de réussite)")
+                Text("(< 40% de réussite)".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -170,7 +170,7 @@ struct ClassOverviewView_macOS: View {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
-                    Text("Aucun élève en difficulté !")
+                    Text("Aucun élève en difficulté !".tr)
                         .foregroundColor(.green)
                 }
                 .font(.body)
@@ -203,7 +203,7 @@ struct ClassOverviewView_macOS: View {
 
     private func studentRankingSection() -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Classement des élèves")
+            Text("Classement des élèves".tr)
                 .font(.headline)
 
             let allStats = students.map { student in

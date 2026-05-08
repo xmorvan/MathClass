@@ -51,14 +51,14 @@ struct AsyncImageFromStorage: View {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundColor(.orange)
-                    Text("Image indisponible")
+                    Text("Image indisponible".tr)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(errorMessage)
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                    Button("Réessayer") {
+                    Button("Réessayer".tr) {
                         self.errorMessage = nil
                         loadImage()
                     }

@@ -38,7 +38,7 @@ struct ExerciseMetadataPanel_macOS: View {
 
     private var difficultySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Difficulté")
+            Text("Difficulté".tr)
                 .font(.headline)
 
             HStack(spacing: 4) {
@@ -66,11 +66,11 @@ struct ExerciseMetadataPanel_macOS: View {
 
     private var chapterSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Chapitre")
+            Text("Chapitre".tr)
                 .font(.headline)
 
-            Picker("Chapitre", selection: $viewModel.selectedChapterID) {
-                Text("Aucun").tag(String?.none)
+            Picker("Chapitre".tr, selection: $viewModel.selectedChapterID) {
+                Text("Aucun".tr).tag(String?.none)
                 ForEach(viewModel.availableChapters) { chapter in
                     Text(chapter.name).tag(Optional(chapter.id))
                 }
@@ -83,13 +83,13 @@ struct ExerciseMetadataPanel_macOS: View {
 
     private var competencySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Compétences")
+            Text("Compétences".tr)
                 .font(.headline)
 
             if let chapterID = viewModel.selectedChapterID {
                 let competencies = viewModel.competencies(for: chapterID)
                 if competencies.isEmpty {
-                    Text("Aucune compétence dans ce chapitre.")
+                    Text("Aucune compétence dans ce chapitre.".tr)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 } else {

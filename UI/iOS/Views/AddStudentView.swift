@@ -15,24 +15,50 @@ struct AddStudentView: View {
 
     @State private var firstName: String = ""
     @State private var lastName: String = ""
+    @State private var level: Int = 3
 
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Informations de l'élève")) {
-                    TextField("Prénom", text: $firstName)
-                    TextField("Nom", text: $lastName)
+                Section(header: Text("Informations de l'élève".tr)) {
+                    TextField("Prénom".tr, text: $firstName)
+                    TextField("Nom".tr, text: $lastName)
+                }
+
+                Section {
+                    HStack(spacing: 8) {
+                        ForEach(1...5, id: \.self) { value in
+                            Button {
+                                level = value
+                            } label: {
+                                Image(systemName: value <= level ? "star.fill" : "star")
+                                    .foregroundColor(value <= level ? .yellow : .gray)
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                        Text("Niveau \(level)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Text("Le niveau guide la différenciation : exercices et progression sont adaptés au niveau initial.".tr)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } header: {
+                    Text("Niveau initial (1–5)".tr)
                 }
             }
-            .navigationTitle("Ajouter Élève")
+            .navigationTitle("Ajouter Élève".tr)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Ajouter") {
+                    Button("Ajouter".tr) {
                         Task {
                             try? await viewModel.addStudent(
                                 firstName: firstName,
                                 lastName: lastName,
-                                classID: classID
+                                classID: classID,
+                                level: level
                             )
                             dismiss()
                         }
@@ -40,7 +66,7 @@ struct AddStudentView: View {
                     .disabled(firstName.isEmpty || lastName.isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler".tr) { dismiss() }
                 }
             }
         }

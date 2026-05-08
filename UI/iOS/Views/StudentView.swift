@@ -43,13 +43,13 @@ struct StudentView: View {
         .onDisappear {
             viewModel.stopListening()
         }
-        .alert("Déconnexion", isPresented: $showingLogoutConfirmation) {
-            Button("Annuler", role: .cancel) {}
-            Button("Déconnecter", role: .destructive) {
+        .alert("Déconnexion".tr, isPresented: $showingLogoutConfirmation) {
+            Button("Annuler".tr, role: .cancel) {}
+            Button("Déconnecter".tr, role: .destructive) {
                 sessionManager.logout()
             }
         } message: {
-            Text("Voulez-vous vraiment vous déconnecter ?")
+            Text("Voulez-vous vraiment vous déconnecter ?".tr)
         }
         .sheet(isPresented: $showAssignmentPicker) {
             assignmentPickerSheet
@@ -79,7 +79,7 @@ struct StudentView: View {
                 Button {
                     showAssignmentPicker = true
                 } label: {
-                    Label("Devoirs", systemImage: "list.bullet")
+                    Label("Devoirs".tr, systemImage: "list.bullet")
                 }
                 .buttonStyle(.bordered)
             }
@@ -167,7 +167,7 @@ struct StudentView: View {
             VStack(spacing: 16) {
                 ProgressView()
                     .scaleEffect(1.5)
-                Text("Chargement des exercices…")
+                Text("Chargement des exercices…".tr)
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -198,11 +198,11 @@ struct StudentView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.green)
 
-            Text("Bravo !")
+            Text("Bravo !".tr)
                 .font(.largeTitle)
                 .bold()
 
-            Text("Vous avez terminé tous les exercices\nde ce devoir.")
+            Text("Vous avez terminé tous les exercices\nde ce devoir.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -210,7 +210,7 @@ struct StudentView: View {
             Button {
                 Task { await viewModel.loadAssignedExercises() }
             } label: {
-                Label("Vérifier les nouveaux devoirs", systemImage: "arrow.clockwise")
+                Label("Vérifier les nouveaux devoirs".tr, systemImage: "arrow.clockwise")
                     .padding()
                     .background(Color.blue)
                     .foregroundColor(.white)
@@ -227,10 +227,10 @@ struct StudentView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
 
-            Text("Aucun devoir actif")
+            Text("Aucun devoir actif".tr)
                 .font(.title2)
 
-            Text("Votre professeur n'a pas encore\nassigné de devoir à votre classe.")
+            Text("Votre professeur n'a pas encore\nassigné de devoir à votre classe.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -238,7 +238,7 @@ struct StudentView: View {
             Button {
                 Task { await viewModel.loadAssignedExercises() }
             } label: {
-                Label("Recharger", systemImage: "arrow.clockwise")
+                Label("Recharger".tr, systemImage: "arrow.clockwise")
                     .padding()
                     .background(Color.blue)
                     .foregroundColor(.white)
@@ -275,10 +275,10 @@ struct StudentView: View {
                     }
                 }
             }
-            .navigationTitle("Devoirs actifs")
+            .navigationTitle("Devoirs actifs".tr)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") { showAssignmentPicker = false }
+                    Button("Fermer".tr) { showAssignmentPicker = false }
                 }
             }
         }

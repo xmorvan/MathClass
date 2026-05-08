@@ -22,6 +22,11 @@ struct ClassDetailView_macOS: View {
     @State private var showingAddChapter = false
     @State private var newChapterName = ""
 
+    @State private var newGroupName: String = ""
+    @State private var showingAddGroup: Bool = false
+    @State private var groupToDelete: StudentGroup?
+    @State private var showingDeleteGroup: Bool = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -29,9 +34,16 @@ struct ClassDetailView_macOS: View {
                 Divider()
                 studentsSection
                 Divider()
+                groupsSection
+                Divider()
                 chaptersSection
             }
             .padding()
+        }
+        .onAppear {
+            if let classID = classRoom.id {
+                viewModel.startListeningToGroups(classID: classID)
+            }
         }
         .sheet(isPresented: $showingAddStudent) {
             if let classID = classRoom.id {
@@ -43,9 +55,9 @@ struct ClassDetailView_macOS: View {
                 EditStudentView_macOS(viewModel: viewModel, student: student)
             }
         }
-        .alert("Supprimer l'élève", isPresented: $showingDeleteConfirmation) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Supprimer l'élève".tr, isPresented: $showingDeleteConfirmation) {
+            Button("Annuler".tr, role: .cancel) { }
+            Button("Supprimer".tr, role: .destructive) {
                 if let student = studentToDelete,
                    let studentID = student.id,
                    let classID = classRoom.id {
@@ -55,7 +67,7 @@ struct ClassDetailView_macOS: View {
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer cet élève ?")
+            Text("Êtes-vous sûr de vouloir supprimer cet élève ?".tr)
         }
     }
 
@@ -69,7 +81,7 @@ struct ClassDetailView_macOS: View {
                     .bold()
 
                 HStack {
-                    Text("Code classe:")
+                    Text("Code classe:".tr)
                         .foregroundColor(.secondary)
                     Text(classRoom.classCode)
                         .font(.title3)
@@ -113,12 +125,12 @@ struct ClassDetailView_macOS: View {
                 Button {
                     showingAddStudent = true
                 } label: {
-                    Label("Ajouter", systemImage: "person.badge.plus")
+                    Label("Ajouter".tr, systemImage: "person.badge.plus")
                 }
             }
 
             if classStudents.isEmpty {
-                Text("Aucun élève dans cette classe.")
+                Text("Aucun élève dans cette classe.".tr)
                     .foregroundColor(.secondary)
                     .padding()
             } else {
@@ -140,7 +152,7 @@ struct ClassDetailView_macOS: View {
                     }
                     TableColumn("Actions") { student in
                         HStack(spacing: 8) {
-                            Button("Éditer") {
+                            Button("Éditer".tr) {
                                 studentToEdit = student
                                 showingEditStudent = true
                             }
@@ -162,6 +174,87 @@ struct ClassDetailView_macOS: View {
         }
     }
 
+    // MARK: - Groups Section
+
+    private var groupsSection: some View {
+        let classID = classRoom.id ?? ""
+        let classStudents = viewModel.studentsInClass(classID)
+        let groups = viewModel.groups
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Groupes".tr)
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                Button {
+                    showingAddGroup = true
+                } label: {
+                    Label("Ajouter un groupe".tr, systemImage: "person.3")
+                }
+                .popover(isPresented: $showingAddGroup) {
+                    VStack(spacing: 12) {
+                        Text("Ajouter un groupe".tr)
+                            .font(.headline)
+                        TextField("Nom du groupe (optionnel)".tr, text: $newGroupName)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 250)
+                        HStack {
+                            Button("Annuler".tr) {
+                                newGroupName = ""
+                                showingAddGroup = false
+                            }
+                            Spacer()
+                            Button("Ajouter".tr) {
+                                guard !newGroupName.isEmpty, !classID.isEmpty else { return }
+                                Task {
+                                    try? await viewModel.createGroup(name: newGroupName, classID: classID)
+                                    newGroupName = ""
+                                    showingAddGroup = false
+                                }
+                            }
+                            .disabled(newGroupName.isEmpty)
+                        }
+                    }
+                    .padding()
+                }
+            }
+            Text("Glissez les élèves vers un groupe pour les organiser.".tr)
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            if groups.isEmpty {
+                Text("Aucun groupe".tr)
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                ForEach(groups) { group in
+                    GroupRowView_macOS(
+                        group: group,
+                        classID: classID,
+                        students: classStudents,
+                        viewModel: viewModel,
+                        onDelete: {
+                            groupToDelete = group
+                            showingDeleteGroup = true
+                        }
+                    )
+                }
+            }
+        }
+        .alert("Supprimer le groupe".tr, isPresented: $showingDeleteGroup) {
+            Button("Annuler".tr, role: .cancel) {}
+            Button("Supprimer".tr, role: .destructive) {
+                if let group = groupToDelete, let id = group.id {
+                    Task {
+                        try? await viewModel.deleteGroup(id: id, classID: classID)
+                    }
+                }
+            }
+        } message: {
+            Text("Êtes-vous sûr de vouloir supprimer ce groupe ?".tr)
+        }
+    }
+
     // MARK: - Chapters Section
 
     private var chaptersSection: some View {
@@ -174,22 +267,22 @@ struct ClassDetailView_macOS: View {
                 Button {
                     showingAddChapter = true
                 } label: {
-                    Label("Ajouter", systemImage: "plus")
+                    Label("Ajouter".tr, systemImage: "plus")
                 }
                 .popover(isPresented: $showingAddChapter) {
                     VStack(spacing: 12) {
-                        Text("Nouveau chapitre")
+                        Text("Nouveau chapitre".tr)
                             .font(.headline)
-                        TextField("Nom du chapitre", text: $newChapterName)
+                        TextField("Nom du chapitre".tr, text: $newChapterName)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 250)
                         HStack {
-                            Button("Annuler") {
+                            Button("Annuler".tr) {
                                 newChapterName = ""
                                 showingAddChapter = false
                             }
                             Spacer()
-                            Button("Ajouter") {
+                            Button("Ajouter".tr) {
                                 if let classID = classRoom.id, !newChapterName.isEmpty {
                                     Task {
                                         try? await viewModel.addChapter(name: newChapterName, classID: classID)
@@ -206,7 +299,7 @@ struct ClassDetailView_macOS: View {
             }
 
             if viewModel.chapters.isEmpty {
-                Text("Aucun chapitre. Ajoutez des chapitres pour organiser les exercices.")
+                Text("Aucun chapitre. Ajoutez des chapitres pour organiser les exercices.".tr)
                     .foregroundColor(.secondary)
                     .padding()
             } else {
@@ -214,6 +307,104 @@ struct ClassDetailView_macOS: View {
                     ChapterRowView(chapter: chapter, viewModel: viewModel)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Group Row (macOS)
+
+struct GroupRowView_macOS: View {
+    let group: StudentGroup
+    let classID: String
+    let students: [Student]
+    @ObservedObject var viewModel: TeacherViewModel
+    let onDelete: () -> Void
+
+    @State private var isExpanded: Bool = false
+
+    private var memberStudents: [Student] {
+        students.filter { id in group.studentIDs.contains(id.id ?? "") }
+    }
+
+    private var nonMemberStudents: [Student] {
+        students.filter { id in !group.studentIDs.contains(id.id ?? "") }
+    }
+
+    var body: some View {
+        GroupBox {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if memberStudents.isEmpty {
+                        Text("Sans groupe".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(memberStudents) { student in
+                            HStack {
+                                Text(student.fullName)
+                                Spacer()
+                                Button {
+                                    if let sid = student.id, let gid = group.id {
+                                        Task {
+                                            try? await viewModel.removeStudent(sid, fromGroup: gid, classID: classID)
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                            }
+                        }
+                    }
+                    if !nonMemberStudents.isEmpty {
+                        Divider()
+                        Text("Ajouter".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        ForEach(nonMemberStudents) { student in
+                            HStack {
+                                Text(student.fullName)
+                                    .font(.caption)
+                                Spacer()
+                                Button {
+                                    if let sid = student.id, let gid = group.id {
+                                        Task {
+                                            try? await viewModel.addStudent(sid, toGroup: gid, classID: classID)
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "plus.circle")
+                                        .foregroundColor(.blue)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "person.3.fill")
+                        .foregroundColor(.blue)
+                    Text(group.name)
+                        .font(.headline)
+                    Text("(\(memberStudents.count))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                }
+            }
+            .padding(.vertical, 4)
         }
     }
 }
@@ -241,7 +432,7 @@ struct ChapterRowView: View {
                     Button {
                         showAddCompetency.toggle()
                     } label: {
-                        Label("Compétence", systemImage: "plus.circle")
+                        Label("Compétence".tr, systemImage: "plus.circle")
                             .font(.caption)
                     }
                     .buttonStyle(BorderlessButtonStyle())
@@ -281,9 +472,9 @@ struct ChapterRowView: View {
 
                 if showAddCompetency {
                     HStack {
-                        TextField("Libellé de la compétence", text: $newCompetencyLabel)
+                        TextField("Libellé de la compétence".tr, text: $newCompetencyLabel)
                             .textFieldStyle(.roundedBorder)
-                        Button("OK") {
+                        Button("OK".tr) {
                             if let chapterID = chapter.id, !newCompetencyLabel.isEmpty {
                                 Task {
                                     try? await viewModel.addCompetency(label: newCompetencyLabel, chapterID: chapterID)

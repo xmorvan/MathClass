@@ -11,6 +11,7 @@ import SwiftUI
 /// Displays and allows editing of the teacher's name.
 struct TeacherProfileView_macOS: View {
     @StateObject private var viewModel = TeacherProfileViewModel()
+    @ObservedObject private var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -21,25 +22,62 @@ struct TeacherProfileView_macOS: View {
                 Spacer()
             } else {
                 Form {
-                    Section("Informations personnelles") {
+                    Section("Informations personnelles".tr) {
                         LabeledContent("Email") {
                             Text(viewModel.email)
                                 .foregroundColor(.secondary)
                                 .textSelection(.enabled)
                         }
 
-                        TextField("Prénom", text: $viewModel.firstName)
+                        TextField("Prénom".tr, text: $viewModel.firstName)
                             .textContentType(.givenName)
 
-                        TextField("Nom", text: $viewModel.lastName)
+                        TextField("Nom".tr, text: $viewModel.lastName)
                             .textContentType(.familyName)
                     }
 
-                    Section("Compte") {
-                        LabeledContent("Membre depuis") {
+                    Section("Compte".tr) {
+                        LabeledContent("Membre depuis".tr) {
                             Text(viewModel.createdAt.formatted(date: .long, time: .omitted))
                                 .foregroundColor(.secondary)
                         }
+                    }
+
+                    Section {
+                        Picker(selection: $localization.language) {
+                            ForEach(AppLanguage.allCases, id: \.self) { lang in
+                                Text("\(lang.flag) \(lang.displayName)").tag(lang)
+                            }
+                        } label: {
+                            Text("Langue".tr)
+                        }
+                        .pickerStyle(.menu)
+
+                        Text("Choisissez la langue de l'application. Le changement est immédiat.".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } header: {
+                        Text("Préférence linguistique".tr)
+                    }
+
+                    Section {
+                        Button {
+                            Task { await runDemoSeed() }
+                        } label: {
+                            Label("Charger les données de démo".tr, systemImage: "tray.and.arrow.down")
+                        }
+
+                        Button(role: .destructive) {
+                            Task { await runDemoReset() }
+                        } label: {
+                            Label("Réinitialiser la démo".tr, systemImage: "arrow.counterclockwise.circle")
+                        }
+
+                        Text("La démo crée une classe et un groupe d'exercices fictifs. La réinitialisation efface uniquement les données de démo, pas vos vraies classes.".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } header: {
+                        Text("Données de démo".tr)
                     }
 
                     if let error = viewModel.error {
@@ -51,7 +89,7 @@ struct TeacherProfileView_macOS: View {
 
                     if viewModel.saveSuccess {
                         Section {
-                            Label("Profil mis à jour", systemImage: "checkmark.circle.fill")
+                            Label("Profil mis à jour".tr, systemImage: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                         }
                     }
@@ -62,7 +100,7 @@ struct TeacherProfileView_macOS: View {
             Divider()
 
             HStack {
-                Button("Annuler") { dismiss() }
+                Button("Annuler".tr) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button {
@@ -72,7 +110,7 @@ struct TeacherProfileView_macOS: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Text("Enregistrer")
+                        Text("Enregistrer".tr)
                     }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -80,9 +118,27 @@ struct TeacherProfileView_macOS: View {
             }
             .padding()
         }
-        .frame(width: 450, height: 350)
+        .frame(width: 480, height: 520)
         .task {
             await viewModel.load()
+        }
+    }
+
+    private func runDemoSeed() async {
+        guard let teacherID = AuthenticationService.shared.currentUser?.uid else { return }
+        do {
+            try await DemoSeedService.shared.seed(teacherID: teacherID)
+        } catch {
+            // Surface via the existing viewModel error path.
+            viewModel.error = "Démo: \(error.localizedDescription)"
+        }
+    }
+
+    private func runDemoReset() async {
+        do {
+            try await DemoSeedService.shared.reset()
+        } catch {
+            viewModel.error = "Reset démo: \(error.localizedDescription)"
         }
     }
 }

@@ -52,7 +52,7 @@ struct ClassManagementView_macOS: View {
                 }
                 .frame(minWidth: 220)
 
-                Button("Nouvelle classe") {
+                Button("Nouvelle classe".tr) {
                     showingAddClass = true
                 }
                 .padding()
@@ -64,7 +64,7 @@ struct ClassManagementView_macOS: View {
                 ClassDetailView_macOS(viewModel: viewModel, classRoom: classRoom)
                     .id(classID)
             } else {
-                Text("Sélectionnez une classe")
+                Text("Sélectionnez une classe".tr)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -80,9 +80,9 @@ struct ClassManagementView_macOS: View {
         .sheet(item: $classToEdit) { classRoom in
             EditClassView_macOS(viewModel: viewModel, classRoom: classRoom)
         }
-        .alert("Supprimer la classe", isPresented: $showingDeleteConfirmation) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Supprimer la classe".tr, isPresented: $showingDeleteConfirmation) {
+            Button("Annuler".tr, role: .cancel) { }
+            Button("Supprimer".tr, role: .destructive) {
                 if let classRoom = classToDelete, let id = classRoom.id {
                     Task {
                         try? await viewModel.deleteClass(id: id)
@@ -90,7 +90,7 @@ struct ClassManagementView_macOS: View {
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer cette classe et tous ses élèves ?")
+            Text("Êtes-vous sûr de vouloir supprimer cette classe et tous ses élèves ?".tr)
         }
     }
 }

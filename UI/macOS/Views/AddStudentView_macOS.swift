@@ -20,25 +20,25 @@ struct AddStudentView_macOS: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Ajouter un élève")
+            Text("Ajouter un élève".tr)
                 .font(.title)
 
             Form {
-                TextField("Prénom", text: $firstName)
+                TextField("Prénom".tr, text: $firstName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Nom", text: $lastName)
+                TextField("Nom".tr, text: $lastName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
 
             HStack {
-                Button("Annuler") {
+                Button("Annuler".tr) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
 
                 Spacer()
 
-                Button("Ajouter") {
+                Button("Ajouter".tr) {
                     Task {
                         do {
                             try await viewModel.addStudent(
@@ -59,8 +59,8 @@ struct AddStudentView_macOS: View {
         }
         .padding()
         .frame(width: 300, height: 200)
-        .alert("Erreur", isPresented: $showError) {
-            Button("OK", role: .cancel) { }
+        .alert("Erreur".tr, isPresented: $showError) {
+            Button("OK".tr, role: .cancel) { }
         } message: {
             Text(errorMessage)
         }

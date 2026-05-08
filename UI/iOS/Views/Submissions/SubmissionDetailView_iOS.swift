@@ -81,7 +81,7 @@ struct SubmissionDetailView_iOS: View {
             HStack(spacing: 6) {
                 Image(systemName: "clock")
                     .foregroundColor(.orange)
-                Text("En attente de correction")
+                Text("En attente de correction".tr)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -94,14 +94,14 @@ struct SubmissionDetailView_iOS: View {
     private var exerciseContext: some View {
         if let exercise = exercise {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Énoncé")
+                Text("Énoncé".tr)
                     .font(.headline)
                 KaTeXView(content: exercise.statement, mode: .preview, fontSize: 16, minHeight: 60)
                     .background(Color.gray.opacity(0.05))
                     .cornerRadius(6)
 
                 if !exercise.expectedAnswer.isEmpty {
-                    Text("Réponse attendue")
+                    Text("Réponse attendue".tr)
                         .font(.headline)
                     KaTeXView(
                         content: "$\(exercise.expectedAnswer)$",
@@ -120,12 +120,12 @@ struct SubmissionDetailView_iOS: View {
 
     private var drawingSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Travail manuscrit")
+            Text("Travail manuscrit".tr)
                 .font(.headline)
             if let path = submission.pngURL, !path.isEmpty {
                 AsyncImageFromStorage(path: path)
             } else {
-                Text("Aucun PNG enregistré pour cette soumission.")
+                Text("Aucun PNG enregistré pour cette soumission.".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -136,11 +136,11 @@ struct SubmissionDetailView_iOS: View {
 
     private var stepsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Étapes reconnues")
+            Text("Étapes reconnues".tr)
                 .font(.headline)
 
             if submission.latexSteps.isEmpty {
-                Text("Aucune étape reconnue.")
+                Text("Aucune étape reconnue.".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
@@ -177,7 +177,7 @@ struct SubmissionDetailView_iOS: View {
             }
 
             if firstErrorIndex == index {
-                Text("← Première erreur")
+                Text("← Première erreur".tr)
                     .font(.caption)
                     .foregroundColor(.red)
                     .bold()

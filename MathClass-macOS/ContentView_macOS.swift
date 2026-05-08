@@ -10,6 +10,7 @@ import SwiftUI
 /// Root view for the macOS app. Teacher-only — routes to auth or teacher dashboard.
 struct ContentView_macOS: View {
     @StateObject private var authService = AuthenticationService.shared
+    @StateObject private var localization = LocalizationManager.shared
     @State private var showTeacherSignUp = false
     @State private var showLogin = false
 
@@ -18,11 +19,13 @@ struct ContentView_macOS: View {
             if authService.userRole == .teacher {
                 TeacherView_macOS()
             } else if authService.currentUser != nil {
-                ProgressView("Chargement...")
+                ProgressView("Chargement...".tr)
             } else {
                 teacherAuthView
             }
         }
+        .id(localization.language)
+        .environmentObject(localization)
     }
 
     private var teacherAuthView: some View {
@@ -31,18 +34,18 @@ struct ContentView_macOS: View {
                 .font(.system(size: 60))
                 .foregroundColor(.blue)
 
-            Text("MathClass pour Professeurs")
+            Text("MathClass pour Professeurs".tr)
                 .font(.title)
                 .bold()
 
             VStack(spacing: 15) {
-                Button("Se connecter") {
+                Button("Se connecter".tr) {
                     showLogin = true
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
-                Button("Créer un compte") {
+                Button("Créer un compte".tr) {
                     showTeacherSignUp = true
                 }
                 .buttonStyle(.bordered)
@@ -68,27 +71,27 @@ struct TeacherLoginView_macOS: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Connexion Professeur")
+            Text("Connexion Professeur".tr)
                 .font(.title)
 
             Form {
-                TextField("Email", text: $viewModel.email)
+                TextField("Email".tr, text: $viewModel.email)
                     .textContentType(.emailAddress)
 
-                SecureField("Mot de passe", text: $viewModel.password)
+                SecureField("Mot de passe".tr, text: $viewModel.password)
                     .textContentType(.password)
             }
             .frame(width: 300)
 
             HStack {
-                Button("Annuler") {
+                Button("Annuler".tr) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
 
                 Spacer()
 
-                Button("Se connecter") {
+                Button("Se connecter".tr) {
                     Task { await viewModel.login() }
                 }
                 .keyboardShortcut(.return)
@@ -97,8 +100,8 @@ struct TeacherLoginView_macOS: View {
         }
         .padding()
         .frame(width: 400, height: 250)
-        .alert("Erreur", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) {}
+        .alert("Erreur".tr, isPresented: $viewModel.showError) {
+            Button("OK".tr, role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }

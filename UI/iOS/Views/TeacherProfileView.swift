@@ -11,6 +11,7 @@ import SwiftUI
 /// Displays and allows editing of the teacher's name.
 struct TeacherProfileView: View {
     @StateObject private var viewModel = TeacherProfileViewModel()
+    @ObservedObject private var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -25,28 +26,45 @@ struct TeacherProfileView: View {
                         }
                     }
                 } else {
-                    Section("Informations personnelles") {
+                    Section("Informations personnelles".tr) {
                         HStack {
-                            Text("Email")
+                            Text("Email".tr)
                             Spacer()
                             Text(viewModel.email)
                                 .foregroundColor(.secondary)
                         }
 
-                        TextField("Prénom", text: $viewModel.firstName)
+                        TextField("Prénom".tr, text: $viewModel.firstName)
                             .textContentType(.givenName)
 
-                        TextField("Nom", text: $viewModel.lastName)
+                        TextField("Nom".tr, text: $viewModel.lastName)
                             .textContentType(.familyName)
                     }
 
-                    Section("Compte") {
+                    Section("Compte".tr) {
                         HStack {
-                            Text("Membre depuis")
+                            Text("Membre depuis".tr)
                             Spacer()
                             Text(viewModel.createdAt.formatted(date: .long, time: .omitted))
                                 .foregroundColor(.secondary)
                         }
+                    }
+
+                    Section {
+                        Picker(selection: $localization.language) {
+                            ForEach(AppLanguage.allCases, id: \.self) { lang in
+                                Text("\(lang.flag) \(lang.displayName)").tag(lang)
+                            }
+                        } label: {
+                            Text("Langue".tr)
+                        }
+                        .pickerStyle(.menu)
+
+                        Text("Choisissez la langue de l'application. Le changement est immédiat.".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } header: {
+                        Text("Préférence linguistique".tr)
                     }
 
                     if let error = viewModel.error {
@@ -58,17 +76,17 @@ struct TeacherProfileView: View {
 
                     if viewModel.saveSuccess {
                         Section {
-                            Label("Profil mis à jour", systemImage: "checkmark.circle.fill")
+                            Label("Profil mis à jour".tr, systemImage: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                         }
                     }
                 }
             }
-            .navigationTitle("Mon profil")
+            .navigationTitle("Mon profil".tr)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }
+                    Button("Fermer".tr) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -77,7 +95,7 @@ struct TeacherProfileView: View {
                         if viewModel.isSaving {
                             ProgressView()
                         } else {
-                            Text("Enregistrer").bold()
+                            Text("Enregistrer".tr).bold()
                         }
                     }
                     .disabled(viewModel.isLoading || viewModel.isSaving)

@@ -14,7 +14,7 @@ struct RoleSelectionView: View {
 
     var body: some View {
         VStack(spacing: 30) {
-            Text("Sélectionnez votre profil")
+            Text("Sélectionnez votre profil".tr)
                 .font(.largeTitle)
 
             VStack(spacing: 20) {

@@ -17,7 +17,7 @@ struct ExercisesListView: View {
     var body: some View {
         List {
             if groupedExercises.isEmpty {
-                Text("Aucun exercice créé.")
+                Text("Aucun exercice créé.".tr)
                     .foregroundColor(.secondary)
                     .italic()
             } else {

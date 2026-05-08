@@ -28,6 +28,9 @@ class DataService: ObservableObject {
     let chapterRepository = ChapterRepository()
     let assignmentRepository = AssignmentRepository()
     let submissionRepository = SubmissionRepository()
+    let groupRepository = GroupRepository()
+    let periodRepository = PeriodRepository()
+    let sessionRepository = SessionRepository()
 
     // MARK: - Storage
 

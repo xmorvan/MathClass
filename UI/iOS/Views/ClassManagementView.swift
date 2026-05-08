@@ -45,9 +45,9 @@ struct ClassManagementView: View {
     private func classDetailView(_ classRoom: ClassRoom) -> some View {
         if let classID = classRoom.id {
             List {
-                Section(header: Text("Informations")) {
+                Section(header: Text("Informations".tr)) {
                     HStack {
-                        Text("Code classe")
+                        Text("Code classe".tr)
                         Spacer()
                         Text(classRoom.classCode)
                             .foregroundColor(.blue)
@@ -86,7 +86,8 @@ struct StudentRow: View {
     }
 }
 
-/// Sheet for creating a class on iPad.
+/// Sheet for creating a class on iPad. Supports paste, manual entry,
+/// and CSV file import via the standard system file picker.
 struct AddClassView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var viewModel: TeacherViewModel
@@ -94,29 +95,81 @@ struct AddClassView: View {
     @State private var studentsText = ""
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var importMethod: ImportMethod = .paste
+    @State private var showFileImporter = false
+
+    enum ImportMethod: String, CaseIterable, Identifiable {
+        case paste
+        case manual
+        case csv
+
+        var id: String { rawValue }
+        var displayKey: String {
+            switch self {
+            case .paste: return "Coller"
+            case .manual: return "Manuel"
+            case .csv: return "Fichier CSV"
+            }
+        }
+    }
 
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Informations de la classe")) {
-                    TextField("Nom de la classe", text: $className)
+                Section(header: Text("Informations de la classe".tr)) {
+                    TextField("Nom de la classe".tr, text: $className)
                 }
 
-                Section(header: Text("Liste des élèves")) {
-                    TextEditor(text: $studentsText)
-                        .frame(height: 200)
-                    Text("Collez votre liste : un élève par ligne. Les en-têtes et séparateurs sont détectés automatiquement.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                Section(header: Text("Méthode d'import".tr)) {
+                    Picker("", selection: $importMethod) {
+                        ForEach(ImportMethod.allCases) { method in
+                            Text(method.displayKey.tr).tag(method)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section(header: Text("Liste des élèves".tr)) {
+                    switch importMethod {
+                    case .paste:
+                        TextEditor(text: $studentsText)
+                            .frame(height: 180)
+                        Text("Collez votre liste : un élève par ligne. Les en-têtes et séparateurs sont détectés automatiquement.".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                    case .manual:
+                        TextEditor(text: $studentsText)
+                            .frame(height: 180)
+                        Text("Un élève par ligne au format « Prénom Nom »".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                    case .csv:
+                        Button {
+                            showFileImporter = true
+                        } label: {
+                            Label("Importer un CSV".tr, systemImage: "doc.badge.arrow.up")
+                        }
+                        if studentsText.isEmpty {
+                            Text("Aucun fichier importé".tr)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            TextEditor(text: .constant(studentsText))
+                                .frame(height: 140)
+                                .disabled(true)
+                        }
+                    }
                 }
             }
-            .navigationTitle("Nouvelle Classe")
+            .navigationTitle("Nouvelle Classe".tr)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler".tr) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Créer") {
+                    Button("Créer".tr) {
                         Task {
                             do {
                                 try await viewModel.addClass(name: className, studentsText: studentsText)
@@ -130,10 +183,31 @@ struct AddClassView: View {
                     .disabled(className.isEmpty || studentsText.isEmpty)
                 }
             }
-            .alert("Erreur", isPresented: $showError) {
-                Button("OK", role: .cancel) { }
+            .alert("Erreur".tr, isPresented: $showError) {
+                Button("OK".tr, role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.commaSeparatedText, .plainText, .text],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    let didStart = url.startAccessingSecurityScopedResource()
+                    defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+                    do {
+                        studentsText = try String(contentsOf: url, encoding: .utf8)
+                    } catch {
+                        errorMessage = String(format: "Échec du fichier : %@".tr, error.localizedDescription)
+                        showError = true
+                    }
+                case .failure(let error):
+                    errorMessage = String(format: "Échec du fichier : %@".tr, error.localizedDescription)
+                    showError = true
+                }
             }
         }
     }

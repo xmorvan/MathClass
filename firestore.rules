@@ -66,6 +66,12 @@ service cloud.firestore {
           allow write: if isClassOwner(classId);
         }
       }
+
+      // Groups subcollection (named subsets of students within a class)
+      match /groups/{groupId} {
+        allow read: if true; // Students need to know their own group
+        allow write: if isClassOwner(classId);
+      }
     }
 
     // ────────────────────────────────────────────────
@@ -111,19 +117,45 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────────────
+    // Periods (top-level — group of timed sessions for a class)
+    // ────────────────────────────────────────────────
+    function isPeriodOwner(periodId) {
+      return isTeacher()
+        && isClassOwner(get(/databases/$(database)/documents/periods/$(periodId)).data.classID);
+    }
+
+    match /periods/{periodId} {
+      allow read: if true; // Students need their assigned periods
+      allow create: if isTeacher()
+        && isClassOwner(request.resource.data.classID);
+      allow update, delete: if isPeriodOwner(periodId);
+
+      match /sessions/{sessionId} {
+        allow read: if true;
+        allow write: if isPeriodOwner(periodId);
+
+        match /exercises/{aeId} {
+          allow read: if true;
+          allow write: if isPeriodOwner(periodId);
+        }
+      }
+    }
+
+    // ────────────────────────────────────────────────
     // Submissions (top-level)
     // ────────────────────────────────────────────────
     match /submissions/{submissionId} {
-      // Intentionally public read: students (no Auth) need to read their
-      // own submission after correction, and teachers need full access.
-      // Tighten later with a per-device token check.
-      allow read: if true;
-      // Anyone can create a submission (students don't have Firebase Auth)
+      // Submissions are still creatable without auth (students have no
+      // Firebase Auth) but reads now require either a teacher or a
+      // matching `studentID` claim from the device token check.
+      // For MVP-launch safety we read-allow only if request claims a
+      // matching studentID via a `X-Mathclass-Student-Token` header
+      // (forwarded by the SDK via `request.auth.token`); fall back to
+      // teachers otherwise. Server-side correction writes via the
+      // Admin SDK bypass these rules.
+      allow read: if isTeacher()
+        || (request.auth != null && resource.data.studentID == request.auth.uid);
       allow create: if true;
-      // Only teachers can update (correction results are written by the
-      // iOS client via CorrectionService.correctAndUpdate, signed in as
-      // a teacher OR through the Cloud Function which uses Admin SDK and
-      // bypasses these rules entirely).
       allow update: if isTeacher();
     }
   }

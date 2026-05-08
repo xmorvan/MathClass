@@ -14,6 +14,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var authService = AuthenticationService.shared
     @StateObject private var sessionManager = StudentSessionManager.shared
+    @StateObject private var localization = LocalizationManager.shared
 
     var body: some View {
         Group {
@@ -24,7 +25,7 @@ struct ContentView: View {
                 // Still restoring the keychain → Firestore session — show a
                 // neutral splash so we don't flash RoleSelectionView while
                 // the lookup is in flight (ISSUE-007).
-                ProgressView("Chargement...")
+                ProgressView("Chargement...".tr)
             } else if sessionManager.isLoggedIn,
                       let student = sessionManager.currentStudent,
                       let studentID = student.id,
@@ -33,11 +34,15 @@ struct ContentView: View {
                 StudentView(studentID: studentID, classID: classID)
             } else if authService.currentUser != nil {
                 // Authenticated but role not yet loaded
-                ProgressView("Chargement...")
+                ProgressView("Chargement...".tr)
             } else {
                 // Not authenticated — show role selection
                 RoleSelectionView()
             }
         }
+        // Force the entire SwiftUI tree to rebuild when the user toggles
+        // language so every `.tr` lookup re-evaluates immediately.
+        .id(localization.language)
+        .environmentObject(localization)
     }
 }

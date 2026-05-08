@@ -83,9 +83,9 @@ struct CreateAssignmentView_macOS: View {
 
     private var configureView: some View {
         Form {
-            Section("Classe") {
-                Picker("Classe", selection: $assignmentVM.selectedClassID) {
-                    Text("Sélectionner une classe").tag(nil as String?)
+            Section("Classe".tr) {
+                Picker("Classe".tr, selection: $assignmentVM.selectedClassID) {
+                    Text("Sélectionner une classe".tr).tag(nil as String?)
                     ForEach(viewModel.classes) { classroom in
                         Text(classroom.name).tag(classroom.id as String?)
                     }
@@ -93,8 +93,8 @@ struct CreateAssignmentView_macOS: View {
                 .pickerStyle(.menu)
             }
 
-            Section("Mode") {
-                Picker("Mode du devoir", selection: $assignmentVM.selectedMode) {
+            Section("Mode".tr) {
+                Picker("Mode du devoir".tr, selection: $assignmentVM.selectedMode) {
                     ForEach(AssignmentMode.allCases, id: \.self) { mode in
                         Label(mode.displayName, systemImage: mode.iconName)
                             .tag(mode)
@@ -113,17 +113,17 @@ struct CreateAssignmentView_macOS: View {
         VStack(alignment: .leading, spacing: 8) {
             switch mode {
             case .differentiation:
-                Label("Chaque élève/groupe reçoit des exercices ciblés.", systemImage: "info.circle")
-                Label("L'élève voit quelle étape est fausse.", systemImage: "eye")
-                Label("2e chance possible.", systemImage: "arrow.counterclockwise")
+                Label("Chaque élève/groupe reçoit des exercices ciblés.".tr, systemImage: "info.circle")
+                Label("L'élève voit quelle étape est fausse.".tr, systemImage: "eye")
+                Label("2e chance possible.".tr, systemImage: "arrow.counterclockwise")
             case .levels:
-                Label("Progression automatique par niveau de difficulté.", systemImage: "info.circle")
-                Label("3 réussites consécutives = niveau suivant.", systemImage: "arrow.up.circle")
-                Label("2e chance possible (remet le compteur à zéro).", systemImage: "arrow.counterclockwise")
+                Label("Progression automatique par niveau de difficulté.".tr, systemImage: "info.circle")
+                Label("3 réussites consécutives = niveau suivant.".tr, systemImage: "arrow.up.circle")
+                Label("2e chance possible (remet le compteur à zéro).".tr, systemImage: "arrow.counterclockwise")
             case .evaluation:
-                Label("Mode contrôle : aucun feedback pour l'élève.", systemImage: "info.circle")
-                Label("Un seul essai.", systemImage: "1.circle")
-                Label("Le professeur voit les résultats.", systemImage: "eye")
+                Label("Mode contrôle : aucun feedback pour l'élève.".tr, systemImage: "info.circle")
+                Label("Un seul essai.".tr, systemImage: "1.circle")
+                Label("Le professeur voit les résultats.".tr, systemImage: "eye")
             }
         }
         .font(.caption)
@@ -137,18 +137,18 @@ struct CreateAssignmentView_macOS: View {
         HSplitView {
             // Left: Available exercises
             VStack(alignment: .leading, spacing: 0) {
-                Text("Exercices disponibles")
+                Text("Exercices disponibles".tr)
                     .font(.headline)
                     .padding(.horizontal)
                     .padding(.top, 8)
 
                 // Filters
                 HStack {
-                    TextField("Rechercher…", text: $assignmentVM.searchText)
+                    TextField("Rechercher…".tr, text: $assignmentVM.searchText)
                         .textFieldStyle(.roundedBorder)
 
-                    Picker("Chapitre", selection: $assignmentVM.filterChapterID) {
-                        Text("Tous").tag(nil as String?)
+                    Picker("Chapitre".tr, selection: $assignmentVM.filterChapterID) {
+                        Text("Tous".tr).tag(nil as String?)
                         ForEach(viewModel.chapters) { chapter in
                             Text(chapter.name).tag(chapter.id as String?)
                         }
@@ -195,7 +195,7 @@ struct CreateAssignmentView_macOS: View {
             // Right: Selected exercises (reorderable)
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text("Exercices sélectionnés")
+                    Text("Exercices sélectionnés".tr)
                         .font(.headline)
                     Spacer()
                     Text("\(assignmentVM.selectedExercises.count)")
@@ -213,7 +213,7 @@ struct CreateAssignmentView_macOS: View {
                         Image(systemName: "arrow.left")
                             .font(.title2)
                             .foregroundColor(.secondary)
-                        Text("Ajoutez des exercices depuis la liste de gauche")
+                        Text("Ajoutez des exercices depuis la liste de gauche".tr)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -303,7 +303,7 @@ struct CreateAssignmentView_macOS: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Class
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Classe")
+                    Text("Classe".tr)
                         .font(.headline)
                     if let classID = assignmentVM.selectedClassID {
                         Text(assignmentVM.className(for: classID))
@@ -315,7 +315,7 @@ struct CreateAssignmentView_macOS: View {
 
                 // Mode
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mode")
+                    Text("Mode".tr)
                         .font(.headline)
                     HStack {
                         Image(systemName: assignmentVM.selectedMode.iconName)
@@ -364,7 +364,7 @@ struct CreateAssignmentView_macOS: View {
 
     private var navigationButtons: some View {
         HStack {
-            Button("Annuler") {
+            Button("Annuler".tr) {
                 onDismiss()
             }
             .keyboardShortcut(.escape, modifiers: [])
@@ -372,7 +372,7 @@ struct CreateAssignmentView_macOS: View {
             Spacer()
 
             if currentStep != .configure {
-                Button("Précédent") {
+                Button("Précédent".tr) {
                     withAnimation {
                         switch currentStep {
                         case .selectExercises: currentStep = .configure
@@ -397,7 +397,7 @@ struct CreateAssignmentView_macOS: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Label("Créer le devoir", systemImage: "plus.circle.fill")
+                        Label("Créer le devoir".tr, systemImage: "plus.circle.fill")
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -407,7 +407,7 @@ struct CreateAssignmentView_macOS: View {
                         || assignmentVM.selectedClassID == nil
                 )
             } else {
-                Button("Suivant") {
+                Button("Suivant".tr) {
                     withAnimation {
                         switch currentStep {
                         case .configure:
@@ -441,13 +441,13 @@ struct StudentTargetingPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Cibler des élèves")
+            Text("Cibler des élèves".tr)
                 .font(.headline)
 
-            TextField("Nom du groupe (optionnel)", text: $groupName)
+            TextField("Nom du groupe (optionnel)".tr, text: $groupName)
                 .textFieldStyle(.roundedBorder)
 
-            Text("Sélectionnez les élèves (vide = tous) :")
+            Text("Sélectionnez les élèves (vide = tous) :".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -473,12 +473,12 @@ struct StudentTargetingPopover: View {
             .frame(maxHeight: 200)
 
             HStack {
-                Button("Réinitialiser") {
+                Button("Réinitialiser".tr) {
                     selectedIDs = nil
                     groupName = ""
                 }
                 Spacer()
-                Button("Appliquer") {
+                Button("Appliquer".tr) {
                     onSave(selectedIDs ?? [], groupName)
                 }
                 .buttonStyle(.borderedProminent)

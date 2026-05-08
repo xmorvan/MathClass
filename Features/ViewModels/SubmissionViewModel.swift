@@ -213,13 +213,16 @@ class SubmissionViewModel: ObservableObject {
                 return
             }
 
-            // Call CorrectionService (Claude + SymPy hybrid pipeline)
+            // Call CorrectionService (Claude + SymPy hybrid pipeline).
+            // Pass the class-level strict-notation flag so the function
+            // returns notation feedback separately when enabled.
             let (correction, result) = try await correctionService.correctAndUpdate(
                 submissionID: submissionID,
                 studentSteps: confirmedSteps,
                 expectedAnswer: exercise.expectedAnswer,
                 statement: exercise.statement,
-                attemptNumber: currentAttempt
+                attemptNumber: currentAttempt,
+                notationStrict: studentViewModel.notationStrict
             )
 
             self.correctionResult = correction

@@ -38,14 +38,19 @@ final class CorrectionService {
     ///   - expectedAnswer: The correct answer in LaTeX.
     ///   - statement: The exercise statement for context.
     ///   - attemptNumber: 1 or 2 (used to compute success_1st vs success_2nd).
-    /// - Returns: A `CorrectionResult` with per-step booleans and first error index.
+    ///   - notationStrict: Class-level strictness flag. When `true`, the
+    ///     server returns a separate `notationNote` for sloppy notation
+    ///     without flipping the verdict.
+    /// - Returns: A `CorrectionResult` with per-step booleans, first error
+    ///   index, optional notation note, and optional per-step error tags.
     /// - Throws: `CorrectionServiceError` on failure.
     func correctSubmission(
         submissionID: String,
         studentSteps: [String],
         expectedAnswer: String,
         statement: String,
-        attemptNumber: Int
+        attemptNumber: Int,
+        notationStrict: Bool = true
     ) async throws -> CorrectionResult {
         guard !studentSteps.isEmpty else {
             return CorrectionResult(stepResults: [], firstErrorIndex: nil)
@@ -56,7 +61,8 @@ final class CorrectionService {
             "expectedAnswer": expectedAnswer,
             "statement": statement,
             "submissionID": submissionID,
-            "attemptNumber": attemptNumber
+            "attemptNumber": attemptNumber,
+            "notationStrict": notationStrict
         ]
 
         do {
@@ -74,10 +80,15 @@ final class CorrectionService {
             }
 
             let firstErrorIndex = dict["firstErrorIndex"] as? Int
+            let notationNote = (dict["notationNote"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            let errorTagsRaw = dict["errorTags"] as? [Any]
+            let errorTags: [String?]? = errorTagsRaw?.map { $0 as? String }
 
             return CorrectionResult(
                 stepResults: stepResults,
-                firstErrorIndex: firstErrorIndex
+                firstErrorIndex: firstErrorIndex,
+                notationNote: notationNote,
+                errorTags: errorTags
             )
         } catch let error as CorrectionServiceError {
             throw error
@@ -105,7 +116,8 @@ final class CorrectionService {
         studentSteps: [String],
         expectedAnswer: String,
         statement: String,
-        attemptNumber: Int
+        attemptNumber: Int,
+        notationStrict: Bool = true
     ) async throws -> (CorrectionResult, SubmissionResult) {
         guard !submissionID.isEmpty else {
             throw CorrectionServiceError.noSubmissionID
@@ -116,7 +128,8 @@ final class CorrectionService {
             studentSteps: studentSteps,
             expectedAnswer: expectedAnswer,
             statement: statement,
-            attemptNumber: attemptNumber
+            attemptNumber: attemptNumber,
+            notationStrict: notationStrict
         )
 
         let allCorrect = correctionResult.stepResults.allSatisfy { $0 }

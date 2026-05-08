@@ -25,6 +25,9 @@ class TeacherViewModel: ObservableObject {
     let chapterRepo: ChapterRepository
     let assignmentRepo: AssignmentRepository
     let submissionRepo: SubmissionRepository
+    let groupRepo: GroupRepository
+    let periodRepo: PeriodRepository
+    let sessionRepo: SessionRepository
 
     // MARK: - UI State
 
@@ -69,7 +72,10 @@ class TeacherViewModel: ObservableObject {
         exerciseRepo: ExerciseRepository? = nil,
         chapterRepo: ChapterRepository? = nil,
         assignmentRepo: AssignmentRepository? = nil,
-        submissionRepo: SubmissionRepository? = nil
+        submissionRepo: SubmissionRepository? = nil,
+        groupRepo: GroupRepository? = nil,
+        periodRepo: PeriodRepository? = nil,
+        sessionRepo: SessionRepository? = nil
     ) {
         let dataService = DataService.shared
         self.classRepo = classRepo ?? dataService.classRepository
@@ -78,6 +84,73 @@ class TeacherViewModel: ObservableObject {
         self.chapterRepo = chapterRepo ?? dataService.chapterRepository
         self.assignmentRepo = assignmentRepo ?? dataService.assignmentRepository
         self.submissionRepo = submissionRepo ?? dataService.submissionRepository
+        self.groupRepo = groupRepo ?? dataService.groupRepository
+        self.periodRepo = periodRepo ?? dataService.periodRepository
+        self.sessionRepo = sessionRepo ?? dataService.sessionRepository
+    }
+
+    // MARK: - Period & Session Management
+
+    var periods: [Period] { periodRepo.periods }
+    var sessions: [Session] { sessionRepo.sessions }
+
+    func startListeningToPeriods(classID: String) {
+        periodRepo.startListening(classID: classID)
+    }
+
+    func startListeningToPeriodsAcrossClasses() {
+        let classIDs = classRepo.classes.compactMap { $0.id }
+        periodRepo.startListeningAcrossClasses(classIDs: classIDs)
+    }
+
+    func startListeningToSessions(periodID: String) {
+        sessionRepo.startListening(periodID: periodID)
+    }
+
+    func createPeriod(classID: String, name: String, startTime: Date, endTime: Date) async throws -> String {
+        let period = Period(classID: classID, name: name, startTime: startTime, endTime: endTime)
+        return try await periodRepo.createPeriod(period)
+    }
+
+    func createSession(periodID: String, name: String, mode: AssignmentMode, allowFreeOrder: Bool, order: Int) async throws -> String {
+        let session = Session(periodID: periodID, order: order, name: name, mode: mode, allowFreeOrder: allowFreeOrder)
+        return try await sessionRepo.createSession(session)
+    }
+
+    func activatePeriod(_ period: Period) async throws {
+        try await periodRepo.setActive(period)
+    }
+
+    // MARK: - Group Management
+
+    /// Groups for the currently selected class.
+    var groups: [StudentGroup] { groupRepo.groups }
+
+    func startListeningToGroups(classID: String) {
+        groupRepo.startListening(classID: classID)
+    }
+
+    func createGroup(name: String, classID: String) async throws {
+        let group = StudentGroup(name: name, classID: classID)
+        _ = try await groupRepo.createGroup(group)
+    }
+
+    func renameGroup(_ group: StudentGroup, to newName: String) async throws {
+        var updated = group
+        updated.name = newName
+        try await groupRepo.updateGroup(updated)
+    }
+
+    func deleteGroup(id: String, classID: String) async throws {
+        try await groupRepo.deleteGroup(id: id, classID: classID)
+    }
+
+    func addStudent(_ studentID: String, toGroup groupID: String, classID: String) async throws {
+        try await groupRepo.addStudent(studentID: studentID, toGroup: groupID, classID: classID)
+    }
+
+    func removeStudent(_ studentID: String, fromGroup groupID: String, classID: String) async throws {
+        try await groupRepo.removeStudent(studentID: studentID, fromGroup: groupID, classID: classID)
     }
 
     /// Start all listeners for a teacher session.
@@ -180,8 +253,8 @@ class TeacherViewModel: ObservableObject {
 
     // MARK: - Student Management
 
-    func addStudent(firstName: String, lastName: String, classID: String) async throws {
-        let student = Student(firstName: firstName, lastName: lastName, classID: classID)
+    func addStudent(firstName: String, lastName: String, classID: String, level: Int? = nil) async throws {
+        let student = Student(firstName: firstName, lastName: lastName, classID: classID, level: level)
         _ = try await studentRepo.addStudent(student, classID: classID)
     }
 

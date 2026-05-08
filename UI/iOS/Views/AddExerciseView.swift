@@ -30,6 +30,8 @@ struct AddExerciseView: View {
     @State private var isExtracting: Bool = false
     @State private var importedPreviewImage: UIImage?
     @State private var creationMethod: ExerciseCreationMethod = .wysiwyg
+    @State private var suggestedCompetencyIDs: [String] = []
+    @State private var acceptedCompetencyIDs: Set<String> = []
 
     var body: some View {
         NavigationView {
@@ -38,19 +40,19 @@ struct AddExerciseView: View {
                 imageImportSection
 
                 // Title
-                Section(header: Text("Titre de l'exercice")) {
-                    TextField("Entrez le titre", text: $title)
+                Section(header: Text("Titre de l'exercice".tr)) {
+                    TextField("Entrez le titre".tr, text: $title)
                 }
 
                 // Statement
-                Section(header: Text("Énoncé (LaTeX et texte)")) {
+                Section(header: Text("Énoncé (LaTeX et texte)".tr)) {
                     TextEditor(text: $statement)
                         .font(.system(.body, design: .monospaced))
                         .frame(height: 150)
 
                     if showPreview && !statement.isEmpty {
                         VStack(alignment: .leading) {
-                            Text("Aperçu")
+                            Text("Aperçu".tr)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             KaTeXView(content: statement, mode: .preview, fontSize: 16, minHeight: 60)
@@ -60,12 +62,12 @@ struct AddExerciseView: View {
                         }
                     }
 
-                    Toggle("Afficher l'aperçu", isOn: $showPreview)
+                    Toggle("Afficher l'aperçu".tr, isOn: $showPreview)
                 }
 
                 // Expected Answer
-                Section(header: Text("Réponse attendue (LaTeX)")) {
-                    TextField("ex: x = 5", text: $expectedAnswer)
+                Section(header: Text("Réponse attendue (LaTeX)".tr)) {
+                    TextField("ex: x = 5".tr, text: $expectedAnswer)
                         .font(.system(.body, design: .monospaced))
 
                     if showPreview && !expectedAnswer.isEmpty {
@@ -79,7 +81,7 @@ struct AddExerciseView: View {
                 }
 
                 // Difficulty
-                Section(header: Text("Difficulté")) {
+                Section(header: Text("Difficulté".tr)) {
                     HStack(spacing: 8) {
                         ForEach(1...5, id: \.self) { level in
                             Button {
@@ -100,30 +102,58 @@ struct AddExerciseView: View {
 
                 // Chapter
                 if !viewModel.chapters.isEmpty {
-                    Section(header: Text("Chapitre")) {
-                        Picker("Chapitre", selection: $selectedChapterID) {
-                            Text("Aucun").tag(String?.none)
+                    Section(header: Text("Chapitre".tr)) {
+                        Picker("Chapitre".tr, selection: $selectedChapterID) {
+                            Text("Aucun".tr).tag(String?.none)
                             ForEach(viewModel.chapters) { chapter in
                                 Text(chapter.name).tag(Optional(chapter.id))
                             }
                         }
                     }
                 }
+
+                // Suggested competencies (AI)
+                if !suggestedCompetencyIDs.isEmpty {
+                    Section {
+                        Text("L'IA propose ces compétences. Décochez celles qui ne correspondent pas.".tr)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        ForEach(suggestedCompetencyIDs, id: \.self) { competencyID in
+                            HStack {
+                                Image(systemName: acceptedCompetencyIDs.contains(competencyID) ? "checkmark.square.fill" : "square")
+                                    .foregroundColor(acceptedCompetencyIDs.contains(competencyID) ? .blue : .secondary)
+                                Text(competencyLabel(for: competencyID))
+                                    .font(.subheadline)
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if acceptedCompetencyIDs.contains(competencyID) {
+                                    acceptedCompetencyIDs.remove(competencyID)
+                                } else {
+                                    acceptedCompetencyIDs.insert(competencyID)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Compétences suggérées".tr)
+                    }
+                }
             }
-            .navigationTitle("Ajouter Exercice")
+            .navigationTitle("Ajouter Exercice".tr)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Ajouter") {
+                    Button("Ajouter".tr) {
                         addExercise()
                     }
                     .disabled(title.isEmpty || statement.isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler".tr) { dismiss() }
                 }
             }
-            .alert("Erreur", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
+            .alert("Erreur".tr, isPresented: $showError) {
+                Button("OK".tr, role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "Une erreur s'est produite.")
             }
@@ -136,7 +166,7 @@ struct AddExerciseView: View {
     private var imageImportSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Photographiez ou choisissez une image de l'énoncé pour pré-remplir automatiquement le titre, l'énoncé et la réponse attendue.")
+                Text("Photographiez ou choisissez une image de l'énoncé pour pré-remplir automatiquement le titre, l'énoncé et la réponse attendue.".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -146,7 +176,7 @@ struct AddExerciseView: View {
                         matching: .images,
                         photoLibrary: .shared()
                     ) {
-                        Label("Choisir une photo", systemImage: "photo")
+                        Label("Choisir une photo".tr, systemImage: "photo")
                     }
                     .buttonStyle(.bordered)
                     .disabled(isExtracting)
@@ -154,7 +184,7 @@ struct AddExerciseView: View {
                     if isExtracting {
                         ProgressView()
                             .scaleEffect(0.85)
-                        Text("Extraction…")
+                        Text("Extraction…".tr)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -169,7 +199,7 @@ struct AddExerciseView: View {
                 }
             }
         } header: {
-            Text("Importer depuis une photo")
+            Text("Importer depuis une photo".tr)
         }
         .onChange(of: pickedImage) { _, newItem in
             guard let newItem else { return }
@@ -198,8 +228,11 @@ struct AddExerciseView: View {
             let stored = try await DataService.shared.uploadData(payload, path: path)
             importedImageURL = stored
 
+            // Build catalog from the teacher's chapters → competencies tree.
+            let catalog = catalogEntriesForExtraction()
+
             let extraction = try await ExerciseExtractionService.shared
-                .extractExercise(storagePath: stored)
+                .extractExercise(storagePath: stored, competencies: catalog)
 
             if statement.isEmpty { statement = extraction.statement }
             if expectedAnswer.isEmpty { expectedAnswer = extraction.expectedAnswer }
@@ -212,6 +245,8 @@ struct AddExerciseView: View {
                     .map(String.init) ?? ""
                 title = String(firstLine.prefix(60))
             }
+            suggestedCompetencyIDs = extraction.suggestedCompetencyIDs
+            acceptedCompetencyIDs = Set(extraction.suggestedCompetencyIDs)
             creationMethod = .image
             showPreview = true
         } catch {
@@ -235,6 +270,7 @@ struct AddExerciseView: View {
             statementImageURL: importedImageURL,
             expectedAnswer: expectedAnswer,
             chapterID: selectedChapterID,
+            competencyIDs: Array(acceptedCompetencyIDs),
             difficultyLevel: difficultyLevel,
             creationMethod: creationMethod,
             teacherID: teacherID
@@ -248,5 +284,30 @@ struct AddExerciseView: View {
                 showError = true
             }
         }
+    }
+
+    /// Flatten the teacher's chapter→competency tree into the catalog
+    /// shape expected by `ExerciseExtractionService`.
+    private func catalogEntriesForExtraction() -> [ExerciseExtractionService.CatalogEntry] {
+        var entries: [ExerciseExtractionService.CatalogEntry] = []
+        for chapter in viewModel.chapters {
+            let comps = viewModel.chapterRepo.competencies[chapter.id ?? ""] ?? []
+            for c in comps {
+                guard let id = c.id else { continue }
+                entries.append(.init(id: id, label: "\(chapter.name) — \(c.label)"))
+            }
+        }
+        return entries
+    }
+
+    /// Resolve a competency ID to its display label for UI rendering.
+    private func competencyLabel(for id: String) -> String {
+        for chapter in viewModel.chapters {
+            let comps = viewModel.chapterRepo.competencies[chapter.id ?? ""] ?? []
+            if let match = comps.first(where: { $0.id == id }) {
+                return "\(chapter.name) — \(match.label)"
+            }
+        }
+        return id
     }
 }

@@ -39,8 +39,8 @@ struct FeedbackView: View {
 
             actionButtons
         }
-        .alert("Erreur", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) {}
+        .alert("Erreur".tr, isPresented: $viewModel.showError) {
+            Button("OK".tr, role: .cancel) {}
         } message: {
             Text(viewModel.error ?? "Une erreur est survenue.")
         }
@@ -50,7 +50,7 @@ struct FeedbackView: View {
 
     private var header: some View {
         HStack {
-            Text("Résultat")
+            Text("Résultat".tr)
                 .font(.title2)
                 .bold()
             Spacer()
@@ -69,11 +69,11 @@ struct FeedbackView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.blue)
 
-            Text("Soumission enregistrée")
+            Text("Soumission enregistrée".tr)
                 .font(.title2)
                 .bold()
 
-            Text("Votre travail a été envoyé.\nVotre professeur verra les résultats.")
+            Text("Votre travail a été envoyé.\nVotre professeur verra les résultats.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -95,6 +95,27 @@ struct FeedbackView: View {
                 .foregroundColor(resultColor(result))
 
             resultMessage(result)
+        }
+
+        // Notation note (any mode where correction ran). Always rendered
+        // as a separate banner that does NOT mark anything wrong.
+        if let correction = viewModel.correctionResult,
+           let notation = correction.notationNote, !notation.isEmpty {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.orange)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Note de notation".tr)
+                        .font(.subheadline)
+                        .bold()
+                    Text(notation)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                }
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(10)
         }
 
         // Step details (differentiation mode only)
@@ -135,17 +156,17 @@ struct FeedbackView: View {
     private func resultMessage(_ result: SubmissionResult) -> some View {
         switch result {
         case .success1st:
-            Text("Excellent ! Réponse correcte du premier coup.")
+            Text("Excellent ! Réponse correcte du premier coup.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         case .success2nd:
-            Text("Bien joué ! Réponse correcte au deuxième essai.")
+            Text("Bien joué ! Réponse correcte au deuxième essai.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         case .failed:
-            Text("La réponse n'est pas correcte.\nRevisez cette notion pour progresser.")
+            Text("La réponse n'est pas correcte.\nRevisez cette notion pour progresser.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -156,7 +177,7 @@ struct FeedbackView: View {
 
     private func stepDetails(correction: CorrectionResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Détail par étape")
+            Text("Détail par étape".tr)
                 .font(.headline)
 
             ForEach(Array(correction.stepResults.enumerated()), id: \.offset) { index, isCorrect in
@@ -178,7 +199,7 @@ struct FeedbackView: View {
                 }
 
                 if let errorIndex = correction.firstErrorIndex, index == errorIndex {
-                    Text("← Première erreur ici")
+                    Text("← Première erreur ici".tr)
                         .font(.caption)
                         .foregroundColor(.red)
                         .bold()
@@ -195,7 +216,7 @@ struct FeedbackView: View {
 
     private func levelProgressView(progress: AssignmentModeHandler.LevelProgress) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Progression")
+            Text("Progression".tr)
                 .font(.headline)
 
             if progress.didAdvance {
@@ -204,7 +225,7 @@ struct FeedbackView: View {
                         .foregroundColor(.purple)
                         .font(.title2)
                     VStack(alignment: .leading) {
-                        Text("Niveau supérieur !")
+                        Text("Niveau supérieur !".tr)
                             .font(.headline)
                             .foregroundColor(.purple)
                         Text("Vous passez au niveau \(progress.currentLevel).")
@@ -215,7 +236,7 @@ struct FeedbackView: View {
             }
 
             HStack(spacing: 8) {
-                Text("Réussites consécutives :")
+                Text("Réussites consécutives :".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -230,7 +251,7 @@ struct FeedbackView: View {
             }
 
             HStack(spacing: 8) {
-                Text("Niveau actuel :")
+                Text("Niveau actuel :".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -253,10 +274,10 @@ struct FeedbackView: View {
             ProgressView()
                 .scaleEffect(1.2)
 
-            Text("Correction en cours…")
+            Text("Correction en cours…".tr)
                 .font(.headline)
 
-            Text("Votre travail est en cours de vérification.")
+            Text("Votre travail est en cours de vérification.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -271,7 +292,7 @@ struct FeedbackView: View {
                 Button {
                     viewModel.startRetry()
                 } label: {
-                    Label("Réessayer", systemImage: "arrow.counterclockwise")
+                    Label("Réessayer".tr, systemImage: "arrow.counterclockwise")
                         .font(.headline)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -285,7 +306,7 @@ struct FeedbackView: View {
             Button {
                 viewModel.moveToNext()
             } label: {
-                Label("Suivant", systemImage: "arrow.right")
+                Label("Suivant".tr, systemImage: "arrow.right")
                     .font(.headline)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 10)

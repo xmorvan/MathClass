@@ -22,19 +22,19 @@ struct TeacherView_macOS: View {
             VStack {
                 List(selection: $selectedSidebar) {
                     NavigationLink(value: 1) {
-                        Label("Classes", systemImage: "person.3")
+                        Label("Classes".tr, systemImage: "person.3")
                     }
                     NavigationLink(value: 2) {
-                        Label("Exercices", systemImage: "book")
+                        Label("Exercices".tr, systemImage: "book")
                     }
                     NavigationLink(value: 3) {
-                        Label("Devoirs", systemImage: "tray.full")
+                        Label("Devoirs".tr, systemImage: "tray.full")
                     }
                     NavigationLink(value: 5) {
-                        Label("Soumissions", systemImage: "tray.and.arrow.down")
+                        Label("Soumissions".tr, systemImage: "tray.and.arrow.down")
                     }
                     NavigationLink(value: 4) {
-                        Label("Statistiques", systemImage: "chart.bar")
+                        Label("Statistiques".tr, systemImage: "chart.bar")
                     }
                 }
                 .listStyle(SidebarListStyle())
@@ -56,7 +56,7 @@ struct TeacherView_macOS: View {
                     Button {
                         showLogoutAlert = true
                     } label: {
-                        Label("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label("Déconnexion".tr, systemImage: "rectangle.portrait.and.arrow.right")
                             .labelStyle(.iconOnly)
                             .foregroundColor(.red)
                     }
@@ -65,9 +65,9 @@ struct TeacherView_macOS: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .alert("Déconnexion", isPresented: $showLogoutAlert) {
-                Button("Annuler", role: .cancel) { }
-                Button("Déconnexion", role: .destructive) {
+            .alert("Déconnexion".tr, isPresented: $showLogoutAlert) {
+                Button("Annuler".tr, role: .cancel) { }
+                Button("Déconnexion".tr, role: .destructive) {
                     do {
                         try authService.signOut()
                     } catch {
@@ -75,7 +75,7 @@ struct TeacherView_macOS: View {
                     }
                 }
             } message: {
-                Text("Êtes-vous sûr de vouloir vous déconnecter ?")
+                Text("Êtes-vous sûr de vouloir vous déconnecter ?".tr)
             }
         } detail: {
             Group {
@@ -91,7 +91,7 @@ struct TeacherView_macOS: View {
                 case 5:
                     SubmissionInboxView_macOS(viewModel: viewModel)
                 default:
-                    Text("Sélectionnez une section")
+                    Text("Sélectionnez une section".tr)
                 }
             }
             .toolbar {
@@ -104,10 +104,10 @@ struct TeacherView_macOS: View {
                         Button {
                             showingProfile = true
                         } label: {
-                            Label("Mon profil", systemImage: "person.text.rectangle")
+                            Label("Mon profil".tr, systemImage: "person.text.rectangle")
                         }
                         Divider()
-                        Button("Déconnexion", role: .destructive) {
+                        Button("Déconnexion".tr, role: .destructive) {
                             showLogoutAlert = true
                         }
                     } label: {
@@ -154,14 +154,14 @@ struct ExerciseListView_macOS: View {
                         Button {
                             windowManager.openEditExerciseWindow(exercise: exercise, viewModel: viewModel)
                         } label: {
-                            Label("Modifier", systemImage: "pencil")
+                            Label("Modifier".tr, systemImage: "pencil")
                         }
 
                         Button(role: .destructive) {
                             exerciseToDelete = exercise
                             showingDeleteAlert = true
                         } label: {
-                            Label("Supprimer", systemImage: "trash")
+                            Label("Supprimer".tr, systemImage: "trash")
                         }
                     }
                 }
@@ -186,14 +186,14 @@ struct ExerciseListView_macOS: View {
                             }
                         }
 
-                        Text("Énoncé")
+                        Text("Énoncé".tr)
                             .font(.headline)
                         KaTeXView(content: exercise.statement, mode: .preview, fontSize: 18, minHeight: 80)
                             .background(Color.gray.opacity(0.05))
                             .cornerRadius(8)
 
                         if !exercise.expectedAnswer.isEmpty {
-                            Text("Réponse attendue")
+                            Text("Réponse attendue".tr)
                                 .font(.headline)
                             KaTeXView(
                                 content: "$\(exercise.expectedAnswer)$",
@@ -204,7 +204,7 @@ struct ExerciseListView_macOS: View {
                         }
 
                         if let imageURL = exercise.statementImageURL {
-                            Text("Image source")
+                            Text("Image source".tr)
                                 .font(.headline)
                             AsyncImageFromStorage(path: imageURL)
                         }
@@ -213,7 +213,7 @@ struct ExerciseListView_macOS: View {
                             Button {
                                 windowManager.openEditExerciseWindow(exercise: exercise, viewModel: viewModel)
                             } label: {
-                                Label("Modifier", systemImage: "pencil")
+                                Label("Modifier".tr, systemImage: "pencil")
                             }
                             .buttonStyle(.bordered)
                         }
@@ -224,7 +224,7 @@ struct ExerciseListView_macOS: View {
                 }
                 .id(exerciseID)
             } else {
-                Text("Sélectionnez un exercice pour voir les détails")
+                Text("Sélectionnez un exercice pour voir les détails".tr)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -233,13 +233,13 @@ struct ExerciseListView_macOS: View {
                 Button {
                     windowManager.openAddExerciseWindow(with: viewModel)
                 } label: {
-                    Label("Ajouter un exercice", systemImage: "plus")
+                    Label("Ajouter un exercice".tr, systemImage: "plus")
                 }
             }
         }
-        .alert("Supprimer l'exercice", isPresented: $showingDeleteAlert) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Supprimer l'exercice".tr, isPresented: $showingDeleteAlert) {
+            Button("Annuler".tr, role: .cancel) { }
+            Button("Supprimer".tr, role: .destructive) {
                 if let exercise = exerciseToDelete, let id = exercise.id {
                     Task {
                         try? await viewModel.deleteExercise(id: id)
@@ -247,7 +247,7 @@ struct ExerciseListView_macOS: View {
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer cet exercice ?")
+            Text("Êtes-vous sûr de vouloir supprimer cet exercice ?".tr)
         }
     }
 }

@@ -57,7 +57,7 @@ struct StudentStatsListView_macOS: View {
                let student = students.first(where: { $0.id == studentID }) {
                 studentDetail(student: student)
             } else {
-                Text("Sélectionnez un élève")
+                Text("Sélectionnez un élève".tr)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -145,7 +145,7 @@ struct StudentStatsListView_macOS: View {
 
                 // Competency breakdown
                 if !stats.competencyRates.isEmpty {
-                    Text("Par compétence")
+                    Text("Par compétence".tr)
                         .font(.headline)
 
                     ForEach(Array(stats.competencyRates.keys.sorted()), id: \.self) { competencyID in
@@ -170,7 +170,7 @@ struct StudentStatsListView_macOS: View {
                 Divider()
 
                 // Recent submissions
-                Text("Soumissions récentes")
+                Text("Soumissions récentes".tr)
                     .font(.headline)
 
                 ForEach(studentSubmissions.prefix(20), id: \.id) { submission in
@@ -203,7 +203,7 @@ struct StudentStatsListView_macOS: View {
                         .font(.caption)
                 }
             } else {
-                Text("En attente")
+                Text("En attente".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

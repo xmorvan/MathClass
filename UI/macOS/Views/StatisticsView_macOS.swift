@@ -15,6 +15,10 @@ struct StatisticsView_macOS: View {
     @State private var selectedClassID: String?
     @State private var isLoadingStats: Bool = false
     @State private var submissions: [Submission] = []
+    @State private var exportError: String?
+    @State private var showExportError: Bool = false
+    @State private var lastExportURL: URL?
+    @State private var showExportSuccess: Bool = false
 
     enum StatTab: String, CaseIterable {
         case perStudent = "Par élève"
@@ -88,15 +92,15 @@ struct StatisticsView_macOS: View {
 
     private var statsHeader: some View {
         HStack {
-            Text("Statistiques")
+            Text("Statistiques".tr)
                 .font(.title2)
                 .bold()
 
             Spacer()
 
             // Class selector
-            Picker("Classe", selection: $selectedClassID) {
-                Text("Toutes les classes").tag(nil as String?)
+            Picker("Classe".tr, selection: $selectedClassID) {
+                Text("Toutes les classes".tr).tag(nil as String?)
                 ForEach(viewModel.classes) { classroom in
                     Text(classroom.name).tag(classroom.id as String?)
                 }
@@ -104,7 +108,7 @@ struct StatisticsView_macOS: View {
             .frame(width: 200)
 
             // Tab picker
-            Picker("Vue", selection: $selectedTab) {
+            Picker("Vue".tr, selection: $selectedTab) {
                 ForEach(StatTab.allCases, id: \.self) { tab in
                     Text(tab.rawValue)
                 }
@@ -117,8 +121,51 @@ struct StatisticsView_macOS: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
+
+            Button {
+                exportCurrentTabToPDF()
+            } label: {
+                Label("Exporter en PDF".tr, systemImage: "square.and.arrow.up")
+            }
+            .disabled(submissions.isEmpty)
         }
         .padding()
+        .alert("Erreur".tr, isPresented: $showExportError) {
+            Button("OK".tr, role: .cancel) {}
+        } message: {
+            Text(exportError ?? "")
+        }
+        .alert("PDF exporté".tr, isPresented: $showExportSuccess) {
+            Button("OK".tr, role: .cancel) {}
+            if let url = lastExportURL {
+                Button("Ouvrir".tr) { NSWorkspace.shared.open(url) }
+            }
+        } message: {
+            Text(lastExportURL?.path ?? "")
+        }
+    }
+
+    @MainActor
+    private func exportCurrentTabToPDF() {
+        let className = viewModel.classes.first(where: { $0.id == selectedClassID })?.name ?? "Toutes les classes"
+        let baseTitle = String(format: "Rapport - %@".tr, className)
+        let title = "\(baseTitle) — \(selectedTab.rawValue.tr)"
+        let report = StatisticsPDFReport_macOS(
+            title: title,
+            generatedAt: Date(),
+            tab: selectedTab,
+            viewModel: viewModel,
+            submissions: submissions,
+            classID: selectedClassID
+        )
+        do {
+            let url = try PDFExporter.exportToPDF(view: report, fileName: title)
+            lastExportURL = url
+            showExportSuccess = true
+        } catch {
+            exportError = error.localizedDescription
+            showExportError = true
+        }
     }
 
     private var emptyState: some View {
@@ -126,9 +173,9 @@ struct StatisticsView_macOS: View {
             Image(systemName: "chart.bar.xaxis")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            Text("Aucune donnée")
+            Text("Aucune donnée".tr)
                 .font(.headline)
-            Text("Les statistiques apparaîtront lorsque des élèves auront soumis des travaux.")
+            Text("Les statistiques apparaîtront lorsque des élèves auront soumis des travaux.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

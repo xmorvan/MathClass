@@ -19,7 +19,15 @@ options.set_global_options(region=options.SupportedRegion.EUROPE_WEST6)
 # The decorator binding below makes the secret available inside each handler
 # as `os.environ["ANTHROPIC_API_KEY"]`, so the per-handler implementations
 # don't need to know about SecretParam.
-ANTHROPIC_KEY = params.SecretParam("ANTHROPIC_API_KEY")
+# The Firebase Functions Python SDK's local discovery server re-execs
+# `main.py` on every request to `/__/functions.yaml`. Without this guard,
+# the second declaration of the SecretParam raises
+# `ValueError: Duplicate Parameter Error`, which surfaces during
+# `firebase deploy` as a hung "Loading and analyzing source code" step.
+try:
+    ANTHROPIC_KEY = params.SecretParam("ANTHROPIC_API_KEY")
+except ValueError:
+    ANTHROPIC_KEY = params._params["ANTHROPIC_API_KEY"]  # noqa: SLF001
 
 # Handler modules are imported lazily inside each function — the top-level
 # imports of anthropic, firebase_admin, sympy, etc. are collectively too

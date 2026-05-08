@@ -35,19 +35,19 @@ struct EditExerciseView: View {
         NavigationView {
             Form {
                 // Title
-                Section(header: Text("Titre")) {
-                    TextField("Titre", text: $title)
+                Section(header: Text("Titre".tr)) {
+                    TextField("Titre".tr, text: $title)
                 }
 
                 // Statement
-                Section(header: Text("Énoncé (LaTeX et texte)")) {
+                Section(header: Text("Énoncé (LaTeX et texte)".tr)) {
                     TextEditor(text: $statement)
                         .font(.system(.body, design: .monospaced))
                         .frame(height: 180)
 
                     if showPreview && !statement.isEmpty {
                         VStack(alignment: .leading) {
-                            Text("Aperçu")
+                            Text("Aperçu".tr)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             KaTeXView(content: statement, mode: .preview, fontSize: 16, minHeight: 60)
@@ -57,12 +57,12 @@ struct EditExerciseView: View {
                         }
                     }
 
-                    Toggle("Afficher l'aperçu", isOn: $showPreview)
+                    Toggle("Afficher l'aperçu".tr, isOn: $showPreview)
                 }
 
                 // Expected Answer
-                Section(header: Text("Réponse attendue (LaTeX)")) {
-                    TextField("ex: x = 5", text: $expectedAnswer)
+                Section(header: Text("Réponse attendue (LaTeX)".tr)) {
+                    TextField("ex: x = 5".tr, text: $expectedAnswer)
                         .font(.system(.body, design: .monospaced))
 
                     if showPreview && !expectedAnswer.isEmpty {
@@ -76,7 +76,7 @@ struct EditExerciseView: View {
                 }
 
                 // Difficulty
-                Section(header: Text("Difficulté")) {
+                Section(header: Text("Difficulté".tr)) {
                     HStack(spacing: 8) {
                         ForEach(1...5, id: \.self) { level in
                             Button {
@@ -97,9 +97,9 @@ struct EditExerciseView: View {
 
                 // Chapter
                 if !viewModel.chapters.isEmpty {
-                    Section(header: Text("Chapitre")) {
-                        Picker("Chapitre", selection: $selectedChapterID) {
-                            Text("Aucun").tag(String?.none)
+                    Section(header: Text("Chapitre".tr)) {
+                        Picker("Chapitre".tr, selection: $selectedChapterID) {
+                            Text("Aucun".tr).tag(String?.none)
                             ForEach(viewModel.chapters) { chapter in
                                 Text(chapter.name).tag(Optional(chapter.id))
                             }
@@ -109,18 +109,18 @@ struct EditExerciseView: View {
 
                 // Source image (if image-based)
                 if let imageURL = exercise.statementImageURL {
-                    Section(header: Text("Image source")) {
+                    Section(header: Text("Image source".tr)) {
                         AsyncImageFromStorage(path: imageURL)
                     }
                 }
             }
-            .navigationTitle("Modifier l'exercice")
+            .navigationTitle("Modifier l'exercice".tr)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler".tr) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Sauvegarder") {
+                    Button("Sauvegarder".tr) {
                         saveExercise()
                     }
                     .disabled(title.isEmpty || statement.isEmpty)

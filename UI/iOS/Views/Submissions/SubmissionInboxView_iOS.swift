@@ -49,8 +49,8 @@ struct SubmissionInboxView_iOS: View {
 
     private var classFilter: some View {
         HStack {
-            Picker("Classe", selection: $selectedClassID) {
-                Text("Toutes les classes").tag(String?.none)
+            Picker("Classe".tr, selection: $selectedClassID) {
+                Text("Toutes les classes".tr).tag(String?.none)
                 ForEach(viewModel.classes, id: \.id) { classroom in
                     if let id = classroom.id {
                         Text(classroom.name).tag(String?.some(id))
@@ -90,9 +90,9 @@ struct SubmissionInboxView_iOS: View {
             Image(systemName: "tray")
                 .font(.system(size: 44))
                 .foregroundColor(.secondary)
-            Text("Aucune soumission")
+            Text("Aucune soumission".tr)
                 .font(.headline)
-            Text("Les travaux soumis par vos élèves apparaîtront ici en temps réel.")
+            Text("Les travaux soumis par vos élèves apparaîtront ici en temps réel.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -139,7 +139,7 @@ struct SubmissionInboxView_iOS: View {
             HStack(spacing: 4) {
                 Image(systemName: "clock")
                     .foregroundColor(.orange)
-                Text("En attente")
+                Text("En attente".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

@@ -18,8 +18,13 @@ struct AssignmentExercise: Identifiable, Codable, Hashable {
     /// If nil, the exercise is assigned to all students in the class.
     /// If set, only these students receive this exercise (for differentiation mode).
     var targetStudentIDs: [String]?
-    /// Optional group label for differentiation mode (e.g., "Groupe A").
+    /// Optional group label for differentiation mode (e.g., "Groupe A"). Kept
+    /// for backward compatibility; new code should prefer `targetGroupID`,
+    /// which references a real `StudentGroup` document.
     var targetGroupName: String?
+    /// Optional reference to a `StudentGroup.id` under the parent class.
+    /// When set, members of that group receive this exercise.
+    var targetGroupID: String?
 
     init(
         id: String? = nil,
@@ -27,7 +32,8 @@ struct AssignmentExercise: Identifiable, Codable, Hashable {
         exerciseID: String,
         order: Int,
         targetStudentIDs: [String]? = nil,
-        targetGroupName: String? = nil
+        targetGroupName: String? = nil,
+        targetGroupID: String? = nil
     ) {
         self.id = id
         self.assignmentID = assignmentID
@@ -35,5 +41,6 @@ struct AssignmentExercise: Identifiable, Codable, Hashable {
         self.order = order
         self.targetStudentIDs = targetStudentIDs
         self.targetGroupName = targetGroupName
+        self.targetGroupID = targetGroupID
     }
 }

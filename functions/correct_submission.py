@@ -188,11 +188,126 @@ def claude_check_equivalence(
         return False
 
 
+NOTATION_PROMPT = """Tu es un correcteur mathématique vétilleux sur la notation, mais juste sur le fond. Examine ces étapes d'élève :
+
+Énoncé : {statement}
+Étapes :
+{steps}
+
+Indique UNIQUEMENT les problèmes de NOTATION (parenthèses manquantes autour d'un négatif, points de multiplication implicites ambigus, mélange virgule/point décimal, écriture x*x au lieu de x^2, etc.).
+NE COMMENTE PAS la justesse mathématique — uniquement la forme.
+
+Réponds UNIQUEMENT en JSON :
+{{
+  "hasIssue": true ou false,
+  "note": "phrase courte décrivant le problème de notation, sans corriger le fond"
+}}
+
+Si tu ne vois aucun problème de notation, mets hasIssue=false et note="".
+"""
+
+
+def _detect_notation_issue(
+    client: anthropic.Anthropic,
+    student_steps: list,
+    statement: str,
+) -> str | None:
+    """Run a Claude pass that flags notation problems separately from
+    algebraic correctness. Returns the note or None.
+
+    Errors are swallowed — notation feedback is best-effort.
+    """
+    try:
+        formatted = "\n".join([f"Étape {i + 1}: {s}" for i, s in enumerate(student_steps)])
+        prompt = NOTATION_PROMPT.format(statement=statement or "(sans énoncé)", steps=formatted)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=256,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = message.content[0].text.strip()
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            json_match = re.search(r"\{.*\}", text, re.DOTALL)
+            if not json_match:
+                return None
+            data = json.loads(json_match.group())
+        if not data.get("hasIssue"):
+            return None
+        note = (data.get("note") or "").strip()
+        return note if note else None
+    except Exception as exc:
+        print(f"[correct_submission] notation pass failed: {exc}")
+        return None
+
+
+CLASSIFY_PROMPT = """Catégorise chaque étape ci-dessous parmi : "sign_error", "arithmetic", "algebra", "notation", "conceptual", ou null si l'étape est correcte ou inclassable.
+
+Étapes (avec verdict) :
+{lines}
+
+Réponds UNIQUEMENT en JSON :
+{{
+  "tags": ["sign_error", null, "algebra"]
+}}
+"""
+
+
+def _classify_errors(
+    client: anthropic.Anthropic,
+    student_steps: list,
+    step_results: list,
+) -> list:
+    """Per-step error category. Returns a list of length len(student_steps)
+    with each entry being a short tag string or None. Best-effort.
+    """
+    n = len(student_steps)
+    try:
+        lines = []
+        for i in range(n):
+            verdict = "OK" if (i < len(step_results) and step_results[i]) else "ERREUR"
+            lines.append(f"Étape {i + 1} ({verdict}): {student_steps[i]}")
+        prompt = CLASSIFY_PROMPT.format(lines="\n".join(lines))
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=256,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = message.content[0].text.strip()
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            json_match = re.search(r"\{.*\}", text, re.DOTALL)
+            if not json_match:
+                return [None] * n
+            data = json.loads(json_match.group())
+        tags = data.get("tags") or []
+        # Pad / truncate to length n.
+        if len(tags) < n:
+            tags = tags + [None] * (n - len(tags))
+        elif len(tags) > n:
+            tags = tags[:n]
+        # Normalize: keep strings and None only.
+        normalized: list = []
+        for t in tags:
+            if isinstance(t, str) and t.strip():
+                normalized.append(t.strip())
+            else:
+                normalized.append(None)
+        return normalized
+    except Exception as exc:
+        print(f"[correct_submission] classification pass failed: {exc}")
+        return [None] * n
+
+
 def _persist_correction(
     submission_id: str,
     step_results: list[bool],
     first_error_index: int | None,
     final_result: str,
+    notation_note: str | None = None,
+    error_tags: list | None = None,
 ) -> Exception | None:
     """Write the correction result to /submissions/{id} via Admin SDK.
 
@@ -204,13 +319,18 @@ def _persist_correction(
     for attempt in range(3):
         try:
             db = _get_firestore()
-            db.collection("submissions").document(submission_id).update({
+            doc: dict = {
                 "correctionResult": {
                     "stepResults": step_results,
                     "firstErrorIndex": first_error_index,
                 },
                 "finalResult": final_result,
-            })
+            }
+            if notation_note is not None:
+                doc["correctionResult"]["notationNote"] = notation_note
+            if error_tags is not None:
+                doc["correctionResult"]["errorTags"] = error_tags
+            db.collection("submissions").document(submission_id).update(doc)
             return None
         except Exception as e:  # noqa: BLE001 — retry any failure
             last_error = e
@@ -257,6 +377,10 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
     statement = req.data.get("statement", "")
     submission_id = req.data.get("submissionID")
     attempt_number = req.data.get("attemptNumber")
+    # New: class-level notation strictness (default True). When True the
+    # function flags notation issues separately without flipping the
+    # verdict; when False notation is ignored entirely.
+    notation_strict = bool(req.data.get("notationStrict", True))
 
     if not isinstance(student_steps, list):
         raise https_fn.HttpsError(
@@ -395,6 +519,26 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         else:
             final_result = "failed"
 
+        # Notation pass: when the class has notationStrict=True, ask Claude
+        # to flag any notation problem found in the steps WITHOUT flipping
+        # the verdict. The note is rendered as a separate banner in the
+        # student's feedback view. Skipped entirely when notationStrict is
+        # false to save Anthropic credits.
+        notation_note: str | None = None
+        if notation_strict and student_steps:
+            notation_note = _detect_notation_issue(
+                client, student_steps, statement
+            )
+
+        # Per-step error categorization (sign / arithmetic / notation /
+        # conceptual). Only run for failed steps so we don't pay for it
+        # when everything is correct.
+        error_tags: list | None = None
+        if not all_correct and pairs:
+            error_tags = _classify_errors(
+                client, student_steps, step_results
+            )
+
         # ISSUE-004: previously a persist failure was logged and swallowed,
         # so the teacher's inbox would never see a submission whose write
         # had failed. Now we retry a few times and then surface the failure
@@ -406,6 +550,8 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             step_results=step_results,
             first_error_index=first_error_index,
             final_result=final_result,
+            notation_note=notation_note,
+            error_tags=error_tags,
         )
         if persist_error is not None:
             raise https_fn.HttpsError(
@@ -417,11 +563,16 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                 details={"reason": str(persist_error)},
             )
 
-        return {
+        response: dict = {
             "stepResults": step_results,
             "firstErrorIndex": first_error_index,
             "allCorrect": all_correct,
         }
+        if notation_note is not None:
+            response["notationNote"] = notation_note
+        if error_tags is not None:
+            response["errorTags"] = error_tags
+        return response
 
     except https_fn.HttpsError:
         raise

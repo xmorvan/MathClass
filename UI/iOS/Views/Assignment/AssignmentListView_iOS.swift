@@ -58,15 +58,15 @@ struct AssignmentListView_iOS: View {
                 }
             }
         }
-        .alert("Supprimer le devoir", isPresented: $showingDeleteAlert) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Supprimer le devoir".tr, isPresented: $showingDeleteAlert) {
+            Button("Annuler".tr, role: .cancel) { }
+            Button("Supprimer".tr, role: .destructive) {
                 if let assignment = assignmentToDelete {
                     Task { await assignmentVM.deleteAssignment(assignment) }
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer ce devoir ?")
+            Text("Êtes-vous sûr de vouloir supprimer ce devoir ?".tr)
         }
     }
 
@@ -77,13 +77,13 @@ struct AssignmentListView_iOS: View {
             Image(systemName: "tray")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            Text("Aucun devoir")
+            Text("Aucun devoir".tr)
                 .font(.headline)
-            Text("Créez un devoir pour assigner des exercices à vos élèves.")
+            Text("Créez un devoir pour assigner des exercices à vos élèves.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Créer un devoir") {
+            Button("Créer un devoir".tr) {
                 assignmentVM.resetCreation()
                 showingCreateSheet = true
             }
@@ -97,7 +97,7 @@ struct AssignmentListView_iOS: View {
     private var assignmentList: some View {
         List {
             if !assignmentVM.activeAssignments.isEmpty {
-                Section("Actifs") {
+                Section("Actifs".tr) {
                     ForEach(assignmentVM.activeAssignments) { assignment in
                         assignmentRow(assignment)
                             .onTapGesture { selectedAssignment = assignment }
@@ -106,7 +106,7 @@ struct AssignmentListView_iOS: View {
             }
 
             if !assignmentVM.pastAssignments.isEmpty {
-                Section("Terminés") {
+                Section("Terminés".tr) {
                     ForEach(assignmentVM.pastAssignments) { assignment in
                         assignmentRow(assignment)
                             .onTapGesture { selectedAssignment = assignment }
@@ -158,7 +158,7 @@ struct AssignmentListView_iOS: View {
                 assignmentToDelete = assignment
                 showingDeleteAlert = true
             } label: {
-                Label("Supprimer", systemImage: "trash")
+                Label("Supprimer".tr, systemImage: "trash")
             }
 
             Button {
@@ -184,61 +184,61 @@ struct AssignmentDetailView_iOS: View {
 
     var body: some View {
         List {
-            Section("Informations") {
+            Section("Informations".tr) {
                 HStack {
-                    Text("Mode")
+                    Text("Mode".tr)
                     Spacer()
                     Label(assignment.mode.displayName, systemImage: assignment.mode.iconName)
                         .foregroundColor(assignment.mode.color)
                 }
 
                 HStack {
-                    Text("Classe")
+                    Text("Classe".tr)
                     Spacer()
                     Text(assignmentVM.className(for: assignment.classID))
                         .foregroundColor(.secondary)
                 }
 
                 HStack {
-                    Text("Statut")
+                    Text("Statut".tr)
                     Spacer()
                     Text(assignment.isActive ? "Actif" : "Terminé")
                         .foregroundColor(assignment.isActive ? .green : .secondary)
                 }
 
                 HStack {
-                    Text("Créé le")
+                    Text("Créé le".tr)
                     Spacer()
                     Text(assignment.createdAt.formatted(date: .long, time: .shortened))
                         .foregroundColor(.secondary)
                 }
             }
 
-            Section("Mode") {
+            Section("Mode".tr) {
                 HStack {
-                    Text("Feedback")
+                    Text("Feedback".tr)
                     Spacer()
                     Text(assignment.mode.showsFeedback ? "Oui" : "Non")
                         .foregroundColor(assignment.mode.showsFeedback ? .green : .orange)
                 }
                 HStack {
-                    Text("2e chance")
+                    Text("2e chance".tr)
                     Spacer()
                     Text(assignment.mode.allows2ndChance ? "Oui" : "Non")
                         .foregroundColor(assignment.mode.allows2ndChance ? .green : .orange)
                 }
                 HStack {
-                    Text("Erreur détaillée")
+                    Text("Erreur détaillée".tr)
                     Spacer()
                     Text(assignment.mode.showsErrorStep ? "Oui" : "Non")
                         .foregroundColor(assignment.mode.showsErrorStep ? .green : .gray)
                 }
             }
 
-            Section("Exercices") {
+            Section("Exercices".tr) {
                 let exercises = assignmentVM.exercisesForAssignment(assignment.id ?? "")
                 if exercises.isEmpty {
-                    Text("Aucun exercice")
+                    Text("Aucun exercice".tr)
                         .foregroundColor(.secondary)
                 } else {
                     ForEach(exercises) { ae in
@@ -249,7 +249,7 @@ struct AssignmentDetailView_iOS: View {
                             if let exercise = assignmentVM.exercise(byID: ae.exerciseID) {
                                 Text(exercise.title)
                             } else {
-                                Text("Exercice introuvable")
+                                Text("Exercice introuvable".tr)
                                     .foregroundColor(.red)
                             }
                             Spacer()
@@ -266,11 +266,11 @@ struct AssignmentDetailView_iOS: View {
                 }
             }
         }
-        .navigationTitle("Détail du devoir")
+        .navigationTitle("Détail du devoir".tr)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Fermer") { dismiss() }
+                Button("Fermer".tr) { dismiss() }
             }
         }
     }
@@ -285,9 +285,9 @@ struct CreateAssignmentView_iOS: View {
 
     var body: some View {
         Form {
-            Section("Classe") {
-                Picker("Classe", selection: $assignmentVM.selectedClassID) {
-                    Text("Sélectionner").tag(nil as String?)
+            Section("Classe".tr) {
+                Picker("Classe".tr, selection: $assignmentVM.selectedClassID) {
+                    Text("Sélectionner".tr).tag(nil as String?)
                     ForEach(viewModel.classes) { classroom in
                         Text(classroom.name).tag(classroom.id as String?)
                     }
@@ -297,8 +297,8 @@ struct CreateAssignmentView_iOS: View {
                 }
             }
 
-            Section("Mode") {
-                Picker("Mode", selection: $assignmentVM.selectedMode) {
+            Section("Mode".tr) {
+                Picker("Mode".tr, selection: $assignmentVM.selectedMode) {
                     ForEach(AssignmentMode.allCases, id: \.self) { mode in
                         Label(mode.displayName, systemImage: mode.iconName).tag(mode)
                     }
@@ -306,7 +306,7 @@ struct CreateAssignmentView_iOS: View {
                 .pickerStyle(.segmented)
             }
 
-            Section("Exercices") {
+            Section("Exercices".tr) {
                 ForEach(assignmentVM.filteredExercises) { exercise in
                     let isSelected = assignmentVM.selectedExercises.contains { $0.exerciseID == exercise.id }
                     HStack {
@@ -385,11 +385,11 @@ struct CreateAssignmentView_iOS: View {
                 }
             }
         }
-        .navigationTitle("Nouveau devoir")
+        .navigationTitle("Nouveau devoir".tr)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("Annuler") { onDismiss() }
+                Button("Annuler".tr) { onDismiss() }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -403,7 +403,7 @@ struct CreateAssignmentView_iOS: View {
                     if assignmentVM.isCreating {
                         ProgressView()
                     } else {
-                        Text("Créer")
+                        Text("Créer".tr)
                             .bold()
                     }
                 }
@@ -425,11 +425,11 @@ struct StudentTargetingView_iOS: View {
 
     var body: some View {
         Form {
-            Section("Groupe") {
-                TextField("Nom du groupe (optionnel)", text: $groupName)
+            Section("Groupe".tr) {
+                TextField("Nom du groupe (optionnel)".tr, text: $groupName)
             }
 
-            Section("Élèves (vide = tous)") {
+            Section("Élèves (vide = tous)".tr) {
                 ForEach(students) { student in
                     let isSelected = selectedIDs.contains(student.id ?? "")
                     Button {
@@ -446,11 +446,11 @@ struct StudentTargetingView_iOS: View {
                 }
             }
         }
-        .navigationTitle("Cibler des élèves")
+        .navigationTitle("Cibler des élèves".tr)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Appliquer") {
+                Button("Appliquer".tr) {
                     onSave(selectedIDs, groupName)
                     dismiss()
                 }

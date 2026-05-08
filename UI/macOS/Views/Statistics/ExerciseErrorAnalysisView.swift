@@ -38,7 +38,7 @@ struct ExerciseStatsListView_macOS: View {
                let exercise = viewModel.exercises.first(where: { $0.id == exerciseID }) {
                 exerciseDetail(exercise: exercise)
             } else {
-                Text("Sélectionnez un exercice pour voir l'analyse des erreurs")
+                Text("Sélectionnez un exercice pour voir l'analyse des erreurs".tr)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -123,7 +123,7 @@ struct ExerciseStatsListView_macOS: View {
                 }
 
                 // Exercise statement preview
-                Text("Énoncé")
+                Text("Énoncé".tr)
                     .font(.headline)
                 KaTeXView(content: exercise.statement, mode: .preview, fontSize: 16, minHeight: 60)
                     .background(Color.gray.opacity(0.05))
@@ -135,7 +135,7 @@ struct ExerciseStatsListView_macOS: View {
                 if !stats.stepErrorCounts.isEmpty {
                     stepErrorAnalysis(stats: stats)
                 } else if stats.totalSubmissions > 0 {
-                    Text("Aucune erreur détectée dans les étapes.")
+                    Text("Aucune erreur détectée dans les étapes.".tr)
                         .foregroundColor(.secondary)
                 }
             }
@@ -148,10 +148,10 @@ struct ExerciseStatsListView_macOS: View {
     @ViewBuilder
     private func stepErrorAnalysis(stats: StatisticsService.ExerciseStats) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Analyse des erreurs par étape")
+            Text("Analyse des erreurs par étape".tr)
                 .font(.headline)
 
-            Text("Les étapes les plus problématiques sont mises en évidence.")
+            Text("Les étapes les plus problématiques sont mises en évidence.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -176,7 +176,7 @@ struct ExerciseStatsListView_macOS: View {
 
                     // Common wrong expressions
                     if let errors = stats.commonErrors[stepIndex], !errors.isEmpty {
-                        Text("Expressions erronées les plus fréquentes :")
+                        Text("Expressions erronées les plus fréquentes :".tr)
                             .font(.caption)
                             .foregroundColor(.secondary)
 

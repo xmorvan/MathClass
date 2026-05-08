@@ -35,15 +35,15 @@ struct SubmissionInboxView_macOS: View {
             detailPane
                 .frame(minWidth: 500)
         }
-        .navigationTitle("Soumissions")
+        .navigationTitle("Soumissions".tr)
     }
 
     // MARK: - Class filter
 
     private var classFilter: some View {
         HStack {
-            Picker("Classe", selection: $selectedClassID) {
-                Text("Toutes les classes").tag(String?.none)
+            Picker("Classe".tr, selection: $selectedClassID) {
+                Text("Toutes les classes".tr).tag(String?.none)
                 ForEach(viewModel.classes, id: \.id) { classroom in
                     if let id = classroom.id {
                         Text(classroom.name).tag(String?.some(id))
@@ -67,10 +67,10 @@ struct SubmissionInboxView_macOS: View {
                     Image(systemName: "tray")
                         .font(.system(size: 32))
                         .foregroundColor(.secondary)
-                    Text("Aucune soumission")
+                    Text("Aucune soumission".tr)
                         .font(.headline)
                         .foregroundColor(.secondary)
-                    Text("Les soumissions des élèves apparaîtront ici dès qu'elles seront envoyées.")
+                    Text("Les soumissions des élèves apparaîtront ici dès qu'elles seront envoyées.".tr)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -127,7 +127,7 @@ struct SubmissionInboxView_macOS: View {
             HStack(spacing: 4) {
                 Image(systemName: "clock")
                     .foregroundColor(.orange)
-                Text("En attente")
+                Text("En attente".tr)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -147,7 +147,7 @@ struct SubmissionInboxView_macOS: View {
                 Image(systemName: "doc.text.magnifyingglass")
                     .font(.system(size: 44))
                     .foregroundColor(.secondary)
-                Text("Sélectionnez une soumission")
+                Text("Sélectionnez une soumission".tr)
                     .font(.headline)
                     .foregroundColor(.secondary)
             }

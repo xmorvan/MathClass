@@ -15,6 +15,10 @@ struct StatisticsView: View {
     @State private var selectedClassID: String?
     @State private var isLoadingStats: Bool = false
     @State private var submissions: [Submission] = []
+    @State private var lastExportURL: URL?
+    @State private var showShareSheet: Bool = false
+    @State private var exportError: String?
+    @State private var showExportError: Bool = false
 
     enum StatTab: String, CaseIterable {
         case perStudent = "Par élève"
@@ -61,15 +65,15 @@ struct StatisticsView: View {
 
     private var filterBar: some View {
         HStack {
-            Picker("Classe", selection: $selectedClassID) {
-                Text("Toutes").tag(nil as String?)
+            Picker("Classe".tr, selection: $selectedClassID) {
+                Text("Toutes".tr).tag(nil as String?)
                 ForEach(viewModel.classes) { classroom in
                     Text(classroom.name).tag(classroom.id as String?)
                 }
             }
             .frame(width: 150)
 
-            Picker("Vue", selection: $selectedTab) {
+            Picker("Vue".tr, selection: $selectedTab) {
                 ForEach(StatTab.allCases, id: \.self) { tab in
                     Text(tab.rawValue)
                 }
@@ -81,9 +85,55 @@ struct StatisticsView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
+
+            Button {
+                exportToPDF()
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .disabled(submissions.isEmpty)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+        .sheet(isPresented: $showShareSheet) {
+            if let url = lastExportURL {
+                ShareSheet(items: [url])
+            }
+        }
+        .alert("Erreur".tr, isPresented: $showExportError) {
+            Button("OK".tr, role: .cancel) {}
+        } message: {
+            Text(exportError ?? "")
+        }
+    }
+
+    @MainActor
+    private func exportToPDF() {
+        let className: String = viewModel.classes.first(where: { $0.id == selectedClassID })?.name ?? "Toutes les classes".tr
+        let baseTitle: String = String(format: "Rapport - %@".tr, className)
+        let tabTitle: String = selectedTab.rawValue.tr
+        let title: String = "\(baseTitle) — \(tabTitle)"
+        // Render the lightweight summary card as a PDF page.
+        let report = VStack(alignment: .leading, spacing: 12) {
+            Text(title).font(.title2).bold()
+            Text(Date().formatted(date: .long, time: .shortened))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Divider()
+            Text("Soumissions: \(submissions.count)").font(.headline)
+        }
+        .padding(36)
+        .frame(width: 612, height: 792, alignment: .topLeading)
+        .background(Color.white)
+
+        do {
+            let url = try PDFExporter.exportToPDF(view: report, fileName: title)
+            lastExportURL = url
+            showShareSheet = true
+        } catch {
+            exportError = error.localizedDescription
+            showExportError = true
+        }
     }
 
     // MARK: - Empty State
@@ -93,9 +143,9 @@ struct StatisticsView: View {
             Image(systemName: "chart.bar.xaxis")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            Text("Aucune donnée")
+            Text("Aucune donnée".tr)
                 .font(.headline)
-            Text("Les statistiques apparaîtront lorsque des élèves auront soumis des travaux.")
+            Text("Les statistiques apparaîtront lorsque des élèves auront soumis des travaux.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -240,7 +290,7 @@ struct StatisticsView: View {
         )
 
         return List {
-            Section("Résumé") {
+            Section("Résumé".tr) {
                 StatSummaryRow(title: "Élèves", value: "\(stats.totalStudents)", icon: "person.3")
                 StatSummaryRow(title: "Soumissions", value: "\(stats.totalSubmissions)", icon: "doc.text")
                 StatSummaryRow(
@@ -257,7 +307,7 @@ struct StatisticsView: View {
             }
 
             if !stats.weakestCompetencies.isEmpty {
-                Section("Compétences les plus faibles") {
+                Section("Compétences les plus faibles".tr) {
                     ForEach(stats.weakestCompetencies.prefix(5), id: \.competencyID) { comp in
                         HStack {
                             Text(findCompetencyLabel(comp.competencyID))
@@ -273,7 +323,7 @@ struct StatisticsView: View {
             }
 
             if !stats.studentsInDifficulty.isEmpty {
-                Section("Élèves en difficulté (< 40%)") {
+                Section("Élèves en difficulté (< 40%)".tr) {
                     ForEach(stats.studentsInDifficulty, id: \.studentID) { item in
                         let student = students.first { $0.id == item.studentID }
                         if let student = student {

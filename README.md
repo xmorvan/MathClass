@@ -1,64 +1,68 @@
-# MathClass App
+# MathClass
 
-MathClass is an educational application designed for teachers and students to manage math exercises, assignments, and solutions.
+MathClass is an educational application that helps middle-school and high-school teachers run differentiated classroom sessions. Students solve handwritten math exercises on iPad with a stylus; an AI checks each step of their reasoning; the teacher sees real-time progress and rich post-session analytics.
 
-## QR Code Login System
+## Platforms
 
-The app includes a QR code-based login system for students with persistent sessions. Here's how to use it:
+- **Teacher app:** iPad and Mac (interchangeable).
+- **Student app:** iPad only (stylus-driven; no Mac student client).
+- **Backend:** Firebase Firestore + Cloud Storage + Auth.
+- **AI:** Anthropic Claude (server-side only, via Python Cloud Functions).
 
-### For Teachers:
+## Build & Run
 
-1. **Generate QR Codes**:
-   - Go to the Classes section in the teacher interface
-   - Select a class from the list
-   - Click the "Générer QR Codes" button
-   - Save the PDF file containing QR codes for all students in the class
+- Open `MathClass.xcodeproj` in Xcode, select target, `Cmd+R`.
+- Cloud Functions: `firebase deploy --only functions,firestore:indexes` (Python 3.12, region `europe-west6`).
+- Firebase emulator: `firebase emulators:start`.
+- `GoogleService-Info.plist` must be present at the project root (not in source control).
+- The Anthropic API key is a Firebase secret. First-time setup: `firebase functions:secrets:set ANTHROPIC_API_KEY`.
 
-2. **Manage Student Sessions**:
-   - Go to the "QR Codes" section in the sidebar
-   - View all active student sessions
-   - Approve or deny logout requests from students
-   - Regenerate individual QR codes if needed
+## Authentication
 
-3. **Export QR Codes**:
-   - Use the "Export PDF" button in the QR Codes management view
-   - Print and distribute the QR codes to students
+- **Students** log in with a class code (format `MX-XXXX`) or by scanning a QR code shown by the teacher. The session is persisted in the iPad Keychain. There is no individual student account in Firebase Auth.
+- **Teachers** sign in with email + password (Firebase Auth). The auth layer is wrapped behind `AuthenticationService` to make adding SSO/magic-link/paid-tier login a contained refactor.
 
-### For Students:
+## Languages
 
-1. **Login with QR Code** (iOS only):
-   - Launch the app and choose "Student" role
-   - Position your QR code in front of the camera
-   - Once scanned, you'll be automatically logged in
+The app is bilingual French/English. Teachers pick a language in their profile (Settings → Language); the choice persists and the entire UI updates immediately, no app restart required.
 
-2. **Manual Login** (iOS and macOS):
-   - Enter your first and last name in the login form
-   - This method is available as backup or on platforms without camera access
+## Statistics
 
-3. **Persistent Sessions**:
-   - Once logged in, your session remains active until you request logout
-   - To logout, use the "Request Logout" button in the student interface
-   - Your teacher will need to approve the logout request
+Five priority statistics are computed by `StatisticsService`:
 
-## Security Features
+1. AI-derived error taxonomy (per-step categories surfaced by the correction Cloud Function).
+2. Per-concept mastery as a class-wide heatmap (success rate per competency).
+3. Common error patterns (pairwise X→Y co-occurrence across the class).
+4. Comparison to class average (per student).
+5. Per-concept progress over time (12-week trend).
 
-- QR codes contain encrypted student credentials
-- Each QR code has a 1-year validity period
-- Session data is securely stored in the device keychain
-- Each device gets a unique identifier to prevent unauthorized logins
-- Teachers can revoke access by approving logout requests or regenerating QR codes
+Reports are viewable in-app and exportable to PDF (per-student and per-exercise views) via the Statistics tab.
 
-## Implementation Details
+## Demo data
 
-The QR code system is implemented with:
-- CoreImage for QR code generation
-- AVFoundation for QR scanning on iOS
-- Keychain for secure credential storage
-- Firebase for synchronizing session state between devices
-- PDF generation for distributing QR codes
+The teacher profile has a "Load demo data" button that seeds a sample class, students, groups, and exercises. "Reset Demo" wipes only the demo namespace; teacher-created data is untouched.
 
-## Requirements
+## Cloud Functions (Python)
 
-- iOS 16.0+ or macOS 12.0+
-- Camera access for QR scanning (iOS only)
-- Firebase account for backend services
+Three callable functions in `functions/main.py`:
+
+1. **`extract_exercise`** — Claude Vision reads an exercise photo → LaTeX statement + expected answer + suggested competency tags from the teacher's catalog.
+2. **`recognize_handwriting`** — Claude Vision reads a PencilKit PNG export → list of LaTeX steps + confidence score.
+3. **`correct_submission`** — Hybrid: Claude structures student steps vs. reference, SymPy verifies algebraic equivalence (Claude judgment fallback). Returns per-step booleans, first error index, optional notation note (when the class is in strict notation mode), and per-step error tags.
+
+## Tests
+
+- Cloud Functions: `pytest functions/tests`.
+- iOS / macOS: build & test from Xcode (`Product → Test`).
+
+## Project layout
+
+```
+├── Core/               models, services, repositories
+├── Features/           ViewModels
+├── UI/                 iOS & macOS views
+├── MathClass-Shared/   shared SwiftUI components
+├── MathClass/          iOS app entry point
+├── MathClass-macOS/    macOS app entry point
+└── functions/          Python Firebase Cloud Functions
+```

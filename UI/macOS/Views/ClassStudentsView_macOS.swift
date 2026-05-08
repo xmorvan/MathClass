@@ -24,7 +24,7 @@ struct ClassStudentsView_macOS: View {
                     HStack {
                         Text(student.fullName)
                         Spacer()
-                        Button("Éditer") {
+                        Button("Éditer".tr) {
                             studentToEdit = student
                             showingEditStudent = true
                         }
@@ -48,9 +48,9 @@ struct ClassStudentsView_macOS: View {
                 EditStudentView_macOS(viewModel: viewModel, student: student)
             }
         }
-        .alert("Supprimer l'élève", isPresented: $showingDeleteConfirmation) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Supprimer l'élève".tr, isPresented: $showingDeleteConfirmation) {
+            Button("Annuler".tr, role: .cancel) { }
+            Button("Supprimer".tr, role: .destructive) {
                 if let student = studentToDelete,
                    let studentID = student.id {
                     Task {
@@ -59,7 +59,7 @@ struct ClassStudentsView_macOS: View {
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer cet élève ?")
+            Text("Êtes-vous sûr de vouloir supprimer cet élève ?".tr)
         }
     }
 }

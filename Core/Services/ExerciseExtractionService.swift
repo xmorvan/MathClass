@@ -23,16 +23,30 @@ final class ExerciseExtractionService {
     struct ExtractionResult {
         let statement: String
         let expectedAnswer: String
+        /// IDs of competencies the AI suggests for this exercise.
+        /// Always a subset of the catalog passed in the request.
+        let suggestedCompetencyIDs: [String]
+    }
+
+    /// A single entry of the teacher's competency catalog passed to the
+    /// Cloud Function so it can suggest relevant tags.
+    struct CatalogEntry {
+        let id: String
+        let label: String
     }
 
     /// Extracts the exercise statement and expected answer from an image
-    /// stored at the given Cloud Storage path.
-    ///
-    /// - Parameter storagePath: The Cloud Storage path (e.g., "exercises/abc123.jpg")
-    /// - Returns: An `ExtractionResult` with the extracted LaTeX content.
-    /// - Throws: If the Cloud Function call fails or returns invalid data.
-    func extractExercise(storagePath: String) async throws -> ExtractionResult {
-        let data: [String: Any] = ["storagePath": storagePath]
+    /// stored at the given Cloud Storage path. Optionally passes the
+    /// teacher's competency catalog; when provided, the response includes
+    /// up to 5 suggested competency IDs from that catalog.
+    func extractExercise(
+        storagePath: String,
+        competencies: [CatalogEntry] = []
+    ) async throws -> ExtractionResult {
+        var data: [String: Any] = ["storagePath": storagePath]
+        if !competencies.isEmpty {
+            data["competencies"] = competencies.map { ["id": $0.id, "label": $0.label] }
+        }
 
         let result = try await functions.httpsCallable("extract_exercise").call(data)
 
@@ -42,6 +56,8 @@ final class ExerciseExtractionService {
             throw ExtractionError.invalidResponse
         }
 
+        let suggestedIDs = (dict["competencyIDs"] as? [String]) ?? []
+
         let trimmedStatement = statement.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedAnswer = expectedAnswer.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedStatement.isEmpty && trimmedAnswer.isEmpty {
@@ -50,7 +66,8 @@ final class ExerciseExtractionService {
 
         return ExtractionResult(
             statement: statement,
-            expectedAnswer: expectedAnswer
+            expectedAnswer: expectedAnswer,
+            suggestedCompetencyIDs: suggestedIDs
         )
     }
 

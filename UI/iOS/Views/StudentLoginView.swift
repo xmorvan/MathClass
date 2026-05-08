@@ -40,15 +40,15 @@ struct StudentLoginView: View {
                     }
                 }
             }
-            .navigationTitle("Connexion Élève")
+            .navigationTitle("Connexion Élève".tr)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler".tr) { dismiss() }
                 }
             }
-            .alert("Erreur", isPresented: $viewModel.showError) {
-                Button("OK", role: .cancel) {}
+            .alert("Erreur".tr, isPresented: $viewModel.showError) {
+                Button("OK".tr, role: .cancel) {}
             } message: {
                 Text(viewModel.errorMessage)
             }

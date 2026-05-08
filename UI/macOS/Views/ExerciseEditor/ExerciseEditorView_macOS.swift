@@ -40,22 +40,22 @@ struct ExerciseEditorView_macOS: View {
             }
         }
         .overlay(savingOverlay)
-        .alert("Erreur de sauvegarde", isPresented: $viewModel.showSaveError) {
-            Button("OK", role: .cancel) {}
+        .alert("Erreur de sauvegarde".tr, isPresented: $viewModel.showSaveError) {
+            Button("OK".tr, role: .cancel) {}
         } message: {
             Text(viewModel.saveError ?? "Erreur inconnue")
         }
-        .alert("Modifications non sauvegardées", isPresented: $showCloseConfirmation) {
-            Button("Annuler", role: .cancel) {}
-            Button("Ne pas sauvegarder", role: .destructive) { closeWindow() }
-            Button("Sauvegarder") {
+        .alert("Modifications non sauvegardées".tr, isPresented: $showCloseConfirmation) {
+            Button("Annuler".tr, role: .cancel) {}
+            Button("Ne pas sauvegarder".tr, role: .destructive) { closeWindow() }
+            Button("Sauvegarder".tr) {
                 Task {
                     let saved = await viewModel.save(andClose: true)
                     if saved { closeWindow() }
                 }
             }
         } message: {
-            Text("Voulez-vous sauvegarder les modifications avant de fermer ?")
+            Text("Voulez-vous sauvegarder les modifications avant de fermer ?".tr)
         }
     }
 
@@ -63,7 +63,7 @@ struct ExerciseEditorView_macOS: View {
 
     private var toolbar: some View {
         HStack(spacing: 12) {
-            TextField("Titre de l'exercice", text: $viewModel.title)
+            TextField("Titre de l'exercice".tr, text: $viewModel.title)
                 .font(.headline)
                 .textFieldStyle(.roundedBorder)
 
@@ -82,7 +82,7 @@ struct ExerciseEditorView_macOS: View {
                     if saved { /* stay open */ }
                 }
             } label: {
-                Label("Sauvegarder", systemImage: "square.and.arrow.down")
+                Label("Sauvegarder".tr, systemImage: "square.and.arrow.down")
             }
             .keyboardShortcut("s", modifiers: .command)
             .disabled(viewModel.isSaving)
@@ -94,7 +94,7 @@ struct ExerciseEditorView_macOS: View {
                     closeWindow()
                 }
             } label: {
-                Label("Fermer", systemImage: "xmark.circle")
+                Label("Fermer".tr, systemImage: "xmark.circle")
             }
         }
         .padding(.horizontal)
@@ -107,9 +107,9 @@ struct ExerciseEditorView_macOS: View {
     private var editorArea: some View {
         VStack(spacing: 0) {
             // Mode picker
-            Picker("Mode de création", selection: $viewModel.creationMethod) {
-                Text("WYSIWYG").tag(ExerciseCreationMethod.wysiwyg)
-                Text("Import image").tag(ExerciseCreationMethod.image)
+            Picker("Mode de création".tr, selection: $viewModel.creationMethod) {
+                Text("WYSIWYG".tr).tag(ExerciseCreationMethod.wysiwyg)
+                Text("Import image".tr).tag(ExerciseCreationMethod.image)
             }
             .pickerStyle(.segmented)
             .padding()
@@ -143,7 +143,7 @@ struct ExerciseEditorView_macOS: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
-                    Text("Sauvegarde en cours…")
+                    Text("Sauvegarde en cours…".tr)
                         .font(.headline)
                 }
                 .padding(20)

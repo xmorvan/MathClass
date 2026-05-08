@@ -13,13 +13,13 @@ struct TeacherSignUpView: View {
     
     private var passwordRequirements: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Le mot de passe doit contenir :")
+            Text("Le mot de passe doit contenir :".tr)
                 .font(.caption)
-            Text("• Au moins 6 caractères")
+            Text("• Au moins 6 caractères".tr)
                 .font(.caption)
-            Text("• Au moins une lettre majuscule")
+            Text("• Au moins une lettre majuscule".tr)
                 .font(.caption)
-            Text("• Au moins un chiffre")
+            Text("• Au moins un chiffre".tr)
                 .font(.caption)
         }
         .foregroundColor(.secondary)
@@ -29,16 +29,16 @@ struct TeacherSignUpView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Connexion")) {
-                    TextField("Email", text: $viewModel.email)
+                Section(header: Text("Connexion".tr)) {
+                    TextField("Email".tr, text: $viewModel.email)
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
 
-                    SecureField("Mot de passe", text: $viewModel.password)
+                    SecureField("Mot de passe".tr, text: $viewModel.password)
                         .textContentType(.newPassword)
 
-                    SecureField("Confirmer le mot de passe", text: $viewModel.confirmPassword)
+                    SecureField("Confirmer le mot de passe".tr, text: $viewModel.confirmPassword)
                         .textContentType(.newPassword)
                     // NOTE: this view used to chain `.hidden()` and an
                     // `.onAppear` populating firstName/lastName onto the
@@ -53,17 +53,17 @@ struct TeacherSignUpView: View {
 
                 Section { passwordRequirements }
             }
-            .navigationTitle("Inscription Professeur")
+            .navigationTitle("Inscription Professeur".tr)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") {
+                    Button("Annuler".tr) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Créer") {
+                    Button("Créer".tr) {
                         Task {
                             await viewModel.createAccount()
                         }
@@ -71,8 +71,8 @@ struct TeacherSignUpView: View {
                     .disabled(!viewModel.isValid)
                 }
             }
-            .alert("Erreur", isPresented: $viewModel.showError) {
-                Button("OK", role: .cancel) { }
+            .alert("Erreur".tr, isPresented: $viewModel.showError) {
+                Button("OK".tr, role: .cancel) { }
             } message: {
                 Text(viewModel.errorMessage)
             }
