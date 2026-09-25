@@ -32,6 +32,8 @@ struct ContentView: View {
                       let classID = sessionManager.currentClassID {
                 // Student has an active session (class code + name selection)
                 StudentView(studentID: studentID, classID: classID)
+            } else if authService.isTeacherAccount, authService.roleLookupFailed {
+                ProfileLoadFailedView(authService: authService)
             } else if authService.isTeacherAccount {
                 // Teacher authenticated but role not yet loaded. (An
                 // anonymous account without a student session is a student

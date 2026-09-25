@@ -13,7 +13,15 @@ Functions:
   - purge_old_submissions: daily deletion of submissions older than a year
 """
 
+import firebase_admin
 from firebase_functions import https_fn, options, params, scheduler_fn
+
+# The callable wrapper verifies the caller's ID token with the default
+# Admin app *before* any handler runs. Handlers import their modules lazily,
+# so without this the first call on a fresh instance (e.g. join_class or
+# generate_class_code) sees req.auth = None and is rejected as signed out.
+if not firebase_admin._apps:
+    firebase_admin.initialize_app()
 
 # Set region for all functions
 options.set_global_options(region=options.SupportedRegion.EUROPE_WEST6)
@@ -90,6 +98,9 @@ def delete_student_data(req: https_fn.CallableRequest) -> dict:
     """
     from delete_student_data import delete_student_data_handler
     return delete_student_data_handler(req)
+
+
+@https_fn.on_call()
 def delete_class(req: https_fn.CallableRequest) -> dict:
     """Delete one of the caller's classes and everything that belongs to it."""
     from data_deletion import delete_class_handler

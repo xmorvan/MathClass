@@ -18,6 +18,8 @@ struct ContentView_macOS: View {
         Group {
             if authService.userRole == .teacher {
                 TeacherView_macOS()
+            } else if authService.isTeacherAccount, authService.roleLookupFailed {
+                ProfileLoadFailedView(authService: authService)
             } else if authService.isTeacherAccount {
                 ProgressView("Chargement...".tr)
             } else {

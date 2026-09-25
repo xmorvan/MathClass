@@ -16,6 +16,9 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Impossible de charger votre profil": "Couldn't load your profile",
+        "Vérifiez votre connexion internet puis réessayez. Si le problème persiste, déconnectez-vous et reconnectez-vous.": "Check your internet connection and try again. If the problem persists, sign out and sign back in.",
+        "Se déconnecter": "Sign out",
         "Professeur": "Teacher",
         "Gérer les classes, créer et assigner des exercices": "Manage classes, create and assign exercises",
         "Entrer le code classe pour accéder aux exercices": "Enter the class code to access exercises",

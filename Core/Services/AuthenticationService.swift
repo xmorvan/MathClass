@@ -21,6 +21,10 @@ final class AuthenticationService: ObservableObject {
 
     @Published var currentUser: User? = nil
     @Published var userRole: UserRole? = nil
+    /// True when a signed-in teacher's `users/{uid}` profile couldn't be
+    /// loaded (missing doc, or offline with nothing cached). The root view
+    /// offers "retry" / "sign out" instead of an endless spinner.
+    @Published var roleLookupFailed: Bool = false
 
     private init() {
         self.auth = Auth.auth()
@@ -32,6 +36,7 @@ final class AuthenticationService: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.currentUser = user
+                self.roleLookupFailed = false
                 if let user = user, !user.isAnonymous {
                     await self.fetchUserRole(userId: user.uid)
                 } else if user == nil {
@@ -54,7 +59,7 @@ final class AuthenticationService: ObservableObject {
     ) async throws {
         let authResult = try await auth.createUser(withEmail: email, password: password)
 
-        try await firebase.updateFields(
+        try await firebase.setFields(
             [
                 "email": email,
                 "firstName": firstName,
@@ -66,6 +71,7 @@ final class AuthenticationService: ObservableObject {
             documentID: authResult.user.uid
         )
         self.userRole = .teacher
+        self.roleLookupFailed = false
     }
 
     /// Sign in an existing teacher.
@@ -78,6 +84,14 @@ final class AuthenticationService: ObservableObject {
         try auth.signOut()
         self.currentUser = nil
         self.userRole = nil
+        self.roleLookupFailed = false
+    }
+
+    /// Retry loading the teacher profile after a failed lookup.
+    func retryRoleLookup() async {
+        guard let user = currentUser, !user.isAnonymous else { return }
+        roleLookupFailed = false
+        await fetchUserRole(userId: user.uid)
     }
 
     /// True when a teacher (non-anonymous account) is signed in.
@@ -138,6 +152,9 @@ final class AuthenticationService: ObservableObject {
             // Leave role unset; the StudentSessionManager will set it
             // explicitly via `setStudentRole()` after linkSession.
             print("AuthenticationService.fetchUserRole — no role for uid (\((error as NSError).code))")
+            if let user = currentUser, !user.isAnonymous, user.uid == userId, userRole == nil {
+                roleLookupFailed = true
+            }
         }
     }
 

@@ -80,6 +80,16 @@ class FirebaseService {
         try await db.collection(collection).document(documentID).updateData(fields)
     }
 
+    /// Write raw fields, creating the document if it doesn't exist yet
+    /// (`updateFields` fails on a missing document).
+    func setFields(
+        _ fields: [String: Any],
+        in collection: String,
+        documentID: String
+    ) async throws {
+        try await db.collection(collection).document(documentID).setData(fields, merge: true)
+    }
+
     // MARK: - Collection Queries
 
     /// Fetch all documents from a collection.
