@@ -14,6 +14,7 @@ struct TeacherProfileView_macOS: View {
     @ObservedObject private var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
     @State private var showDeleteConfirmation: Bool = false
+    @State private var showResetDemoConfirmation: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -70,7 +71,7 @@ struct TeacherProfileView_macOS: View {
                         .disabled(viewModel.isWorkingOnDemo)
 
                         Button(role: .destructive) {
-                            Task { await viewModel.resetDemo() }
+                            showResetDemoConfirmation = true
                         } label: {
                             Label("Réinitialiser la démo".tr, systemImage: "arrow.counterclockwise.circle")
                         }
@@ -81,7 +82,7 @@ struct TeacherProfileView_macOS: View {
                                 .foregroundColor(.green)
                         }
 
-                        Text("La démo crée une classe fictive avec dix élèves, six exercices et un devoir actif. Pour essayer côté élève, saisissez le code de cette classe sur un iPad. La réinitialisation efface uniquement les données de démo.".tr)
+                        Text("La démo crée une classe fictive avec dix élèves, trente exercices et un devoir actif. Pour essayer côté élève, saisissez le code de cette classe sur un iPad. La réinitialisation efface uniquement les données de démo ; les exercices de démo utilisés dans vos devoirs sont conservés.".tr)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     } header: {
@@ -144,6 +145,18 @@ struct TeacherProfileView_macOS: View {
         .frame(width: 480, height: 600)
         .task {
             await viewModel.load()
+        }
+        .confirmationDialog(
+            "Réinitialiser la démo ?".tr,
+            isPresented: $showResetDemoConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Réinitialiser".tr, role: .destructive) {
+                Task { await viewModel.resetDemo() }
+            }
+            Button("Annuler".tr, role: .cancel) {}
+        } message: {
+            Text("La classe de démo et le travail de ses élèves seront supprimés.".tr)
         }
         .confirmationDialog(
             "Supprimer votre compte ?".tr,

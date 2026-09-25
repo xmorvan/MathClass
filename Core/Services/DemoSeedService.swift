@@ -39,7 +39,10 @@ final class DemoSeedService {
         static let competency2 = "demo-comp-eq-2deg"
         static let groupAID = "demo-group-a"
         static let groupBID = "demo-group-b"
-        static let exerciseCount = 6
+        /// Demo exercises seeded in the teacher's library.
+        static let exerciseCount = 30
+        /// The first few go into the demo class's active assignment.
+        static let assignmentExerciseCount = 6
     }
 
     private init() {}
@@ -56,16 +59,42 @@ final class DemoSeedService {
     }
 
     /// Delete this teacher's demo class (with its students' work) and demo
-    /// exercises. Their own classes are untouched.
+    /// exercises. Their own classes are untouched: a demo exercise that one
+    /// of their assignments still uses is kept.
     func reset(teacherID: String) async throws {
         let ids = DemoIDs(teacherID: teacherID)
+        let inUse = try await exerciseIDsUsedOutsideDemo(ids)
         let existing: ClassRoom? = try? await firebase.getDocument(ids.classID, from: "classes")
         if existing != nil {
             try await DataDeletionService.shared.deleteClass(id: ids.classID)
         }
         for index in 1...DemoIDs.exerciseCount {
-            try? await firebase.deleteDocument(from: "exercises", documentID: "\(ids.exercisePrefix)\(index)")
+            let exerciseID = "\(ids.exercisePrefix)\(index)"
+            guard !inUse.contains(exerciseID) else { continue }
+            try? await firebase.deleteDocument(from: "exercises", documentID: exerciseID)
         }
+    }
+
+    /// Exercise IDs referenced by assignments of the teacher's other classes.
+    private func exerciseIDsUsedOutsideDemo(_ ids: DemoIDs) async throws -> Set<String> {
+        let classes: [ClassRoom] = try await firebase.queryDocuments(
+            from: "classes", whereField: "teacherID", isEqualTo: ids.teacherID
+        )
+        var used: Set<String> = []
+        for classroom in classes where classroom.id != ids.classID {
+            guard let classID = classroom.id else { continue }
+            let assignments: [Assignment] = try await firebase.queryDocuments(
+                from: "assignments", whereField: "classID", isEqualTo: classID
+            )
+            for assignment in assignments {
+                guard let assignmentID = assignment.id else { continue }
+                let exercises: [AssignmentExercise] = try await firebase.getDocuments(
+                    from: "assignments/\(assignmentID)/exercises"
+                )
+                used.formUnion(exercises.map(\.exerciseID))
+            }
+        }
+        return used
     }
 
     // MARK: - Seeders
@@ -246,7 +275,7 @@ final class DemoSeedService {
             isActive: true
         )
         _ = try await firebase.createDocument(assignment, in: "assignments", documentID: ids.assignmentID)
-        for index in 1...DemoIDs.exerciseCount {
+        for index in 1...DemoIDs.assignmentExerciseCount {
             let exerciseID = "\(ids.exercisePrefix)\(index)"
             let assignmentExercise = AssignmentExercise(
                 id: exerciseID,

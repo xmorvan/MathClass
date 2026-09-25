@@ -16,6 +16,7 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "La classe de démo et le travail de ses élèves seront supprimés.": "The demo class and its students' work will be deleted.",
         "Essai %@": "Attempt %@",
         "Réussis": "Passed",
         "Échoués": "Failed",
@@ -484,7 +485,7 @@ enum Localizations {
         "Données de démo": "Demo data",
         "Charger les données de démo": "Load demo data",
         "Réinitialiser la démo": "Reset demo",
-        "La démo crée une classe fictive avec dix élèves, six exercices et un devoir actif. Pour essayer côté élève, saisissez le code de cette classe sur un iPad. La réinitialisation efface uniquement les données de démo.": "The demo creates a sample class with ten students, six exercises and an active assignment. To try the student side, enter this class's code on an iPad. Reset deletes demo data only.",
+        "La démo crée une classe fictive avec dix élèves, trente exercices et un devoir actif. Pour essayer côté élève, saisissez le code de cette classe sur un iPad. La réinitialisation efface uniquement les données de démo ; les exercices de démo utilisés dans vos devoirs sont conservés.": "The demo creates a sample class with ten students, thirty exercises and an active assignment. To try the student side, enter this class's code on an iPad. Reset deletes demo data only; demo exercises used in your assignments are kept.",
         "Ouvrir": "Open",
         "Par élève": "Per student",
         "Par exercice": "Per exercise",
