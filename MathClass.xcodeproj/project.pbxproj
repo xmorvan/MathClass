@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04E29481F7D5F71915BEA171 /* StudentImportParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEE589E10C49B3558DB789 /* StudentImportParserTests.swift */; };
 		192902DF2D54F59C0005FB53 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 192902DD2D54F5760005FB53 /* Info.plist */; };
 		19320A472D4E7AD400BFEA67 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 19320A462D4E7AD400BFEA67 /* FirebaseFirestore */; };
 		19320A492D4E7AE500BFEA67 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 19320A482D4E7AE500BFEA67 /* FirebaseFirestore */; };
@@ -24,7 +25,20 @@
 		19676B0F2D4A8D2400AB6204 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 19676B0E2D4A8D2400AB6204 /* FirebaseStorage */; };
 		19A00A012D99A00100000001 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 19A00A002D99A00100000001 /* FirebaseFunctions */; };
 		19A00A032D99A00100000002 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 19A00A022D99A00100000002 /* FirebaseFunctions */; };
+		885818547EE2C7002DF4783B /* NotationNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */; };
+		C4209DE4BF061D19BAFE9310 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F585CD5D7367CE0A93F27840 /* Foundation.framework */; };
+		CE598BABC872D7083495E684 /* StatisticsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D856D2E7255FFE5CBF2BBA2A /* StatisticsServiceTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		94D271D46EC44965E81A7CCA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 196259252D40E0CC00A571E5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 19625A942D42B7C300A571E5;
+			remoteInfo = MathClass;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		192902DD2D54F5760005FB53 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = SOURCE_ROOT; };
@@ -34,6 +48,11 @@
 		19676ADC2D4A856100AB6204 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		19676AEF2D4A860700AB6204 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		19676AFA2D4A8C6000AB6204 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		52AEE589E10C49B3558DB789 /* StudentImportParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StudentImportParserTests.swift; sourceTree = "<group>"; };
+		A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotationNoteTests.swift; sourceTree = "<group>"; };
+		D856D2E7255FFE5CBF2BBA2A /* StatisticsServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatisticsServiceTests.swift; sourceTree = "<group>"; };
+		EF104AEB856D2BAED5FD213A /* MathClassTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MathClassTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F585CD5D7367CE0A93F27840 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -60,8 +79,8 @@
 				macOS/Views/Statistics/StatisticsPDFReport_macOS.swift,
 				macOS/Views/Statistics/StudentStatsDetailView.swift,
 				macOS/Views/StatisticsView_macOS.swift,
-                macOS/Views/Submissions/SubmissionDetailView_macOS.swift,
-                macOS/Views/Submissions/SubmissionInboxView_macOS.swift,
+				macOS/Views/Submissions/SubmissionDetailView_macOS.swift,
+				macOS/Views/Submissions/SubmissionInboxView_macOS.swift,
 				macOS/Views/TeacherProfileView_macOS.swift,
 				macOS/Views/TeacherSignUpView_macOS.swift,
 				macOS/Views/TeacherView_macOS.swift,
@@ -99,26 +118,36 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		19625A752D42B77100A571E5 /* MathClass-Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "MathClass-Shared";
 			sourceTree = "<group>";
 		};
 		19625A832D42B79B00A571E5 /* MathClass-macOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "MathClass-macOS";
 			sourceTree = "<group>";
 		};
 		19625A962D42B7C300A571E5 /* MathClass */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = MathClass;
 			sourceTree = "<group>";
 		};
 		19676AC62D4A820800AB6204 /* Core */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Core;
 			sourceTree = "<group>";
 		};
 		19676AD32D4A821B00AB6204 /* Features */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Features;
 			sourceTree = "<group>";
 		};
@@ -160,6 +189,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F367ED72D8C26A2A5B089E21 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C4209DE4BF061D19BAFE9310 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -177,6 +214,7 @@
 				19676A672D4A7C2F00AB6204 /* Assets.xcassets */,
 				19676ADB2D4A856000AB6204 /* Frameworks */,
 				19676AFA2D4A8C6000AB6204 /* GoogleService-Info.plist */,
+				7180D22D7E008B15A5DDFC3D /* MathClassTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -185,6 +223,7 @@
 			children = (
 				19625A822D42B79B00A571E5 /* MathClass-macOS.app */,
 				19625A952D42B7C300A571E5 /* MathClass.app */,
+				EF104AEB856D2BAED5FD213A /* MathClassTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -194,8 +233,28 @@
 			children = (
 				19676AEF2D4A860700AB6204 /* SwiftUI.framework */,
 				19676ADC2D4A856100AB6204 /* SwiftUI.framework */,
+				3D81D0ABD2FB79BCCC9656BF /* iOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3D81D0ABD2FB79BCCC9656BF /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				F585CD5D7367CE0A93F27840 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		7180D22D7E008B15A5DDFC3D /* MathClassTests */ = {
+			isa = PBXGroup;
+			children = (
+				A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */,
+				D856D2E7255FFE5CBF2BBA2A /* StatisticsServiceTests.swift */,
+				52AEE589E10C49B3558DB789 /* StudentImportParserTests.swift */,
+			);
+			name = MathClassTests;
+			path = MathClassTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -263,6 +322,24 @@
 			productReference = 19625A952D42B7C300A571E5 /* MathClass.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3E87D19C41C0BDC57FFA070C /* MathClassTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 39D6A173049981709E03A286 /* Build configuration list for PBXNativeTarget "MathClassTests" */;
+			buildPhases = (
+				184BD863144EF046CF1E5FDC /* Sources */,
+				F367ED72D8C26A2A5B089E21 /* Frameworks */,
+				1BAD293293A35A86CBDE224D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0830F8E3E6473669B303BE87 /* PBXTargetDependency */,
+			);
+			name = MathClassTests;
+			productName = MathClassTests;
+			productReference = EF104AEB856D2BAED5FD213A /* MathClassTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -300,6 +377,7 @@
 			targets = (
 				19625A942D42B7C300A571E5 /* MathClass */,
 				19625A812D42B79B00A571E5 /* MathClass-macOS */,
+				3E87D19C41C0BDC57FFA070C /* MathClassTests */,
 			);
 		};
 /* End PBXProject section */
@@ -324,9 +402,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1BAD293293A35A86CBDE224D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		184BD863144EF046CF1E5FDC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				885818547EE2C7002DF4783B /* NotationNoteTests.swift in Sources */,
+				CE598BABC872D7083495E684 /* StatisticsServiceTests.swift in Sources */,
+				04E29481F7D5F71915BEA171 /* StudentImportParserTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		19625A7E2D42B79B00A571E5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -342,6 +437,15 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0830F8E3E6473669B303BE87 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = MathClass;
+			target = 19625A942D42B7C300A571E5 /* MathClass */;
+			targetProxy = 94D271D46EC44965E81A7CCA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1962593A2D40E0CD00A571E5 /* Debug */ = {
@@ -483,9 +587,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -521,9 +625,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -549,8 +653,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"MathClass/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "MathClass utilise la caméra pour scanner le QR code de la classe et pour photographier des énoncés d'exercices.";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "MathClass utilise la caméra pour scanner le QR code de la classe et pour photographier des énoncés d'exercices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -585,8 +689,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"MathClass/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "MathClass utilise la caméra pour scanner le QR code de la classe et pour photographier des énoncés d'exercices.";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "MathClass utilise la caméra pour scanner le QR code de la classe et pour photographier des énoncés d'exercices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -611,6 +715,41 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
+		};
+		DD833A8387DC48D383318D27 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "xavier-morvan.MathClassTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MathClass.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MathClass";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E54C487E308B8FFC549FAAF6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "xavier-morvan.MathClassTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MathClass.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MathClass";
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -638,6 +777,15 @@
 			buildConfigurations = (
 				19625AA12D42B7C400A571E5 /* Debug */,
 				19625AA22D42B7C400A571E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		39D6A173049981709E03A286 /* Build configuration list for PBXNativeTarget "MathClassTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD833A8387DC48D383318D27 /* Release */,
+				E54C487E308B8FFC549FAAF6 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
