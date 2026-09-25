@@ -109,6 +109,21 @@ struct StudentStatsListView_macOS: View {
             .filter { $0.studentID == student.id }
             .sorted { $0.timestamp > $1.timestamp }
 
+        // Class-level baseline used by the vs-class-average chart. We feed
+        // it the same submissions so both series live on the same scale.
+        let classStats = statisticsService.getClassStats(
+            classID: classID ?? "",
+            studentIDs: students.compactMap { $0.id },
+            submissions: submissions,
+            exerciseCompetencyMap: exerciseCompetencyMap
+        )
+        let classCompetencyRates: [String: Double] = Dictionary(
+            uniqueKeysWithValues: classStats.weakestCompetencies.map { ($0.competencyID, $0.successRate) }
+        )
+        let competencyLabels: [String: String] = Dictionary(
+            uniqueKeysWithValues: stats.competencyRates.keys.map { id in (id, findCompetencyLabel(id)) }
+        )
+
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
@@ -143,7 +158,20 @@ struct StudentStatsListView_macOS: View {
 
                 Divider()
 
-                // Competency breakdown
+                // Vs-class-average chart (ISSUE-014 §1.11). Renders one
+                // grouped-bar pair per competency (student vs class mean).
+                if !stats.competencyRates.isEmpty {
+                    VsClassAverageChart(
+                        studentSuccessByCompetency: stats.competencyRates,
+                        classSuccessByCompetency: classCompetencyRates,
+                        competencyLabels: competencyLabels
+                    )
+                }
+
+                Divider()
+
+                // Competency breakdown (text rows, kept for accessibility
+                // alongside the chart above)
                 if !stats.competencyRates.isEmpty {
                     Text("Par compétence".tr)
                         .font(.headline)

@@ -129,8 +129,10 @@ final class DemoSeedService {
     }
 
     private func seedStudents() async throws {
-        // 10 demo students: spread across levels 1–5, with a couple linked
-        // and one that maps to the documented test-student UUID.
+        // 20 demo students: spread across levels 1–5 (4 per level), with the
+        // first slot mapped to the documented test-student UUID. Sized so the
+        // post-seed dashboard and statistics views look populated rather
+        // than starved for data.
         let students: [Student] = [
             Student(id: DemoIDs.testStudentID, firstName: "Alice", lastName: "Démo", classID: DemoIDs.classID, level: 4),
             Student(id: "demo-stu-2", firstName: "Bilel", lastName: "Aouad", classID: DemoIDs.classID, level: 3),
@@ -141,7 +143,17 @@ final class DemoSeedService {
             Student(id: "demo-stu-7", firstName: "Gloria", lastName: "Fernandes", classID: DemoIDs.classID, level: 4),
             Student(id: "demo-stu-8", firstName: "Hugo", lastName: "Garcia", classID: DemoIDs.classID, level: 2),
             Student(id: "demo-stu-9", firstName: "Inès", lastName: "Hamida", classID: DemoIDs.classID, level: 3),
-            Student(id: "demo-stu-10", firstName: "Jules", lastName: "Iverson", classID: DemoIDs.classID, level: 5)
+            Student(id: "demo-stu-10", firstName: "Jules", lastName: "Iverson", classID: DemoIDs.classID, level: 5),
+            Student(id: "demo-stu-11", firstName: "Kenza", lastName: "Joubert", classID: DemoIDs.classID, level: 1),
+            Student(id: "demo-stu-12", firstName: "Léo", lastName: "Kerouac", classID: DemoIDs.classID, level: 4),
+            Student(id: "demo-stu-13", firstName: "Maya", lastName: "Lambert", classID: DemoIDs.classID, level: 2),
+            Student(id: "demo-stu-14", firstName: "Noah", lastName: "Martins", classID: DemoIDs.classID, level: 3),
+            Student(id: "demo-stu-15", firstName: "Olivia", lastName: "Nguyen", classID: DemoIDs.classID, level: 5),
+            Student(id: "demo-stu-16", firstName: "Paul", lastName: "Olivier", classID: DemoIDs.classID, level: 1),
+            Student(id: "demo-stu-17", firstName: "Quentin", lastName: "Petit", classID: DemoIDs.classID, level: 2),
+            Student(id: "demo-stu-18", firstName: "Rania", lastName: "Quirin", classID: DemoIDs.classID, level: 4),
+            Student(id: "demo-stu-19", firstName: "Sam", lastName: "Roussel", classID: DemoIDs.classID, level: 1),
+            Student(id: "demo-stu-20", firstName: "Théa", lastName: "Sanchez", classID: DemoIDs.classID, level: 5)
         ]
         for s in students {
             guard let id = s.id else { continue }
@@ -180,13 +192,41 @@ final class DemoSeedService {
 
     private func seedExercises(teacherID: String) async throws {
         struct Seed { let title: String; let statement: String; let answer: String; let level: Int; let comp: String }
+        // 30 demo exercises: balanced across levels 1–5 and the two
+        // demo competencies (linear vs quadratic equations).
         let seeds: [Seed] = [
+            // Linear equations — competency1
             .init(title: "Résoudre 2x = 8", statement: "Résoudre $2x = 8$", answer: "x = 4", level: 1, comp: DemoIDs.competency1),
+            .init(title: "Résoudre x + 5 = 12", statement: "Résoudre $x + 5 = 12$", answer: "x = 7", level: 1, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 4x = 20", statement: "Résoudre $4x = 20$", answer: "x = 5", level: 1, comp: DemoIDs.competency1),
             .init(title: "Résoudre 3x + 1 = 10", statement: "Résoudre $3x + 1 = 10$", answer: "x = 3", level: 2, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 2x - 4 = 6", statement: "Résoudre $2x - 4 = 6$", answer: "x = 5", level: 2, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 5x + 2 = 17", statement: "Résoudre $5x + 2 = 17$", answer: "x = 3", level: 2, comp: DemoIDs.competency1),
             .init(title: "Résoudre 5x - 7 = 2x + 8", statement: "Résoudre $5x - 7 = 2x + 8$", answer: "x = 5", level: 3, comp: DemoIDs.competency1),
-            .init(title: "Résoudre x² - 4 = 0", statement: "Résoudre $x^2 - 4 = 0$", answer: "x = 2 \\text{ ou } x = -2", level: 3, comp: DemoIDs.competency2),
+            .init(title: "Résoudre 7x - 3 = 4x + 9", statement: "Résoudre $7x - 3 = 4x + 9$", answer: "x = 4", level: 3, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 2(x + 3) = 14", statement: "Résoudre $2(x + 3) = 14$", answer: "x = 4", level: 3, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 3(2x - 1) = 4x + 5", statement: "Résoudre $3(2x - 1) = 4x + 5$", answer: "x = 4", level: 4, comp: DemoIDs.competency1),
+            .init(title: "Résoudre (x+2)/3 = (x-1)/2", statement: "Résoudre $\\frac{x+2}{3} = \\frac{x-1}{2}$", answer: "x = 7", level: 4, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 4(x-2) - 3(x+1) = 1", statement: "Résoudre $4(x-2) - 3(x+1) = 1$", answer: "x = 12", level: 4, comp: DemoIDs.competency1),
+            .init(title: "Résoudre (3x+5)/4 - (x-2)/3 = 2", statement: "Résoudre $\\frac{3x+5}{4} - \\frac{x-2}{3} = 2$", answer: "x = 1", level: 5, comp: DemoIDs.competency1),
+            .init(title: "Résoudre 2(3x - 4) - 5(x - 1) = 3x - 7", statement: "Résoudre $2(3x - 4) - 5(x - 1) = 3x - 7$", answer: "x = 2", level: 5, comp: DemoIDs.competency1),
+            .init(title: "Résoudre x/2 + x/3 + x/6 = 6", statement: "Résoudre $\\frac{x}{2} + \\frac{x}{3} + \\frac{x}{6} = 6$", answer: "x = 6", level: 5, comp: DemoIDs.competency1),
+            // Quadratic equations — competency2
+            .init(title: "Résoudre x² = 9", statement: "Résoudre $x^2 = 9$", answer: "x = 3 \\text{ ou } x = -3", level: 1, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² = 16", statement: "Résoudre $x^2 = 16$", answer: "x = 4 \\text{ ou } x = -4", level: 1, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² - 1 = 0", statement: "Résoudre $x^2 - 1 = 0$", answer: "x = 1 \\text{ ou } x = -1", level: 2, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² - 4 = 0", statement: "Résoudre $x^2 - 4 = 0$", answer: "x = 2 \\text{ ou } x = -2", level: 2, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² - 9 = 0", statement: "Résoudre $x^2 - 9 = 0$", answer: "x = 3 \\text{ ou } x = -3", level: 2, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² - 5x + 6 = 0", statement: "Résoudre $x^2 - 5x + 6 = 0$", answer: "x = 2 \\text{ ou } x = 3", level: 3, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² + 3x - 4 = 0", statement: "Résoudre $x^2 + 3x - 4 = 0$", answer: "x = 1 \\text{ ou } x = -4", level: 3, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² - 2x - 8 = 0", statement: "Résoudre $x^2 - 2x - 8 = 0$", answer: "x = 4 \\text{ ou } x = -2", level: 3, comp: DemoIDs.competency2),
             .init(title: "Résoudre x² + x - 6 = 0", statement: "Résoudre $x^2 + x - 6 = 0$", answer: "x = 2 \\text{ ou } x = -3", level: 4, comp: DemoIDs.competency2),
-            .init(title: "Résoudre 2x² - 5x + 2 = 0", statement: "Résoudre $2x^2 - 5x + 2 = 0$", answer: "x = 2 \\text{ ou } x = 0.5", level: 5, comp: DemoIDs.competency2)
+            .init(title: "Résoudre x² - 7x + 12 = 0", statement: "Résoudre $x^2 - 7x + 12 = 0$", answer: "x = 3 \\text{ ou } x = 4", level: 4, comp: DemoIDs.competency2),
+            .init(title: "Résoudre x² + 5x + 6 = 0", statement: "Résoudre $x^2 + 5x + 6 = 0$", answer: "x = -2 \\text{ ou } x = -3", level: 4, comp: DemoIDs.competency2),
+            .init(title: "Résoudre 2x² - 5x + 2 = 0", statement: "Résoudre $2x^2 - 5x + 2 = 0$", answer: "x = 2 \\text{ ou } x = 0.5", level: 5, comp: DemoIDs.competency2),
+            .init(title: "Résoudre 3x² + 5x - 2 = 0", statement: "Résoudre $3x^2 + 5x - 2 = 0$", answer: "x = -2 \\text{ ou } x = 1/3", level: 5, comp: DemoIDs.competency2),
+            .init(title: "Résoudre 2x² - 7x + 3 = 0", statement: "Résoudre $2x^2 - 7x + 3 = 0$", answer: "x = 3 \\text{ ou } x = 0.5", level: 5, comp: DemoIDs.competency2),
+            .init(title: "Résoudre 4x² - 4x + 1 = 0", statement: "Résoudre $4x^2 - 4x + 1 = 0$", answer: "x = 0.5", level: 5, comp: DemoIDs.competency2)
         ]
         for (i, seed) in seeds.enumerated() {
             let id = "\(DemoIDs.exercisePrefix)\(i + 1)"

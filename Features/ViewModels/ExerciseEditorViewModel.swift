@@ -6,8 +6,11 @@
 //
 
 import Foundation
-import SwiftUI
 import Combine
+#if os(macOS)
+import AppKit
+import UniformTypeIdentifiers
+#endif
 
 /// Shared ViewModel for exercise creation and editing.
 /// Replaces ExerciseBlockViewModel and ExerciseEditorModel_macOS.
@@ -73,19 +76,24 @@ class ExerciseEditorViewModel: ObservableObject {
     }
 
     private func setupDirtyTracking() {
-        // Track changes on any published property
+        // Track changes on any published property. Combine sinks fire on
+        // the publisher's thread by default — `.receive(on: .main)` keeps
+        // the @Published `isDirty` mutation on the MainActor.
         Publishers.CombineLatest4($title, $statement, $expectedAnswer, $difficultyLevel)
             .dropFirst()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.isDirty = true }
             .store(in: &cancellables)
 
         Publishers.CombineLatest($selectedChapterID, $selectedCompetencyIDs)
             .dropFirst()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.isDirty = true }
             .store(in: &cancellables)
 
         $creationMethod
             .dropFirst()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.isDirty = true }
             .store(in: &cancellables)
     }

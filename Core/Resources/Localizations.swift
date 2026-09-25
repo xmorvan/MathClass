@@ -334,6 +334,21 @@ enum Localizations {
         "Compétences suggérées": "Suggested competencies",
         "L'IA propose ces compétences. Décochez celles qui ne correspondent pas.": "The AI suggests these competencies. Uncheck the ones that don't fit.",
         "Note de notation": "Notation note",
+        // Notation-note phrases — keys come from the Cloud Function's fixed
+        // taxonomy (NOTATION_KEYS in correct_submission.py), localized by
+        // NotationNote.localizedMessage(forKey:) in Submission.swift.
+        "Pensez à mettre les négatifs entre parenthèses, par exemple (-3) plutôt que -3.":
+            "Wrap negatives in parentheses — e.g. (-3) rather than -3.",
+        "Choisissez la virgule ou le point pour les décimaux et restez cohérent.":
+            "Pick either the comma or the period for decimals and stick to it.",
+        "Notez explicitement la multiplication, par exemple 2·x au lieu de 2x.":
+            "Write multiplication explicitly — e.g. 2·x rather than 2x.",
+        "Pensez à indiquer l'unité dans la réponse.":
+            "Remember to include the unit in the answer.",
+        "Mettez les parenthèses autour des fractions ambiguës (par exemple (1/2)x).":
+            "Wrap ambiguous fractions in parentheses — e.g. (1/2)x.",
+        "Utilisez x^2 plutôt que xx pour les puissances.":
+            "Use x^2 rather than xx for powers.",
         "Notation stricte": "Strict notation",
         "L'IA signale les problèmes de notation séparément, sans pénaliser le fond.": "The AI flags notation problems separately, without penalizing the math.",
         "Réglages de la classe": "Class settings",
@@ -352,6 +367,9 @@ enum Localizations {
         "Types d'erreurs (IA)": "Error types (AI)",
         "Catégorisation automatique des étapes erronées par l'IA.": "Automatic categorization of failed steps by the AI.",
         "Erreurs liées (X → Y)": "Linked errors (X → Y)",
+        "Carte des erreurs (X → Y)": "Error map (X → Y)",
+        "Lecture : si l'élève commet X, quelle est la probabilité qu'il commette aussi Y ?":
+            "Read as: if a student makes X, how likely are they to also make Y?",
         "Les élèves qui font l'erreur X font aussi souvent l'erreur Y.": "Students who make error X often also make error Y.",
         "Comparaison à la moyenne de classe": "vs. class average",
         "Exporter en PDF": "Export to PDF",

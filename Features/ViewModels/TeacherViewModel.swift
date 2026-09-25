@@ -107,6 +107,19 @@ class TeacherViewModel: ObservableObject {
         sessionRepo.startListening(periodID: periodID)
     }
 
+    /// Tear down period listeners installed by `startListeningToPeriods` /
+    /// `startListeningToPeriodsAcrossClasses`. Live dashboard views call
+    /// this in `.onDisappear` so the per-class fan-out doesn't accumulate
+    /// across class switches (ISSUE-014 §4.A.3).
+    func stopListeningToPeriods() {
+        periodRepo.stopListening()
+    }
+
+    /// Tear down the session listener installed by `startListeningToSessions`.
+    func stopListeningToSessions() {
+        sessionRepo.stopListening()
+    }
+
     func createPeriod(classID: String, name: String, startTime: Date, endTime: Date) async throws -> String {
         let period = Period(classID: classID, name: name, startTime: startTime, endTime: endTime)
         return try await periodRepo.createPeriod(period)
@@ -203,18 +216,37 @@ class TeacherViewModel: ObservableObject {
     /// the submission inbox to display student names regardless of which
     /// class is currently selected. Best-effort — failures are logged and
     /// the inbox falls back to the student ID prefix.
+    ///
+    /// The previous implementation walked classIDs sequentially (5 classes
+    /// → 5 RTTs); a TaskGroup fires the fetches in parallel for one
+    /// effective RTT. The repository call itself is @MainActor isolated
+    /// so we capture it before entering the group and dispatch from there.
     private func refreshStudentDirectory(classIDs: [String]) async {
-        var directory: [String: Student] = [:]
-        for classID in classIDs {
-            do {
-                let students = try await studentRepo.getStudents(classID: classID)
-                for student in students {
-                    if let id = student.id {
-                        directory[id] = student
+        let repo = self.studentRepo
+        let perClass: [(String, [Student])] = await withTaskGroup(of: (String, [Student]).self) { group in
+            for classID in classIDs {
+                group.addTask {
+                    do {
+                        let students = try await repo.getStudents(classID: classID)
+                        return (classID, students)
+                    } catch {
+                        print("Erreur chargement annuaire élèves (\(classID)): \(error.localizedDescription)")
+                        return (classID, [])
                     }
                 }
-            } catch {
-                print("Erreur chargement annuaire élèves (\(classID)): \(error.localizedDescription)")
+            }
+            var collected: [(String, [Student])] = []
+            for await result in group {
+                collected.append(result)
+            }
+            return collected
+        }
+        var directory: [String: Student] = [:]
+        for (_, students) in perClass {
+            for student in students {
+                if let id = student.id {
+                    directory[id] = student
+                }
             }
         }
         self.studentDirectory = directory

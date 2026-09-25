@@ -12,6 +12,7 @@ sends it to Claude, and returns structured LaTeX content.
 """
 
 import base64
+import json
 import os
 
 import anthropic
@@ -22,6 +23,7 @@ from firebase_admin import storage
 from firebase_functions import https_fn
 
 import auth_guard
+from _helpers import extract_json, make_anthropic_client
 
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
@@ -78,6 +80,16 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
     Raises:
         https_fn.HttpsError on validation or processing failures.
     """
+    # Caller must be an authenticated teacher (email/password sign-in).
+    # Students cannot import exercises, and unauthenticated callers cannot
+    # ask the function to read arbitrary Storage paths (ISSUE-014).
+    auth = getattr(req, "auth", None)
+    if auth is None or not getattr(auth, "uid", None):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Connexion enseignant requise.",
+        )
+
     # Validate input
     storage_path = req.data.get("storagePath") if req.data else None
     if not storage_path:
@@ -148,7 +160,7 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
         media_type = media_type_map.get(ext, "image/jpeg")
 
         # Call Claude Haiku 4.5 Vision
-        client = anthropic.Anthropic(api_key=api_key)
+        client = make_anthropic_client(api_key)
 
         message = client.messages.create(
             # Claude Haiku 4.5 — the previous "20241022" suffix corresponds
@@ -178,26 +190,14 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
             ],
         )
 
-        # Parse response
-        response_text = message.content[0].text.strip()
-
-        # Try to parse JSON
-        import json
-
+        # Parse response (markdown fences and trailing prose tolerated).
         try:
-            result = json.loads(response_text)
+            result = extract_json(message.content[0].text)
         except json.JSONDecodeError:
-            # Try to extract JSON from the response if it's wrapped in markdown
-            import re
-
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                result = json.loads(json_match.group())
-            else:
-                raise https_fn.HttpsError(
-                    code=https_fn.FunctionsErrorCode.INTERNAL,
-                    message="Impossible de parser la réponse de l'IA.",
-                )
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.INTERNAL,
+                message="Impossible de parser la réponse de l'IA.",
+            )
 
         statement = result.get("statement", "")
         expected_answer = result.get("expectedAnswer", "")

@@ -15,6 +15,7 @@ struct AddStudentView_macOS: View {
 
     @State private var firstName: String = ""
     @State private var lastName: String = ""
+    @State private var level: Int = 3
     @State private var showError = false
     @State private var errorMessage = ""
 
@@ -28,6 +29,13 @@ struct AddStudentView_macOS: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 TextField("Nom".tr, text: $lastName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                Picker("Niveau".tr, selection: $level) {
+                    ForEach(1...5, id: \.self) { lvl in
+                        Text("Niveau \(lvl)").tag(lvl)
+                    }
+                }
+                .pickerStyle(.segmented)
+                InlineHint("Le niveau guide la différenciation : exercices et progression sont adaptés au niveau initial.", icon: "info.circle")
             }
 
             HStack {
@@ -44,7 +52,8 @@ struct AddStudentView_macOS: View {
                             try await viewModel.addStudent(
                                 firstName: firstName,
                                 lastName: lastName,
-                                classID: classID
+                                classID: classID,
+                                level: level
                             )
                             dismiss()
                         } catch {
@@ -58,7 +67,7 @@ struct AddStudentView_macOS: View {
             }
         }
         .padding()
-        .frame(width: 300, height: 200)
+        .frame(width: 320, height: 240)
         .alert("Erreur".tr, isPresented: $showError) {
             Button("OK".tr, role: .cancel) { }
         } message: {

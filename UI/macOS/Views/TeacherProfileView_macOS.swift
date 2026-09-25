@@ -13,6 +13,7 @@ struct TeacherProfileView_macOS: View {
     @StateObject private var viewModel = TeacherProfileViewModel()
     @ObservedObject private var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
+    @State private var showResetConfirm: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -68,7 +69,7 @@ struct TeacherProfileView_macOS: View {
                         }
 
                         Button(role: .destructive) {
-                            Task { await runDemoReset() }
+                            showResetConfirm = true
                         } label: {
                             Label("Réinitialiser la démo".tr, systemImage: "arrow.counterclockwise.circle")
                         }
@@ -121,6 +122,17 @@ struct TeacherProfileView_macOS: View {
         .frame(width: 480, height: 520)
         .task {
             await viewModel.load()
+        }
+        .confirmationDialog(
+            "Réinitialiser la démo ?".tr,
+            isPresented: $showResetConfirm
+        ) {
+            Button("Réinitialiser".tr, role: .destructive) {
+                Task { await runDemoReset() }
+            }
+            Button("Annuler".tr, role: .cancel) {}
+        } message: {
+            Text("La réinitialisation efface uniquement les données de démo, pas vos vraies classes.".tr)
         }
     }
 

@@ -98,9 +98,10 @@ struct FeedbackView: View {
         }
 
         // Notation note (any mode where correction ran). Always rendered
-        // as a separate banner that does NOT mark anything wrong.
+        // as a separate banner that does NOT mark anything wrong. The key
+        // is language-neutral; Localizations.swift holds the FR/EN strings.
         if let correction = viewModel.correctionResult,
-           let notation = correction.notationNote, !notation.isEmpty {
+           let key = correction.notationNoteKey, !key.isEmpty {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "info.circle.fill")
                     .foregroundColor(.orange)
@@ -108,7 +109,7 @@ struct FeedbackView: View {
                     Text("Note de notation".tr)
                         .font(.subheadline)
                         .bold()
-                    Text(notation)
+                    Text(NotationNote.localizedMessage(forKey: key))
                         .font(.subheadline)
                         .foregroundColor(.primary)
                 }

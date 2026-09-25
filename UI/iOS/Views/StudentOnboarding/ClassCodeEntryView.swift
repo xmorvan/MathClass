@@ -47,6 +47,8 @@ struct ClassCodeEntryView: View {
                     if isCodeValid { onSubmit() }
                 }
 
+            InlineHint("Votre enseignant·e vous a remis ce code à 6 caractères.", icon: "lightbulb")
+
             // Scan button
             Button {
                 showScanner = true

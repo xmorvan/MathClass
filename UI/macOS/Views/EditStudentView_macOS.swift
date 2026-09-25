@@ -15,6 +15,7 @@ struct EditStudentView_macOS: View {
 
     @State private var firstName: String
     @State private var lastName: String
+    @State private var level: Int
     @State private var showError = false
     @State private var errorMessage = ""
 
@@ -23,6 +24,8 @@ struct EditStudentView_macOS: View {
         self.student = student
         _firstName = State(initialValue: student.firstName)
         _lastName = State(initialValue: student.lastName)
+        // Clamp legacy docs that pre-date the level field to the default 3.
+        _level = State(initialValue: student.clampedLevel ?? 3)
     }
 
     var body: some View {
@@ -35,6 +38,13 @@ struct EditStudentView_macOS: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 TextField("Nom".tr, text: $lastName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                Picker("Niveau".tr, selection: $level) {
+                    ForEach(1...5, id: \.self) { lvl in
+                        Text("Niveau \(lvl)").tag(lvl)
+                    }
+                }
+                .pickerStyle(.segmented)
+                InlineHint("Changer le niveau ne pénalise pas l'élève : sa progression continue depuis sa dernière étape.", icon: "info.circle")
             }
 
             HStack {
@@ -49,6 +59,7 @@ struct EditStudentView_macOS: View {
                     var updated = student
                     updated.firstName = firstName
                     updated.lastName = lastName
+                    updated.level = level
                     Task {
                         do {
                             try await viewModel.updateStudent(updated)
@@ -64,7 +75,7 @@ struct EditStudentView_macOS: View {
             }
         }
         .padding()
-        .frame(width: 300, height: 200)
+        .frame(width: 320, height: 240)
         .alert("Erreur".tr, isPresented: $showError) {
             Button("OK".tr, role: .cancel) { }
         } message: {

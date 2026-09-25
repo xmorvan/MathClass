@@ -79,13 +79,13 @@ struct CorrectionResult: Codable, Hashable {
     var stepResults: [Bool]
     /// Index of the first incorrect step (nil if all steps are correct)
     var firstErrorIndex: Int?
-    /// Optional human-readable note about notation problems detected in
-    /// the submission. Populated when the parent class has
+    /// Optional language-neutral notation-issue key (e.g. `missing_brackets`,
+    /// `decimal_separator`). Populated when the parent class has
     /// `notationStrict == true` and the math is correct but the notation
-    /// is sloppy (e.g. "4+-1=3" instead of "4+(-1)=3"). Never causes
-    /// `stepResults` to be marked false — notation is always
-    /// non-blocking. `nil` means no notation issue.
-    var notationNote: String?
+    /// is sloppy. Never flips `stepResults` to false — notation is always
+    /// non-blocking. The iOS client renders a localized banner via
+    /// `Localizations.swift` keyed on `notation_note_<key>`.
+    var notationNoteKey: String?
     /// Optional per-step error categories (e.g. "sign_error", "arithmetic",
     /// "notation"). Same length as `stepResults`. `nil` for steps that
     /// are correct or don't fit a known category.
@@ -94,13 +94,40 @@ struct CorrectionResult: Codable, Hashable {
     init(
         stepResults: [Bool],
         firstErrorIndex: Int? = nil,
-        notationNote: String? = nil,
+        notationNoteKey: String? = nil,
         errorTags: [String?]? = nil
     ) {
         self.stepResults = stepResults
         self.firstErrorIndex = firstErrorIndex
-        self.notationNote = notationNote
+        self.notationNoteKey = notationNoteKey
         self.errorTags = errorTags
+    }
+}
+
+// MARK: - Notation note key → localized message
+
+/// Maps the Cloud Function's language-neutral notation-note keys to a
+/// localized phrase. The function returns one of these keys (see
+/// `NOTATION_KEYS` in `functions/correct_submission.py`); the iOS view
+/// renders the result of `localizedMessage(forKey:)`.
+enum NotationNote {
+    static func localizedMessage(forKey key: String) -> String {
+        switch key {
+        case "missing_brackets":
+            return "Pensez à mettre les négatifs entre parenthèses, par exemple (-3) plutôt que -3.".tr
+        case "decimal_separator":
+            return "Choisissez la virgule ou le point pour les décimaux et restez cohérent.".tr
+        case "implicit_multiplication":
+            return "Notez explicitement la multiplication, par exemple 2·x au lieu de 2x.".tr
+        case "missing_unit":
+            return "Pensez à indiquer l'unité dans la réponse.".tr
+        case "ambiguous_fraction":
+            return "Mettez les parenthèses autour des fractions ambiguës (par exemple (1/2)x).".tr
+        case "power_notation":
+            return "Utilisez x^2 plutôt que xx pour les puissances.".tr
+        default:
+            return ""
+        }
     }
 }
 

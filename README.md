@@ -52,7 +52,7 @@ Five priority statistics are computed by `StatisticsService`:
 4. Comparison to class average (per student).
 5. Per-concept progress over time (12-week trend).
 
-Reports are viewable in-app and exportable to PDF (per-student and per-exercise views) via the Statistics tab.
+Reports are viewable in-app. PDF export is single-page in the MVP and rich-chart on macOS only; the iPad PDF currently emits a text summary without the charts. Multi-page parent-meeting reports are planned for v1.1.
 
 ## Demo data
 

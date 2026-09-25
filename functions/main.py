@@ -77,3 +77,14 @@ def generate_class_code(req: https_fn.CallableRequest) -> dict:
     """Return an MX-XXXX code no other class uses (teachers only)."""
     from student_auth import generate_class_code_handler
     return generate_class_code_handler(req)
+
+
+@https_fn.on_call()
+def delete_student_data(req: https_fn.CallableRequest) -> dict:
+    """Hard-delete a student's PII (the student doc, all submissions, all
+    Storage PNGs, levelProgress rows). Teacher-only; the function verifies
+    `classes/{classID}.teacherID == auth.uid` before any delete. Used to
+    satisfy GDPR / CCPA right-to-erasure for minors.
+    """
+    from delete_student_data import delete_student_data_handler
+    return delete_student_data_handler(req)

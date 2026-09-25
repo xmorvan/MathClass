@@ -12,13 +12,14 @@ Correction process:
 
 import json
 import os
-import re
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 import anthropic
 from firebase_functions import https_fn
 
 import auth_guard
+from _helpers import extract_json, make_anthropic_client
 
 # SymPy is imported lazily on first call — `import sympy` alone takes
 # several seconds and blows the 10-second Cloud Functions deployment
@@ -62,38 +63,33 @@ def _get_firestore():
     return firestore.client()
 
 
-# System prompt for structuring step pairs (Phase 1 of correction)
-STRUCTURING_PROMPT = """Tu es un correcteur mathématique expert. Tu dois vérifier le travail d'un élève étape par étape.
-
-Exercice :
-{statement}
-
-Réponse attendue : {expected_answer}
-
-Travail de l'élève (étapes LaTeX) :
-{student_steps}
+# System prompt for structuring step pairs (Phase 1 of correction). The
+# rules block is static so it can be cached server-side by Anthropic; the
+# per-call statement / expected_answer / student_steps go in the user
+# message. Switching to system+cache cut the structuring-prompt input
+# tokens by ~80 % on warm cache (see ISSUE-014).
+STRUCTURING_SYSTEM = """Tu es un correcteur mathématique expert. Tu dois vérifier le travail d'un élève étape par étape.
 
 Ta tâche :
 1. Pour chaque étape de l'élève, détermine l'expression mathématique de référence correspondante
-   (ce que l'étape DEVRAIT être si elle est correcte dans le contexte du raisonnement)
-2. La dernière étape doit aboutir à la réponse attendue
+   (ce que l'étape DEVRAIT être si elle est correcte dans le contexte du raisonnement).
+2. La dernière étape doit aboutir à la réponse attendue.
 
 Réponds UNIQUEMENT avec un JSON valide, sans markdown ni backticks :
-{{
+{
   "pairs": [
-    {{
+    {
       "studentExpr": "expression LaTeX de l'élève",
       "referenceExpr": "expression LaTeX de référence correcte",
       "description": "brève description de ce que cette étape fait"
-    }},
-    ...
+    }
   ]
-}}
+}
 
 Si le travail de l'élève est vide ou incompréhensible :
-{{
+{
   "pairs": []
-}}
+}
 """
 
 # System prompt for Claude fallback verification (when SymPy can't decide)
@@ -111,6 +107,20 @@ Réponds UNIQUEMENT avec un JSON valide :
 """
 
 
+def _run_with_timeout(fn, *args, secs: float = 3.0, **kwargs):
+    """Run a SymPy call in a worker thread, raising FutureTimeoutError if it
+    runs longer than `secs`. SymPy has no native timeout API and pathological
+    expressions (deeply nested radicals, very large polynomials) can simplify
+    for minutes — long enough to eat the entire Cloud Functions wall clock.
+
+    SIGALRM would be simpler but isn't safe under Cloud Run (multi-threaded);
+    a worker thread is portable.
+    """
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(fn, *args, **kwargs)
+        return future.result(timeout=secs)
+
+
 def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | None:
     """Check algebraic equivalence using SymPy.
 
@@ -125,18 +135,19 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
         student_expr = parse_latex(student_latex)
         reference_expr = parse_latex(reference_latex)
 
-        # Try direct simplification
-        diff = sympy.simplify(student_expr - reference_expr)
+        # Try direct simplification (timeout-bounded).
+        diff = _run_with_timeout(sympy.simplify, student_expr - reference_expr)
         if diff == 0:
             return True
 
-        # Try expanding then simplifying
-        diff_expanded = sympy.simplify(sympy.expand(student_expr) - sympy.expand(reference_expr))
+        # Try expanding then simplifying.
+        expanded_diff = sympy.expand(student_expr) - sympy.expand(reference_expr)
+        diff_expanded = _run_with_timeout(sympy.simplify, expanded_diff)
         if diff_expanded == 0:
             return True
 
-        # Try trigonometric simplification
-        diff_trig = sympy.trigsimp(student_expr - reference_expr)
+        # Try trigonometric simplification.
+        diff_trig = _run_with_timeout(sympy.trigsimp, student_expr - reference_expr)
         if diff_trig == 0:
             return True
 
@@ -147,8 +158,20 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
         # SymPy can't determine — return None for Claude fallback
         return None
 
-    except Exception:
-        # Parse error or unsupported expression — fallback to Claude
+    except FutureTimeoutError:
+        # SymPy ran past the per-call budget — treat as undecidable so the
+        # Claude fallback takes over. Logged so the slow expression is visible
+        # in Cloud Logging if it recurs.
+        print(
+            f"[sympy] simplify timed out after 3s; "
+            f"student={student_latex[:80]!r} reference={reference_latex[:80]!r}"
+        )
+        return None
+    except Exception as exc:
+        # Parse error, missing antlr, or unsupported expression — fall back to
+        # Claude. Logging so a missing antlr at deploy time is visible (without
+        # this, every step paid for an extra Claude round-trip silently).
+        print(f"[sympy] check failed: {exc}")
         return None
 
 
@@ -177,35 +200,44 @@ def claude_check_equivalence(
         messages=[{"role": "user", "content": prompt}],
     )
 
-    response_text = message.content[0].text.strip()
-
     try:
-        result = json.loads(response_text)
-        return result.get("equivalent", False)
+        result = extract_json(message.content[0].text)
+        return bool(result.get("equivalent", False))
     except json.JSONDecodeError:
-        json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-        if json_match:
-            result = json.loads(json_match.group())
-            return result.get("equivalent", False)
         return False
 
 
-NOTATION_PROMPT = """Tu es un correcteur mathématique vétilleux sur la notation, mais juste sur le fond. Examine ces étapes d'élève :
+# Fixed taxonomy of notation issues. The Cloud Function returns a key from
+# this set (or null) so the iOS client can localize it; this used to be a
+# free-form French phrase, which the iOS client rendered raw and broke the
+# bilingual mandate (ISSUE-014).
+NOTATION_KEYS = {
+    "missing_brackets",       # negatives without parentheses, e.g. -x written as -x in 2*-x
+    "decimal_separator",      # comma vs period (3,14 vs 3.14)
+    "implicit_multiplication", # 2x ambiguous, missing \cdot
+    "missing_unit",           # numeric answer with no unit when expected
+    "ambiguous_fraction",     # 1/2x — is it (1/2)x or 1/(2x)?
+    "power_notation",         # x*x written as xx instead of x^2
+}
 
-Énoncé : {statement}
-Étapes :
-{steps}
+NOTATION_SYSTEM = """Tu es un correcteur mathématique vétilleux sur la notation, mais juste sur le fond.
 
-Indique UNIQUEMENT les problèmes de NOTATION (parenthèses manquantes autour d'un négatif, points de multiplication implicites ambigus, mélange virgule/point décimal, écriture x*x au lieu de x^2, etc.).
+Ta tâche : examiner les étapes de l'élève et détecter UN problème de notation parmi cette liste fermée :
+- "missing_brackets" : un signe négatif sans parenthèses, par ex. 2*-3 au lieu de 2*(-3).
+- "decimal_separator" : virgule et point mélangés ou utilisés contre la convention.
+- "implicit_multiplication" : multiplication implicite ambiguë (2x au lieu de 2·x quand le contexte l'exige).
+- "missing_unit" : réponse numérique sans unité quand une est attendue.
+- "ambiguous_fraction" : fraction écrite 1/2x sans parenthèses.
+- "power_notation" : x*x écrit au lieu de x^2 (ou similaire).
+
 NE COMMENTE PAS la justesse mathématique — uniquement la forme.
 
-Réponds UNIQUEMENT en JSON :
-{{
-  "hasIssue": true ou false,
-  "note": "phrase courte décrivant le problème de notation, sans corriger le fond"
-}}
+Réponds UNIQUEMENT en JSON, sans markdown :
+{
+  "key": "missing_brackets" | "decimal_separator" | "implicit_multiplication" | "missing_unit" | "ambiguous_fraction" | "power_notation" | null
+}
 
-Si tu ne vois aucun problème de notation, mets hasIssue=false et note="".
+Si tu ne vois aucun problème de notation, retourne {"key": null}.
 """
 
 
@@ -215,30 +247,35 @@ def _detect_notation_issue(
     statement: str,
 ) -> str | None:
     """Run a Claude pass that flags notation problems separately from
-    algebraic correctness. Returns the note or None.
+    algebraic correctness. Returns one of the NOTATION_KEYS or None.
 
+    The key is language-neutral — the iOS client looks up a localized
+    string in `Localizations.swift` keyed on `notation_note_<key>`.
     Errors are swallowed — notation feedback is best-effort.
     """
     try:
         formatted = "\n".join([f"Étape {i + 1}: {s}" for i, s in enumerate(student_steps)])
-        prompt = NOTATION_PROMPT.format(statement=statement or "(sans énoncé)", steps=formatted)
+        user = f"Énoncé : {statement or '(sans énoncé)'}\nÉtapes :\n{formatted}"
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=256,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=64,
+            system=[
+                {
+                    "type": "text",
+                    "text": NOTATION_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": user}],
         )
-        text = message.content[0].text.strip()
         try:
-            data = json.loads(text)
+            data = extract_json(message.content[0].text)
         except json.JSONDecodeError:
-            json_match = re.search(r"\{.*\}", text, re.DOTALL)
-            if not json_match:
-                return None
-            data = json.loads(json_match.group())
-        if not data.get("hasIssue"):
             return None
-        note = (data.get("note") or "").strip()
-        return note if note else None
+        key = data.get("key")
+        if not isinstance(key, str) or key not in NOTATION_KEYS:
+            return None
+        return key
     except Exception as exc:
         print(f"[correct_submission] notation pass failed: {exc}")
         return None
@@ -276,14 +313,10 @@ def _classify_errors(
             max_tokens=256,
             messages=[{"role": "user", "content": prompt}],
         )
-        text = message.content[0].text.strip()
         try:
-            data = json.loads(text)
+            data = extract_json(message.content[0].text)
         except json.JSONDecodeError:
-            json_match = re.search(r"\{.*\}", text, re.DOTALL)
-            if not json_match:
-                return [None] * n
-            data = json.loads(json_match.group())
+            return [None] * n
         tags = data.get("tags") or []
         # Pad / truncate to length n.
         if len(tags) < n:
@@ -308,7 +341,7 @@ def _persist_correction(
     step_results: list[bool],
     first_error_index: int | None,
     final_result: str,
-    notation_note: str | None = None,
+    notation_note_key: str | None = None,
     error_tags: list | None = None,
 ) -> Exception | None:
     """Write the correction result to /submissions/{id} via Admin SDK.
@@ -328,8 +361,8 @@ def _persist_correction(
                 },
                 "finalResult": final_result,
             }
-            if notation_note is not None:
-                doc["correctionResult"]["notationNote"] = notation_note
+            if notation_note_key is not None:
+                doc["correctionResult"]["notationNoteKey"] = notation_note_key
             if error_tags is not None:
                 doc["correctionResult"]["errorTags"] = error_tags
             db.collection("submissions").document(submission_id).update(doc)
@@ -471,17 +504,21 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         )
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
+        client = make_anthropic_client(api_key)
 
         # Phase 1: Use Claude to structure step pairs
         formatted_steps = "\n".join(
             [f"Étape {i + 1}: {step}" for i, step in enumerate(student_steps)]
         )
 
-        structuring_prompt = STRUCTURING_PROMPT.format(
-            statement=statement,
-            expected_answer=expected_answer,
-            student_steps=formatted_steps,
+        # Cache the static prefix of the structuring prompt — the only
+        # per-call dynamic parts are the statement, expected answer, and
+        # the student's steps. Sending the rules block as a cache-eligible
+        # system message cuts ~80 % of the input tokens on warm cache.
+        structuring_user = (
+            f"Exercice :\n{statement}\n\n"
+            f"Réponse attendue : {expected_answer}\n\n"
+            f"Travail de l'élève (étapes LaTeX) :\n{formatted_steps}"
         )
 
         message = client.messages.create(
@@ -489,22 +526,23 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             # on the date suffix.
             model="claude-haiku-4-5-20251001",
             max_tokens=2048,
-            messages=[{"role": "user", "content": structuring_prompt}],
+            system=[
+                {
+                    "type": "text",
+                    "text": STRUCTURING_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": structuring_user}],
         )
 
-        response_text = message.content[0].text.strip()
-
         try:
-            structured = json.loads(response_text)
+            structured = extract_json(message.content[0].text)
         except json.JSONDecodeError:
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                structured = json.loads(json_match.group())
-            else:
-                raise https_fn.HttpsError(
-                    code=https_fn.FunctionsErrorCode.INTERNAL,
-                    message="Impossible de parser la structuration des étapes.",
-                )
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.INTERNAL,
+                message="Impossible de parser la structuration des étapes.",
+            )
 
         pairs = structured.get("pairs", [])
 
@@ -568,12 +606,13 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
 
         # Notation pass: when the class has notationStrict=True, ask Claude
         # to flag any notation problem found in the steps WITHOUT flipping
-        # the verdict. The note is rendered as a separate banner in the
-        # student's feedback view. Skipped entirely when notationStrict is
+        # the verdict. The returned value is a language-neutral key (one of
+        # NOTATION_KEYS) — the iOS client maps it through Localizations.swift
+        # to a localized banner. Skipped entirely when notationStrict is
         # false to save Anthropic credits.
-        notation_note: str | None = None
+        notation_note_key: str | None = None
         if notation_strict and student_steps:
-            notation_note = _detect_notation_issue(
+            notation_note_key = _detect_notation_issue(
                 client, student_steps, statement
             )
 
@@ -597,7 +636,7 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             step_results=step_results,
             first_error_index=first_error_index,
             final_result=final_result,
-            notation_note=notation_note,
+            notation_note_key=notation_note_key,
             error_tags=error_tags,
         )
         if persist_error is not None:
@@ -615,8 +654,8 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             "firstErrorIndex": first_error_index,
             "allCorrect": all_correct,
         }
-        if notation_note is not None:
-            response["notationNote"] = notation_note
+        if notation_note_key is not None:
+            response["notationNoteKey"] = notation_note_key
         if error_tags is not None:
             response["errorTags"] = error_tags
         return response

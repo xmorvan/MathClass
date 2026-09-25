@@ -128,6 +128,41 @@ final class SessionRepository: ObservableObject {
         )
     }
 
+    /// Append additional exercises into a session targeted at a specific
+    /// student. Used by the live dashboard's "push more exercises" action
+    /// when a student finishes ahead of the rest of the class. Each new
+    /// `AssignmentExercise` carries `targetStudentIDs == [studentID]` so
+    /// only that student picks them up.
+    ///
+    /// Order numbers are appended after the current max so the existing
+    /// roster's ordering is preserved.
+    func appendExercises(
+        exerciseIDs: [String],
+        forStudentID studentID: String,
+        periodID: String,
+        sessionID: String
+    ) async throws {
+        guard !exerciseIDs.isEmpty else { return }
+        let existing = sessionExercises[sessionID] ?? []
+        let nextOrder = (existing.map(\.order).max() ?? -1) + 1
+        var batch: [AssignmentExercise] = []
+        for (offset, exerciseID) in exerciseIDs.enumerated() {
+            batch.append(AssignmentExercise(
+                assignmentID: sessionID,
+                exerciseID: exerciseID,
+                order: nextOrder + offset,
+                targetStudentIDs: [studentID],
+                targetGroupName: nil,
+                targetGroupID: nil
+            ))
+        }
+        try await firebase.createDocuments(
+            batch,
+            in: exercisesCollectionPath(periodID: periodID, sessionID: sessionID),
+            idFor: { $0.id }
+        )
+    }
+
     /// Returns the exercise list a single student should see for the given
     /// session, ordered. A student gets:
     ///   • exercises with no targeting (everyone),

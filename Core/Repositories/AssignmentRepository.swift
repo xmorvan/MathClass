@@ -57,11 +57,20 @@ class AssignmentRepository: ObservableObject {
             whereField: "classID",
             isEqualTo: classID
         ) { [weak self] (assignments: [Assignment]) in
-            self?.assignments = assignments.sorted { $0.createdAt > $1.createdAt }
-            // Set up exercise listeners for each assignment
-            for assignment in assignments {
-                guard let assignmentID = assignment.id else { continue }
-                self?.startExerciseListener(assignmentID: assignmentID)
+            guard let self else { return }
+            self.assignments = assignments.sorted { $0.createdAt > $1.createdAt }
+            // Per-assignment exercise listeners: install for newly-seen IDs,
+            // tear down for assignments that disappeared from the query.
+            // Without the teardown, deleted assignments leaked listeners
+            // for the lifetime of the repository (ISSUE-014 §4.A.2).
+            let newIDs: Set<String> = Set(assignments.compactMap(\.id))
+            for (oldID, listener) in self.exerciseListeners where !newIDs.contains(oldID) {
+                listener.remove()
+                self.exerciseListeners.removeValue(forKey: oldID)
+                self.assignmentExercises.removeValue(forKey: oldID)
+            }
+            for assignmentID in newIDs {
+                self.startExerciseListener(assignmentID: assignmentID)
             }
         }
     }
@@ -218,15 +227,31 @@ class AssignmentRepository: ObservableObject {
     }
 
     /// Get exercises targeted at a specific student (for differentiation mode).
+    /// Mirrors `SessionRepository.exercisesForStudent` for the legacy flat
+    /// `Assignment` path: an exercise is included when (a) it has no
+    /// targeting at all, OR (b) `targetStudentIDs` lists the student, OR
+    /// (c) `targetGroupID` is one of the student's groups. Without (c),
+    /// any exercise assigned via group targeting silently disappeared on
+    /// the legacy code path (ISSUE-014).
     func getExercisesForStudent(
         assignmentID: String,
-        studentID: String
+        studentID: String,
+        studentGroupIDs: Set<String> = []
     ) async throws -> [AssignmentExercise] {
         let allExercises = try await getAssignmentExercises(assignmentID: assignmentID)
         return allExercises.filter { ae in
-            // If no targeting, exercise is for all students
-            guard let targetIDs = ae.targetStudentIDs else { return true }
-            return targetIDs.contains(studentID)
+            let hasStudentTarget = !(ae.targetStudentIDs?.isEmpty ?? true)
+            let hasGroupTarget = (ae.targetGroupID?.isEmpty == false)
+            if !hasStudentTarget && !hasGroupTarget {
+                return true  // untargeted exercise: for everyone
+            }
+            if let ids = ae.targetStudentIDs, ids.contains(studentID) {
+                return true
+            }
+            if let gid = ae.targetGroupID, studentGroupIDs.contains(gid) {
+                return true
+            }
+            return false
         }
     }
 }

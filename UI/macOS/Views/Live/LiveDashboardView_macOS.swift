@@ -48,8 +48,9 @@ struct LiveDashboardView_macOS: View {
                                 student: student,
                                 latestSubmission: latestSubmission(for: student),
                                 exerciseTitle: latestExerciseTitle(for: student),
-                                onPushMore: {
-                                    pushMore(for: student)
+                                pushableExercises: pushableExercises(for: student),
+                                onPushExercise: { exerciseID in
+                                    pushExercise(exerciseID, to: student)
                                 }
                             )
                         }
@@ -128,13 +129,39 @@ struct LiveDashboardView_macOS: View {
         return viewModel.exercises.first(where: { $0.id == sub.exerciseID })?.title
     }
 
-    private func pushMore(for student: Student) {
-        // Best-effort: append a "needs more exercises" marker to the active
-        // session's exercise list. Until a teacher picks specific extra
-        // exercises in a follow-up flow, this is just a TODO placeholder.
-        // The proper flow lives in CreateAssignmentView_macOS once the
-        // session-aware UI lands.
-        // (Slice 11 polish item.)
+    /// Exercises the teacher can push to a specific student right now.
+    /// Excludes exercises the student has already submitted in this period
+    /// — they should be tried with fresh exercises, not the same ones.
+    private func pushableExercises(for student: Student) -> [Exercise] {
+        guard let sid = student.id else { return [] }
+        let completedIDs: Set<String> = Set(
+            viewModel.submissionRepo.submissions
+                .filter { $0.studentID == sid }
+                .map { $0.exerciseID }
+        )
+        return viewModel.exercises.filter { ex in
+            guard let id = ex.id else { return false }
+            return !completedIDs.contains(id)
+        }
+    }
+
+    private func pushExercise(_ exerciseID: String, to student: Student) {
+        guard let studentID = student.id,
+              let period = activePeriod, let periodID = period.id,
+              let session = activeSession, let sessionID = session.id
+        else { return }
+        Task {
+            do {
+                try await viewModel.sessionRepo.appendExercises(
+                    exerciseIDs: [exerciseID],
+                    forStudentID: studentID,
+                    periodID: periodID,
+                    sessionID: sessionID
+                )
+            } catch {
+                print("Erreur push-more: \((error as NSError).code)")
+            }
+        }
     }
 }
 
@@ -142,7 +169,8 @@ private struct StudentTile: View {
     let student: Student
     let latestSubmission: Submission?
     let exerciseTitle: String?
-    let onPushMore: () -> Void
+    let pushableExercises: [Exercise]
+    let onPushExercise: (String) -> Void
 
     private var statusKey: String {
         guard let sub = latestSubmission else { return "En attente" }
@@ -192,14 +220,21 @@ private struct StudentTile: View {
                 Text(statusKey.tr)
                     .font(.caption)
                 Spacer()
-                if statusKey == "Terminé" {
-                    Button {
-                        onPushMore()
+                if statusKey == "Terminé" && !pushableExercises.isEmpty {
+                    Menu {
+                        ForEach(pushableExercises) { exercise in
+                            Button(exercise.title) {
+                                if let id = exercise.id {
+                                    onPushExercise(id)
+                                }
+                            }
+                        }
                     } label: {
                         Label("Plus".tr, systemImage: "plus.circle")
                             .font(.caption)
                     }
-                    .buttonStyle(BorderlessButtonStyle())
+                    .menuStyle(BorderlessButtonMenuStyle())
+                    .fixedSize()
                 }
             }
         }

@@ -173,6 +173,18 @@ final class StudentSessionManager: ObservableObject {
         _ = KeychainHelper.shared.delete(key: classIDKey)
         _ = KeychainHelper.shared.delete(key: classCodeKey)
 
+        // Sign out of the anonymous Firebase identity so a different student
+        // can claim the iPad without inheriting the previous student's
+        // `auth.token.studentID` claim. Firebase Auth state changes are
+        // observed by AuthenticationService, which clears userRole.
+        do {
+            if let user = Auth.auth().currentUser, user.isAnonymous {
+                try Auth.auth().signOut()
+            }
+        } catch {
+            print("Erreur déconnexion Firebase Auth (\((error as NSError).code))")
+        }
+
         // Reset state
         currentStudent = nil
         currentClassID = nil
@@ -206,7 +218,8 @@ final class StudentSessionManager: ObservableObject {
 
         // Stay in `.loading` while the Firestore round-trip resolves so the
         // UI doesn't flash a "signed out" screen on cold start (ISSUE-007).
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             do {
                 try await ensureClaims(studentID: studentID, classCode: classCode)
 

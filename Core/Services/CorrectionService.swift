@@ -80,14 +80,14 @@ final class CorrectionService {
             }
 
             let firstErrorIndex = dict["firstErrorIndex"] as? Int
-            let notationNote = (dict["notationNote"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            let notationNoteKey = (dict["notationNoteKey"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             let errorTagsRaw = dict["errorTags"] as? [Any]
             let errorTags: [String?]? = errorTagsRaw?.map { $0 as? String }
 
             return CorrectionResult(
                 stepResults: stepResults,
                 firstErrorIndex: firstErrorIndex,
-                notationNote: notationNote,
+                notationNoteKey: notationNoteKey,
                 errorTags: errorTags
             )
         } catch let error as CorrectionServiceError {

@@ -50,6 +50,8 @@ struct AddExerciseView: View {
                         .font(.system(.body, design: .monospaced))
                         .frame(height: 150)
 
+                    InlineHint("Utilisez $...$ pour les formules en ligne et $$...$$ pour les formules centrées.", icon: "info.circle")
+
                     if showPreview && !statement.isEmpty {
                         VStack(alignment: .leading) {
                             Text("Aperçu".tr)
@@ -69,6 +71,8 @@ struct AddExerciseView: View {
                 Section(header: Text("Réponse attendue (LaTeX)".tr)) {
                     TextField("ex: x = 5".tr, text: $expectedAnswer)
                         .font(.system(.body, design: .monospaced))
+
+                    InlineHint("La correction comparera l'étape finale de l'élève à cette réponse (en équivalence algébrique).", icon: "checkmark.seal")
 
                     if showPreview && !expectedAnswer.isEmpty {
                         KaTeXView(
