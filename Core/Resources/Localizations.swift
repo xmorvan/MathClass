@@ -16,6 +16,10 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Sans chapitre": "No chapter",
+        "Tous les exercices": "All exercises",
+        "Supprimer l'exercice ?": "Delete the exercise?",
+        "L'exercice sera retiré de votre bibliothèque.": "The exercise will be removed from your library.",
         "Supprimer la classe ?": "Delete the class?",
         "La classe, ses élèves, leurs copies et leurs dessins seront définitivement supprimés.": "The class, its students, their work and drawings will be permanently deleted.",
         "Supprimer l'élève ?": "Delete the student?",

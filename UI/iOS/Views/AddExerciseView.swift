@@ -247,7 +247,7 @@ struct AddExerciseView: View {
                     .split(whereSeparator: \.isNewline)
                     .first
                     .map(String.init) ?? ""
-                title = String(firstLine.prefix(60))
+                title = String(firstLine.latexPlainPreview.prefix(60))
             }
             suggestedCompetencyIDs = extraction.suggestedCompetencyIDs
             acceptedCompetencyIDs = Set(extraction.suggestedCompetencyIDs)

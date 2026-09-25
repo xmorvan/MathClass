@@ -13,6 +13,7 @@ struct ExercisesListView: View {
     @ObservedObject var viewModel: TeacherViewModel
     @State private var showingAddExercise = false
     @State private var selectedExercise: Exercise?
+    @State private var exerciseToDelete: Exercise?
 
     var body: some View {
         List {
@@ -27,6 +28,13 @@ struct ExercisesListView: View {
                             ExerciseRow(exercise: exercise)
                                 .onTapGesture {
                                     selectedExercise = exercise
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        exerciseToDelete = exercise
+                                    } label: {
+                                        Label("Supprimer".tr, systemImage: "trash")
+                                    }
                                 }
                         }
                     }
@@ -45,6 +53,20 @@ struct ExercisesListView: View {
         }
         .sheet(item: $selectedExercise) { exercise in
             EditExerciseView(viewModel: viewModel, exercise: exercise)
+        }
+        .alert(
+            "Supprimer l'exercice ?".tr,
+            isPresented: Binding(get: { exerciseToDelete != nil }, set: { if !$0 { exerciseToDelete = nil } })
+        ) {
+            Button("Annuler".tr, role: .cancel) { exerciseToDelete = nil }
+            Button("Supprimer".tr, role: .destructive) {
+                if let id = exerciseToDelete?.id {
+                    Task { try? await viewModel.deleteExercise(id: id) }
+                }
+                exerciseToDelete = nil
+            }
+        } message: {
+            Text("L'exercice sera retiré de votre bibliothèque.".tr)
         }
     }
 
@@ -67,15 +89,21 @@ struct ExercisesListView: View {
             }
         }
 
-        // Uncategorized exercises (no chapter)
-        let uncategorized = viewModel.exercises.filter { $0.chapterID == nil || $0.chapterID?.isEmpty == true }
+        // Everything not shown above: no chapter, or a chapter of a class
+        // whose chapters aren't loaded right now (chapters are per class).
+        // Filtering on `chapterID == nil` alone made those exercises vanish.
+        let shownChapterIDs = Set(chapters.compactMap(\.id))
+        let uncategorized = viewModel.exercises.filter { exercise in
+            guard let chapterID = exercise.chapterID, !chapterID.isEmpty else { return true }
+            return !shownChapterIDs.contains(chapterID)
+        }
         if !uncategorized.isEmpty {
-            sections.append(ExerciseSection(title: "Sans chapitre", exercises: uncategorized))
+            sections.append(ExerciseSection(title: "Sans chapitre".tr, exercises: uncategorized))
         }
 
         // If no chapters at all, show flat list
         if sections.isEmpty && !viewModel.exercises.isEmpty {
-            sections.append(ExerciseSection(title: "Tous les exercices", exercises: viewModel.exercises))
+            sections.append(ExerciseSection(title: "Tous les exercices".tr, exercises: viewModel.exercises))
         }
 
         return sections
@@ -95,7 +123,7 @@ struct ExerciseRow: View {
                 difficultyBadge
             }
             if !exercise.statement.isEmpty {
-                Text(exercise.statement)
+                Text(exercise.statement.latexPlainPreview)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(2)

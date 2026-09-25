@@ -63,6 +63,26 @@ extension View {
 // MARK: - Extensions String
 
 extension String {
+    /// Readable one-line version of a LaTeX/text mix, for list rows and
+    /// titles: drops the $ delimiters and turns common commands into plain
+    /// symbols (\frac{a}{b} → (a)/(b), ^2 → ², \cdot → ·).
+    var latexPlainPreview: String {
+        var text = self.replacingOccurrences(of: "$$", with: "")
+            .replacingOccurrences(of: "$", with: "")
+        let fraction = #"\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}"#
+        text = text.replacingOccurrences(of: fraction, with: "($1)/($2)", options: .regularExpression)
+        let replacements: [(String, String)] = [
+            (#"\cdot"#, "·"), (#"\times"#, "×"), (#"\div"#, "÷"), (#"\le"#, "≤"), (#"\ge"#, "≥"),
+            (#"\neq"#, "≠"), (#"\sqrt"#, "√"), (#"\pi"#, "π"), ("^2", "²"), ("^3", "³"),
+            (#"\left"#, ""), (#"\right"#, ""), ("{", ""), ("}", ""),
+        ]
+        for (latex, plain) in replacements {
+            text = text.replacingOccurrences(of: latex, with: plain)
+        }
+        return text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Vérifie si la chaîne est une adresse email valide
     var isValidEmail: Bool {
         let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
