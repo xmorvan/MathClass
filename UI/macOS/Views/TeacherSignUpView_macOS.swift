@@ -85,6 +85,7 @@ struct TeacherSignUpView_macOS: View {
         }
         .padding()
         .frame(width: 400, height: 300)
+        .background(Color(nsColor: .windowBackgroundColor))
         .alert("Erreur".tr, isPresented: $viewModel.showError) {
             Button("OK".tr, role: .cancel) { }
         } message: {

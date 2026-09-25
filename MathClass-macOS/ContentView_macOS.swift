@@ -102,6 +102,9 @@ struct TeacherLoginView_macOS: View {
         }
         .padding()
         .frame(width: 400, height: 250)
+        // Sheets are translucent on recent macOS: the welcome text behind
+        // showed through the fields.
+        .background(Color(nsColor: .windowBackgroundColor))
         .alert("Erreur".tr, isPresented: $viewModel.showError) {
             Button("OK".tr, role: .cancel) {}
         } message: {
