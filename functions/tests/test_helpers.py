@@ -38,3 +38,9 @@ def test_extract_json_does_not_turn_times_into_a_tab():
     result = _helpers.extract_json('{"steps": ["2 \\times x = 10"], "confidence": 0.9}')
     assert result["steps"] == ["2 \\times x = 10"]
     assert "\t" not in result["steps"][0]
+
+
+def test_extract_json_keeps_real_newlines_before_words():
+    # Regression: "\\nDonner" is a newline + "Donner", not a LaTeX command.
+    result = _helpers.extract_json('{"statement": "Résoudre $4x = 8$\\nDonner la valeur de $x$."}')
+    assert result["statement"] == "Résoudre $4x = 8$\nDonner la valeur de $x$."

@@ -51,7 +51,8 @@ class ExerciseEditorViewModel: ObservableObject {
     let originalExercise: Exercise?
 
     /// The teacher ViewModel used for CRUD operations.
-    private let teacherViewModel: TeacherViewModel
+    /// Exposed so the editor can pick the class whose chapters are listed.
+    let teacherViewModel: TeacherViewModel
 
     private var cancellables = Set<AnyCancellable>()
 

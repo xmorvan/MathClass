@@ -80,6 +80,26 @@ def extract_json(text: str) -> dict:
 
 _VALID_ESCAPES = set('"\\/bfnrtu')
 
+# LaTeX commands that begin with a letter JSON also uses as an escape
+# (\\b \\f \\n \\r \\t). "\\times" must stay LaTeX, but "\\nDonner" is a real
+# newline followed by a word, so match whole command names, not prefixes.
+_LATEX_COMMANDS = {
+    # b
+    "beta", "bar", "binom", "bmod", "begin", "big", "Big", "bigg", "Bigg", "bigl", "bigr",
+    "boldsymbol", "bot", "bullet", "backslash", "bf", "bigcup", "bigcap", "boxed",
+    # f
+    "frac", "forall", "flat", "frown", "footnotesize",
+    # n
+    "neq", "ne", "neg", "nabla", "notin", "not", "nu", "nleq", "ngeq", "nless", "ngtr",
+    "nmid", "nparallel", "nsubseteq", "newline", "noindent", "nearrow", "nwarrow",
+    # r
+    "right", "rightarrow", "Rightarrow", "rho", "rangle", "rceil", "rfloor", "rm",
+    "rbrace", "rvert", "Rvert", "rightleftharpoons", "rtimes",
+    # t
+    "times", "text", "textbf", "textit", "textrm", "tan", "tanh", "theta", "tau", "to",
+    "top", "triangle", "tfrac", "tilde", "tiny", "therefore", "textstyle", "triangleq",
+}
+
 
 def _escape_stray_backslashes(s: str) -> str:
     out = []
@@ -92,9 +112,17 @@ def _escape_stray_backslashes(s: str) -> str:
                 out.append("\\\\")
                 i += 2
                 continue
-            # \b, \f, \n, \r, \t followed by a letter are LaTeX commands
-            # (\frac, \times, \beta…), not JSON control escapes.
-            if nxt in _VALID_ESCAPES and not (nxt in "bfnrt" and i + 2 < len(s) and s[i + 2].isalpha()):
+            if nxt in "bfnrt":
+                j = i + 1
+                while j < len(s) and s[j].isalpha():
+                    j += 1
+                if s[i + 1:j] in _LATEX_COMMANDS:
+                    out.append("\\\\")  # LaTeX: keep the backslash literally
+                else:
+                    out.append(ch)  # JSON escape (\\n newline, \\t tab…)
+                i += 1
+                continue
+            if nxt in _VALID_ESCAPES:
                 out.append(ch)
             else:
                 out.append("\\\\")

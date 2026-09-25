@@ -66,6 +66,10 @@ struct ExerciseMetadataPanel_macOS: View {
 
     private var chapterSection: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Chapters belong to a class: choose which class's chapters to
+            // list (after a relaunch none was selected and only "None" showed).
+            ClassPickerBar(viewModel: viewModel.teacherViewModel)
+
             Text("Chapitre".tr)
                 .font(.headline)
 
