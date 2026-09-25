@@ -93,7 +93,7 @@ final class ClaudeRecognitionService: RecognitionService {
             // (image unreadable / blank), which dumped the student into
             // VerificationView with an empty step list and no warning.
             if confidence < 0.7 {
-                throw RecognitionError.lowConfidence(confidence)
+                throw RecognitionError.lowConfidence(confidence, steps: steps)
             }
 
             return RecognitionResult(

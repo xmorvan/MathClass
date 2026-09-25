@@ -123,8 +123,67 @@ def _run_with_timeout(fn, *args, secs: float = 3.0, **kwargs):
         return future.result(timeout=secs)
 
 
+# Separators between alternative solutions: "x = 3 \text{ ou } x = -3".
+_SOLUTION_SEPARATORS = re.compile(
+    r"\\text\{\s*(?:ou|or|et|and)\s*\}|\\lor|\\vee|\\quad|;|,"
+)
+
+
+def _equation_solutions(latex: str):
+    """Solution set of a one-unknown equation, or of alternatives such as
+    "x = 3 ou x = -3", as (lower-cased unknown name, frozenset of exact
+    values). None when this is not such an equation or SymPy cannot tell.
+
+    Decimals become exact rationals so "x = 0.5" matches "x = \\frac{1}{2}".
+    """
+    if latex.count("=") == 0:
+        return None
+    # French decimal comma: "1,5" and "1{,}5" mean 1.5, not two solutions.
+    latex = re.sub(r"(?<=\d)(?:\{,\}|,)(?=\d)", ".", latex)
+    parts = [part for part in _SOLUTION_SEPARATORS.split(latex) if part.strip()]
+    if len(parts) > 1 and all(part.count("=") == 1 for part in parts):
+        name = None
+        values = set()
+        for part in parts:
+            equation = parse_latex(part)
+            if not isinstance(equation, sympy.Equality) or not isinstance(equation.lhs, sympy.Symbol):
+                return None
+            if name is not None and equation.lhs.name.lower() != name:
+                return None
+            name = equation.lhs.name.lower()
+            values.add(sympy.nsimplify(equation.rhs, rational=True))
+        return name, frozenset(values)
+    if len(parts) > 1 or latex.count("=") != 1:
+        return None
+
+    equation = parse_latex(latex)
+    if not isinstance(equation, sympy.Equality):
+        return None
+    difference = sympy.nsimplify(equation.lhs - equation.rhs, rational=True)
+    unknowns = difference.free_symbols
+    if len(unknowns) != 1:
+        return None
+    unknown = next(iter(unknowns))
+    solutions = _run_with_timeout(sympy.solveset, difference, unknown, sympy.S.Complexes)
+    if not isinstance(solutions, sympy.FiniteSet):
+        return None
+    return unknown.name.lower(), frozenset(solutions)
+
+
+def _equations_equivalent(student_latex: str, reference_latex: str) -> bool | None:
+    """Equations are equivalent when they have the same solutions."""
+    student = _equation_solutions(student_latex)
+    reference = _equation_solutions(reference_latex)
+    if student is None or reference is None or student[0] != reference[0]:
+        return None
+    return student[1] == reference[1]
+
+
 def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | None:
     """Check algebraic equivalence using SymPy.
+
+    Equations are compared through their solution sets (for one unknown);
+    other expressions through simplification of their difference.
 
     Returns:
         True if equivalent, False if not, None if SymPy can't determine.
@@ -134,6 +193,9 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
         return None
 
     try:
+        if "=" in student_latex or "=" in reference_latex:
+            return _equations_equivalent(student_latex, reference_latex)
+
         student_expr = parse_latex(student_latex)
         reference_expr = parse_latex(reference_latex)
 
@@ -633,6 +695,20 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                     step_results.append(False)
                     if first_error_index is None:
                         first_error_index = i
+
+            # The reference steps come from Claude, which can pair a wrong
+            # final answer with itself. When SymPy can compare the last step
+            # with the teacher's expected answer, its verdict wins.
+            if step_results and step_results[-1]:
+                final_matches = sympy_check_equivalence(student_steps[-1], expected_answer)
+                if final_matches is False:
+                    print(
+                        f"[correct_submission] final step {student_steps[-1][:60]!r} "
+                        f"does not match expected {expected_answer[:60]!r}"
+                    )
+                    step_results[-1] = False
+                    if first_error_index is None:
+                        first_error_index = len(step_results) - 1
 
             all_correct = all(step_results)
 

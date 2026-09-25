@@ -172,9 +172,10 @@ class SubmissionViewModel: ObservableObject {
 
     private func handleRecognitionFailure(_ recognitionError: RecognitionError) {
         switch recognitionError {
-        case .lowConfidence:
+        case .lowConfidence(_, let steps):
             // Low confidence — still show whatever steps came back, but warn
-            // and let the student decide whether to retry / redraw.
+            // and let the student decide whether to fix, retry or redraw.
+            self.recognizedSteps = steps
             self.error = recognitionError.errorDescription
             self.showError = true
             self.phase = .verifying

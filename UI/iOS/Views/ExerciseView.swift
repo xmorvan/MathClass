@@ -27,6 +27,7 @@ struct ExerciseView: View {
 
     @State private var canvasView = PKCanvasView()
     @State private var hasDrawing = false
+    @State private var statementHeight: CGFloat = 0
     @State private var startTime: Date?
     @State private var showingFlowSheet = false
     @Environment(\.dismiss) var dismiss
@@ -93,22 +94,36 @@ struct ExerciseView: View {
     // MARK: - Exercise Content (KaTeX + optional image)
 
     private var exerciseContent: some View {
+        // Full-width band that is only as tall as the statement (up to
+        // 220 pt, then it scrolls), leaving the rest to the drawing area.
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if !exercise.statement.isEmpty {
-                    MathTextView(content: exercise.statement, fontSize: 18)
-                        .padding(.horizontal)
-                }
-
-                if let imageURL = exercise.statementImageURL, !imageURL.isEmpty {
-                    AsyncImageFromStorage(path: imageURL)
-                        .padding(.horizontal)
-                }
-            }
-            .padding(.vertical, 8)
+            statementStack
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(key: StatementHeightKey.self, value: geometry.size.height)
+                    }
+                )
         }
-        .frame(maxHeight: 220)
+        .frame(height: min(max(statementHeight, 44), 220))
+        .frame(maxWidth: .infinity)
         .background(Color(.systemGroupedBackground))
+        .onPreferenceChange(StatementHeightKey.self) { statementHeight = $0 }
+    }
+
+    private var statementStack: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !exercise.statement.isEmpty {
+                MathTextView(content: exercise.statement, fontSize: 20)
+                    .padding(.horizontal)
+            }
+
+            if let imageURL = exercise.statementImageURL, !imageURL.isEmpty {
+                AsyncImageFromStorage(path: imageURL)
+                    .padding(.horizontal)
+            }
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Drawing Area
@@ -252,5 +267,14 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
             hasDrawing.wrappedValue = !canvasView.drawing.bounds.isEmpty
         }
+    }
+}
+
+// MARK: - Statement height
+
+private struct StatementHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

@@ -30,7 +30,8 @@ enum RecognitionError: LocalizedError {
     case noImageData
     case apiError(String)
     case invalidResponse
-    case lowConfidence(Double)
+    /// Carries the steps that were read, so the student can check them.
+    case lowConfidence(Double, steps: [String])
 
     var errorDescription: String? {
         switch self {
@@ -43,9 +44,11 @@ enum RecognitionError: LocalizedError {
             return "La lecture de votre travail n'a pas abouti. Réessayez dans un instant.".tr
         case .invalidResponse:
             return "La lecture de votre travail n'a pas abouti. Réessayez dans un instant.".tr
-        case .lowConfidence(let score):
+        case .lowConfidence(let score, let steps):
             return LocalizationManager.shared.format(
-                "Écriture difficile à lire (confiance %@ %%). Réécrivez plus lisiblement.",
+                steps.isEmpty
+                    ? "Écriture difficile à lire (confiance %@ %%). Réécrivez plus lisiblement."
+                    : "Écriture difficile à lire (confiance %@ %%). Vérifiez bien chaque étape, ou réécrivez plus lisiblement.",
                 String(Int((score * 100).rounded()))
             )
         }

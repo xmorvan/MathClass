@@ -451,3 +451,55 @@ def test_teacher_call_grades_the_stored_steps(monkeypatch):
     assert "FORGED" not in prompt
     assert result["stepResults"] == [True, True]
     assert persisted["final_result"] == "success_2nd"
+
+
+# ---------------------------------------------------------------------------
+# Equations: compared through their solution sets
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("student, reference, expected", [
+    ("x = 5", "x = 4", False),
+    ("X = 5", "x = 4", False),
+    ("2(x+3)=14", "x = 4", True),
+    ("2 \\times x = 8", "x = 4", True),
+    ("x = \\frac{1}{2}", "x = 0.5", True),
+    ("x = 1,5", "x = 1.5", True),
+    ("x = 1{,}5", "x = \\frac{3}{2}", True),
+    ("x = -3 \\text{ ou } x = 3", "x = 3 \\text{ ou } x = -3", True),
+    ("x = 3", "x = 3 \\text{ ou } x = -3", False),
+    ("x^2 = 9", "x = 3 \\text{ ou } x = -3", True),
+    ("y = 4", "x = 4", None),
+    ("x+y=2", "x=2-y", None),
+])
+def test_sympy_compares_equations_by_solutions(student, reference, expected):
+    pytest.importorskip("sympy")
+    cs._ensure_sympy()
+    if not cs.SYMPY_AVAILABLE:
+        pytest.skip("SymPy LaTeX parser unavailable")
+    assert cs.sympy_check_equivalence(student, reference) is expected
+
+
+def test_wrong_final_answer_fails_even_if_claude_pairs_it_with_itself(monkeypatch):
+    """Claude's reference can echo a wrong answer; the expected answer wins."""
+    pytest.importorskip("sympy")
+    cs._ensure_sympy()
+    if not cs.SYMPY_AVAILABLE:
+        pytest.skip("SymPy LaTeX parser unavailable")
+    fake_client = _fake_anthropic_with_pairs([
+        {"studentExpr": "x = 5", "referenceExpr": "x = 5", "description": ""},
+    ])
+    monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+
+    result = cs.correct_submission_handler(_fake_request({
+        "studentSteps": ["x = 5"],
+        "expectedAnswer": "x = 4",
+        "statement": "Résoudre $2(x + 3) = 14$",
+        "submissionID": "sub",
+        "attemptNumber": 1,
+        "notationStrict": False,
+    }))
+
+    assert result["stepResults"] == [False]
+    assert result["firstErrorIndex"] == 0
+    assert result["allCorrect"] is False

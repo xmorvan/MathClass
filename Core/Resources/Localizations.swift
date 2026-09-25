@@ -16,6 +16,9 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Écriture difficile à lire (confiance %@ %%). Vérifiez bien chaque étape, ou réécrivez plus lisiblement.": "Handwriting hard to read (confidence %@ %%). Check each step carefully, or write more clearly.",
+        "Pas encore": "Not yet",
+        "Une étape est à revoir.\nCorrigez-la et réessayez : vous avez une deuxième chance.": "One step needs another look.\nFix it and try again: you have a second chance.",
         "Lancer la correction": "Grade now",
         "La correction a échoué. Réessayez.": "Grading failed. Try again.",
         "La classe de démo et le travail de ses élèves seront supprimés.": "The demo class and its students' work will be deleted.",
@@ -350,7 +353,7 @@ enum Localizations {
         "Bravo !": "Well done!",
         "Excellent ! Réponse correcte du premier coup.": "Excellent! Correct on the first try.",
         "Bien joué ! Réponse correcte au deuxième essai.": "Nice work! Correct on the second try.",
-        "La réponse n'est pas correcte.\nRevisez cette notion pour progresser.": "The answer isn't correct.\nReview this concept to make progress.",
+        "La réponse n'est pas correcte.\nRévisez cette notion pour progresser.": "The answer isn't correct.\nReview this concept to make progress.",
         "Aucune erreur détectée dans les étapes.": "No errors detected in the steps.",
         "Détail par étape": "Step-by-step detail",
         "Étape %d": "Step %d",

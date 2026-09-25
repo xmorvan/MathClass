@@ -232,7 +232,7 @@ final class AssignmentModeHandler {
             if mode == .differentiation {
                 return "La réponse n'est pas correcte. Consultez le détail des étapes."
             } else {
-                return "La réponse n'est pas correcte. Revisez cette notion."
+                return "La réponse n'est pas correcte. Révisez cette notion."
             }
         }
     }

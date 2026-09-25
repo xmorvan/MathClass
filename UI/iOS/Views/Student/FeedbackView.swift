@@ -89,10 +89,12 @@ struct FeedbackView: View {
         VStack(spacing: 16) {
             resultIcon(result)
 
-            Text(result.displayName)
+            // A failed first attempt with a second chance is not a verdict
+            // yet: encourage the student instead of announcing "Échoué".
+            Text(viewModel.canRetry ? "Pas encore".tr : result.displayName)
                 .font(.title2)
                 .bold()
-                .foregroundColor(resultColor(result))
+                .foregroundColor(viewModel.canRetry ? .orange : resultColor(result))
 
             resultMessage(result)
         }
@@ -142,9 +144,9 @@ struct FeedbackView: View {
                     .font(.system(size: 60))
                     .foregroundColor(.green)
             case .failed:
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: viewModel.canRetry ? "arrow.uturn.backward.circle.fill" : "xmark.circle.fill")
                     .font(.system(size: 60))
-                    .foregroundColor(.red)
+                    .foregroundColor(viewModel.canRetry ? .orange : .red)
             }
         }
     }
@@ -167,7 +169,9 @@ struct FeedbackView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         case .failed:
-            Text("La réponse n'est pas correcte.\nRevisez cette notion pour progresser.".tr)
+            Text(viewModel.canRetry
+                 ? "Une étape est à revoir.\nCorrigez-la et réessayez : vous avez une deuxième chance.".tr
+                 : "La réponse n'est pas correcte.\nRévisez cette notion pour progresser.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
