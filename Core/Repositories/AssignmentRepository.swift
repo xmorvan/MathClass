@@ -148,13 +148,29 @@ class AssignmentRepository: ObservableObject {
         teacherAssignments = merged
     }
 
-    private func startExerciseListener(assignmentID: String) {
+    private func startExerciseListener(assignmentID: String, attempt: Int = 0) {
         guard exerciseListeners[assignmentID] == nil else { return }
 
         let path = exercisesPath(assignmentID: assignmentID)
-        let listener = firebase.addCollectionListener(collection: path) { [weak self] (exercises: [AssignmentExercise]) in
-            self?.assignmentExercises[assignmentID] = exercises.sorted { $0.order < $1.order }
-        }
+        let listener = firebase.addCollectionListener(
+            collection: path,
+            onUpdate: { [weak self] (exercises: [AssignmentExercise]) in
+                self?.assignmentExercises[assignmentID] = exercises.sorted { $0.order < $1.order }
+            },
+            onError: { [weak self] _ in
+                // A just-created assignment shows up locally before the
+                // server has it; the rules (which read the assignment) then
+                // deny the listener and Firestore closes it for good, so the
+                // new assignment showed "0 exercises". Retry a few times.
+                guard let self, attempt < 4 else { return }
+                self.exerciseListeners[assignmentID]?.remove()
+                self.exerciseListeners.removeValue(forKey: assignmentID)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5 * Double(attempt + 1)) { [weak self] in
+                    guard let self, self.assignments.contains(where: { $0.id == assignmentID }) else { return }
+                    self.startExerciseListener(assignmentID: assignmentID, attempt: attempt + 1)
+                }
+            }
+        )
         exerciseListeners[assignmentID] = listener
     }
 
