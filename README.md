@@ -84,5 +84,7 @@ Callable functions in `functions/main.py`. Every one checks the caller (`functio
 ├── MathClass/          iOS app entry point
 ├── MathClass-macOS/    macOS app entry point
 ├── functions/          Python Firebase Cloud Functions
-└── firestore-tests/    security-rules tests (Firebase emulators)
+├── firestore-tests/    security-rules tests (Firebase emulators)
+├── website/            public site (landing page, privacy policy) for static hosting
+└── docs/               legal/ (privacy, processor agreement, notes for counsel), lancement/ (TestFlight guide, App Store texts)
 ```

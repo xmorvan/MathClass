@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MathClass</title>
+  <meta name="description" content="MathClass : les élèves résolvent les exercices de mathématiques à la main sur iPad, chaque étape est corrigée, l'enseignant suit la classe en direct.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Source+Sans+3:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icon.png">
+</head>
+<body>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">x²</span>MathClass</a>
+      <nav class="site-nav" aria-label="Sections">
+        <a href="#seance">En classe</a>
+        <a href="#donnees">Données des élèves</a>
+        <a href="#essai">Essayer</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Mathématiques, collège et lycée, sur iPad</p>
+          <h1>Chaque ligne du calcul corrigée, pendant que l'élève travaille.</h1>
+          <p class="lead">Les élèves résolvent les exercices au stylet, comme sur leur cahier. MathClass lit leur raisonnement, repère l'étape où il déraille et leur laisse une seconde chance. Vous suivez toute la classe en direct.</p>
+          <div class="hero-actions">
+            <a class="button" href="#essai">Demander un essai</a>
+            <a class="button secondary" href="#seance">Voir une séance</a>
+          </div>
+        </div>
+
+        <figure class="sheet" aria-label="Exemple de copie corrigée par MathClass">
+          <div class="sheet-head">
+            <span class="sheet-statement">Exercice 3 : résoudre 5x − 7 = 2x + 8</span>
+            <span>Camille B.</span>
+          </div>
+          <div class="line ok" style="--d: 0ms"><span class="expr">5x − 7 = 2x + 8</span><span class="mark" aria-label="juste">✓</span></div>
+          <div class="line ok" style="--d: 150ms"><span class="expr">3x − 7 = 8</span><span class="mark" aria-label="juste">✓</span></div>
+          <div class="line ko" style="--d: 300ms"><span class="expr">3x = 8 − 7</span><span class="mark" aria-label="erreur">✗</span></div>
+          <p class="note" style="--d: 450ms">−7 change de membre : il devient +7</p>
+          <div class="sheet-foot">
+            <span class="tag error">Étape 3 : erreur de signe</span>
+            <span class="tag">Équations du 1er degré</span>
+            <span class="tag">2e essai possible</span>
+          </div>
+        </figure>
+      </div>
+
+      <section id="seance" aria-labelledby="seance-titre">
+        <div class="section-head">
+          <p class="eyebrow">Une heure de cours</p>
+          <h2 id="seance-titre">Avant, pendant et après la séance</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <span class="when">Avant</span>
+            <h3>Vous préparez la séance</h3>
+            <p>Tapez l'énoncé en notation mathématique ou photographiez-le : MathClass le transcrit et propose la réponse attendue. Répartissez les exercices par élève, par groupe ou par niveau.</p>
+          </li>
+          <li>
+            <span class="when">Pendant</span>
+            <h3>Les élèves écrivent, MathClass corrige</h3>
+            <p>L'élève rejoint la classe avec un code ou un QR code, résout l'exercice à la main, vérifie la transcription et voit tout de suite quelle étape est juste et laquelle ne l'est pas. Vous voyez qui avance et qui bloque.</p>
+          </li>
+          <li>
+            <span class="when">Après</span>
+            <h3>Vous savez quoi reprendre</h3>
+            <p>Compétences maîtrisées, erreurs qui reviennent (signe, calcul, notation), progression de chaque élève, comparaison à la classe. Export PDF pour les entretiens.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="enseignant-titre">
+        <div class="section-head">
+          <p class="eyebrow">Pour l'enseignant</p>
+          <h2 id="enseignant-titre">Différencier sans multiplier les copies à corriger</h2>
+        </div>
+        <div class="features">
+          <div class="feature">
+            <h3>Niveaux et groupes</h3>
+            <p>Chaque élève a un niveau de 1 à 5 ; les groupes reçoivent des exercices différents dans la même séance.</p>
+          </div>
+          <div class="feature">
+            <h3>Trois modes de séance</h3>
+            <p>Différenciation avec seconde chance, niveaux progressifs qui montent après trois réussites, évaluation sans retour immédiat.</p>
+          </div>
+          <div class="feature">
+            <h3>Tableau de bord en direct</h3>
+            <p>Sur iPad ou sur Mac, une tuile par élève : exercice en cours, réussi, à reprendre. Sur Mac, envoyez des exercices de plus à qui a fini.</p>
+          </div>
+          <div class="feature">
+            <h3>Notation exigeante ou non</h3>
+            <p>Réglable par classe : « 4 + −1 » peut être accepté avec une remarque sur l'écriture, sans compter faux.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="donnees" aria-labelledby="donnees-titre">
+        <div class="privacy">
+          <div class="section-head">
+            <p class="eyebrow">Protection des données</p>
+            <h2 id="donnees-titre">Les données des élèves restent à leur place</h2>
+            <p>Conçu pour des élèves mineurs : pas de compte personnel pour l'élève, le strict nécessaire transmis à l'intelligence artificielle, suppression automatique.</p>
+            <p><a href="confidentialite.html">Lire la politique de confidentialité</a></p>
+          </div>
+          <ul class="facts">
+            <li><span>Ni e-mail ni mot de passe pour les élèves : un code de classe suffit.</span></li>
+            <li><span>Chaque élève ne voit que son propre travail ; chaque enseignant, que ses classes. Le contrôle se fait sur le serveur.</span></li>
+            <li><span>La correction par intelligence artificielle tourne en Europe et ne reçoit jamais le nom de l'élève.</span></li>
+            <li><span>Copies supprimées automatiquement après douze mois ; une classe supprimée disparaît entièrement.</span></li>
+            <li><span>Pas de publicité, pas de traceur, pas de revente de données.</span></li>
+            <li><span>Contrat de sous-traitance proposé aux établissements.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="essai" aria-labelledby="essai-titre">
+        <div class="trial">
+          <div class="section-head">
+            <p class="eyebrow">Essai gratuit</p>
+            <h2 id="essai-titre">Essayez avec une classe de démonstration</h2>
+            <p>MathClass est en phase de test avec des enseignants. L'essai se fait sur votre propre iPad (iPadOS) ou Mac, par TestFlight, l'application de test d'Apple.</p>
+            <ol>
+              <li>Écrivez-nous : vous recevez le lien d'installation.</li>
+              <li>Créez votre compte enseignant et chargez la classe de démonstration : élèves, exercices et devoir sont prêts.</li>
+              <li>Passez côté élève avec le code de la classe et résolvez un exercice au stylet.</li>
+            </ol>
+          </div>
+          <div class="contact-box">
+            <h3>Contact</h3>
+            <p>Indiquez votre établissement, votre niveau d'enseignement et le matériel de la classe (iPad, stylets).</p>
+            <div class="email-row">
+              <span class="email" id="email">contact@votre-domaine.ch</span>
+              <button class="button secondary" type="button" id="copy-email">Copier l'adresse</button>
+            </div>
+            <p class="copy-status" id="copy-status" aria-live="polite"></p>
+            <a class="button" id="mailto" href="mailto:contact@votre-domaine.ch?subject=Essai%20MathClass">Écrire un e-mail</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>MathClass, Genève</span>
+      <nav aria-label="Informations">
+        <a href="confidentialite.html">Confidentialité</a>
+        <a href="#essai">Contact</a>
+      </nav>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      var button = document.getElementById("copy-email");
+      var email = document.getElementById("email");
+      var status = document.getElementById("copy-status");
+      button.addEventListener("click", function () {
+        var text = email.textContent.trim();
+        function selectFallback() {
+          var range = document.createRange();
+          range.selectNodeContents(email);
+          var selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          status.textContent = "Adresse sélectionnée : copiez-la avec Cmd+C ou Ctrl+C.";
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            status.textContent = "Adresse copiée.";
+          }, selectFallback);
+        } else {
+          selectFallback();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
