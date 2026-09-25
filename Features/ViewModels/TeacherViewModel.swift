@@ -44,6 +44,10 @@ class TeacherViewModel: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
+    /// Relays each repository's changes to this view model. Kept apart from
+    /// `cancellables`, which `stopListening()` clears.
+    private var repositoryForwarding: Set<AnyCancellable> = []
+
     // MARK: - Computed Convenience
 
     var classes: [ClassRoom] { classRepo.classes }
@@ -87,6 +91,30 @@ class TeacherViewModel: ObservableObject {
         self.groupRepo = groupRepo ?? dataService.groupRepository
         self.periodRepo = periodRepo ?? dataService.periodRepository
         self.sessionRepo = sessionRepo ?? dataService.sessionRepository
+        forwardRepositoryChanges()
+    }
+
+    /// Views read repository data through computed properties
+    /// (`classes`, `studentsInClass`, …), so they only re-render when this
+    /// object publishes. Without this relay, data arriving from Firestore
+    /// listeners stayed invisible until some unrelated state changed.
+    private func forwardRepositoryChanges() {
+        let publishers: [ObservableObjectPublisher] = [
+            classRepo.objectWillChange,
+            studentRepo.objectWillChange,
+            exerciseRepo.objectWillChange,
+            chapterRepo.objectWillChange,
+            assignmentRepo.objectWillChange,
+            submissionRepo.objectWillChange,
+            groupRepo.objectWillChange,
+            periodRepo.objectWillChange,
+            sessionRepo.objectWillChange,
+        ]
+        for publisher in publishers {
+            publisher
+                .sink { [weak self] _ in self?.objectWillChange.send() }
+                .store(in: &repositoryForwarding)
+        }
     }
 
     // MARK: - Period & Session Management
