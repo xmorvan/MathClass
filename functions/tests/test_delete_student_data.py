@@ -72,6 +72,7 @@ def _build_db(
     submissions_query.stream.return_value = iter(submission_docs)
     submissions_collection = MagicMock(name="submissions_collection")
     submissions_collection.where.return_value = submissions_query
+    submissions_query.where.return_value = submissions_query
 
     db = MagicMock(name="db")
 
@@ -136,6 +137,29 @@ def test_full_cascade(monkeypatch):
     for blob in blobs:
         blob.delete.assert_called_once()
     student_ref.delete.assert_called_once()
+
+
+def test_scoped_to_the_class(monkeypatch):
+    """Student IDs repeat across classes (demo classes reuse them): the
+    submission query and the Storage prefix must both carry the classID."""
+    db, _, _, _ = _build_db(
+        class_data={"teacherID": "teacher-uid"},
+        student_exists=True,
+        submission_ids=[],
+        progress_ids=[],
+    )
+    bucket, _ = _build_bucket(prefix_blob_count=0)
+    monkeypatch.setattr(sys.modules["firebase_admin.firestore"], "client", lambda: db)
+    monkeypatch.setattr(sys.modules["firebase_admin.storage"], "bucket", lambda: bucket)
+
+    dsd.delete_student_data_handler(_fake_request({"classID": "cls1", "studentID": "stu1"}))
+
+    submissions = db.collection("submissions")
+    filters = [c.args for c in submissions.where.call_args_list]
+    filters += [c.args for c in submissions.where.return_value.where.call_args_list]
+    assert ("classID", "==", "cls1") in filters
+    assert ("studentID", "==", "stu1") in filters
+    bucket.list_blobs.assert_called_once_with(prefix="submissions/cls1/stu1/")
 
 
 # ---------------------------------------------------------------------------

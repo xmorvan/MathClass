@@ -2,10 +2,13 @@
 delete_student_data.py
 
 Teacher-callable function that hard-deletes a student's personal data:
-the student doc itself, every `/submissions/{id}` where
-`studentID == <target>`, the matching Cloud Storage prefix
-(submissions/<studentID>/...), and any `levelProgress/*` rows under the
-student's class subtree.
+the student doc itself, every `/submissions/{id}` of that student in that
+class, the matching Cloud Storage prefix (submissions/<classID>/<studentID>/,
+the layout storage.rules enforces), and any `levelProgress/*` rows under
+the student's class subtree.
+
+Student IDs are only unique within a class (demo classes reuse the same
+IDs), so every lookup is scoped to the class.
 
 Used to satisfy GDPR / CCPA right-to-erasure requests for minors. Only
 the teacher who owns the parent class can invoke this — the function
@@ -80,7 +83,10 @@ def delete_student_data_handler(req: https_fn.CallableRequest) -> dict:
 
     deleted_submissions = 0
     submissions_query = (
-        db.collection("submissions").where("studentID", "==", student_id).stream()
+        db.collection("submissions")
+        .where("classID", "==", class_id)
+        .where("studentID", "==", student_id)
+        .stream()
     )
     for sub in submissions_query:
         sub.reference.delete()
@@ -96,7 +102,7 @@ def delete_student_data_handler(req: https_fn.CallableRequest) -> dict:
     # Storage prefix.
     deleted_blobs = 0
     bucket = storage.bucket()
-    for blob in bucket.list_blobs(prefix=f"submissions/{student_id}/"):
+    for blob in bucket.list_blobs(prefix=f"submissions/{class_id}/{student_id}/"):
         blob.delete()
         deleted_blobs += 1
 
