@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreImage
+import FirebaseFunctions
 
 #if os(iOS)
 import UIKit
@@ -14,45 +15,29 @@ import UIKit
 import AppKit
 #endif
 
-/// Generates and validates unique class codes in the format MX-XXXX.
-/// Uses unambiguous characters to avoid confusion (no 0/O, 1/I/L).
+/// Obtains and validates unique class codes in the format MX-XXXX.
+/// Codes are generated server-side (`generate_class_code`) from unambiguous
+/// characters (no 0/O, 1/I/L).
 class ClassCodeService {
     static let shared = ClassCodeService()
 
-    /// Characters used for code generation — excludes 0/O, 1/I/L to prevent confusion.
-    private static let codeCharacters = Array("ABCDEFGHJKMNPQRSTUVWXYZ23456789")
-    private static let codeLength = 4
-    private static let prefix = "MX"
+    private let functions: Functions = Functions.functions(region: "europe-west6")
 
     private init() {}
 
     // MARK: - Code Generation
 
-    /// Generate a unique MX-XXXX class code, verified against Firestore.
+    /// Get a unique MX-XXXX class code from the `generate_class_code`
+    /// Cloud Function. The uniqueness check runs server-side because the
+    /// security rules don't let a teacher search other teachers' classes.
     func generateUniqueCode() async throws -> String {
-        var code: String
-        var attempts = 0
-        let maxAttempts = 10
-
-        repeat {
-            code = generateCode()
-            attempts += 1
-
-            // Check if code already exists
-            let existing = try await DataService.shared.classRepository.getClass(byCode: code)
-            if existing == nil {
-                return code
-            }
-        } while attempts < maxAttempts
-
-        throw ClassCodeError.codeGenerationFailed
-    }
-
-    /// Generate a random MX-XXXX code (without uniqueness check).
-    private func generateCode() -> String {
-        let randomPart = (0..<Self.codeLength)
-            .map { _ in Self.codeCharacters.randomElement()! }
-        return "\(Self.prefix)-\(String(randomPart))"
+        let result = try await functions.httpsCallable("generate_class_code").call()
+        guard let dict = result.data as? [String: Any],
+              let code = dict["classCode"] as? String,
+              Self.isValidFormat(code) else {
+            throw ClassCodeError.codeGenerationFailed
+        }
+        return code
     }
 
     // MARK: - Validation

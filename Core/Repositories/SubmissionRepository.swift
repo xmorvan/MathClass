@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 import Combine
 
@@ -32,16 +33,45 @@ class SubmissionRepository: ObservableObject {
         teacherChunkListeners.forEach { $0.remove() }
     }
 
+    // MARK: - Caller Scope
+
+    /// Base query pinned to the caller. The security rules only let a
+    /// teacher read submissions stamped with their `teacherID` and a student
+    /// read their own, and Firestore refuses any query that could return
+    /// something else — so every read starts here. `studentID` narrows a
+    /// teacher's query to one student; a student may only ask for
+    /// themselves. Nil when nobody (or the wrong student) is signed in.
+    private func scopedQuery(studentID: String? = nil) -> Query? {
+        guard let user = AuthenticationService.shared.currentUser else { return nil }
+        let base = firebase.db.collection(collectionPath)
+        if user.isAnonymous {
+            guard let ownID = StudentSessionManager.shared.currentStudent?.id,
+                  studentID == nil || studentID == ownID else { return nil }
+            return base.whereField("studentID", isEqualTo: ownID)
+        }
+        let teacherScoped = base.whereField("teacherID", isEqualTo: user.uid)
+        guard let studentID else { return teacherScoped }
+        return teacherScoped.whereField("studentID", isEqualTo: studentID)
+    }
+
+    private func requireScopedQuery(studentID: String? = nil) throws -> Query {
+        guard let query = scopedQuery(studentID: studentID) else {
+            throw SubmissionRepositoryError.notSignedIn
+        }
+        return query
+    }
+
     // MARK: - Real-time Listeners
 
     /// Listen for all submissions within an assignment (teacher view).
     func startListening(assignmentID: String) {
         listener?.remove()
-        listener = firebase.addQueryListener(
-            from: collectionPath,
-            whereField: "assignmentID",
-            isEqualTo: assignmentID
-        ) { [weak self] (submissions: [Submission]) in
+        listener = nil
+        guard let query = scopedQuery()?.whereField("assignmentID", isEqualTo: assignmentID) else {
+            submissions = []
+            return
+        }
+        listener = firebase.addQueryListener(query, label: collectionPath) { [weak self] (submissions: [Submission]) in
             self?.submissions = submissions.sorted { $0.timestamp > $1.timestamp }
         }
     }
@@ -62,14 +92,14 @@ class SubmissionRepository: ObservableObject {
         teacherChunkListeners = []
         teacherChunkResults = [:]
 
-        guard !classAssignmentIDs.isEmpty else {
+        guard !classAssignmentIDs.isEmpty, let scoped = scopedQuery() else {
             submissions = []
             return
         }
 
         let chunks = classAssignmentIDs.chunked(into: 30)
         for (index, chunk) in chunks.enumerated() {
-            let query = firebase.db.collection(collectionPath)
+            let query = scoped
                 .whereField("assignmentID", in: chunk)
                 .order(by: "timestamp", descending: true)
                 .limit(to: 100)
@@ -122,10 +152,13 @@ class SubmissionRepository: ObservableObject {
     /// Listen for a student's submissions within an assignment.
     func startListening(studentID: String, assignmentID: String) {
         listener?.remove()
+        listener = nil
         // Use a compound listener — Firestore requires a composite index for this
-        let query = firebase.db.collection(collectionPath)
-            .whereField("studentID", isEqualTo: studentID)
-            .whereField("assignmentID", isEqualTo: assignmentID)
+        guard let query = scopedQuery(studentID: studentID)?
+            .whereField("assignmentID", isEqualTo: assignmentID) else {
+            submissions = []
+            return
+        }
         listener = query.addSnapshotListener { [weak self] snapshot, error in
             if let error = error {
                 print("Erreur écoute soumissions: \(error.localizedDescription)")
@@ -172,28 +205,20 @@ class SubmissionRepository: ObservableObject {
 
     /// Get all submissions for a specific exercise (for statistics).
     func getSubmissions(exerciseID: String) async throws -> [Submission] {
-        try await firebase.queryDocuments(
-            from: collectionPath,
-            whereField: "exerciseID",
-            isEqualTo: exerciseID
+        try await firebase.getDocuments(
+            matching: requireScopedQuery().whereField("exerciseID", isEqualTo: exerciseID)
         )
     }
 
     /// Get all submissions by a student.
     func getSubmissions(studentID: String) async throws -> [Submission] {
-        try await firebase.queryDocuments(
-            from: collectionPath,
-            whereField: "studentID",
-            isEqualTo: studentID
-        )
+        try await firebase.getDocuments(matching: requireScopedQuery(studentID: studentID))
     }
 
-    /// Get all submissions for an assignment.
+    /// Get all submissions for an assignment (a student only gets their own).
     func getSubmissions(assignmentID: String) async throws -> [Submission] {
-        try await firebase.queryDocuments(
-            from: collectionPath,
-            whereField: "assignmentID",
-            isEqualTo: assignmentID
+        try await firebase.getDocuments(
+            matching: requireScopedQuery().whereField("assignmentID", isEqualTo: assignmentID)
         )
     }
 
@@ -208,10 +233,9 @@ class SubmissionRepository: ObservableObject {
             assignmentIDs.count <= 30,
             "Firestore 'in' queries support at most 30 values — chunk first."
         )
-        let snapshot = try await firebase.db.collection(collectionPath)
-            .whereField("assignmentID", in: assignmentIDs)
-            .getDocuments()
-        return try snapshot.documents.map { try $0.data(as: Submission.self) }
+        return try await firebase.getDocuments(
+            matching: requireScopedQuery().whereField("assignmentID", in: assignmentIDs)
+        )
     }
 
     /// Check if a student has already submitted for an exercise within an assignment.
@@ -221,8 +245,7 @@ class SubmissionRepository: ObservableObject {
         assignmentID: String,
         attemptNumber: Int
     ) async throws -> Submission? {
-        let query = firebase.db.collection(collectionPath)
-            .whereField("studentID", isEqualTo: studentID)
+        let query = try requireScopedQuery(studentID: studentID)
             .whereField("exerciseID", isEqualTo: exerciseID)
             .whereField("assignmentID", isEqualTo: assignmentID)
             .whereField("attemptNumber", isEqualTo: attemptNumber)
@@ -253,5 +276,18 @@ class SubmissionRepository: ObservableObject {
             }
         }
         return count
+    }
+}
+
+// MARK: - Errors
+
+enum SubmissionRepositoryError: LocalizedError {
+    case notSignedIn
+
+    var errorDescription: String? {
+        switch self {
+        case .notSignedIn:
+            return "Session expirée. Reconnectez-vous."
+        }
     }
 }

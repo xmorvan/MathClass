@@ -18,6 +18,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from conftest import FakeFirestore, make_request, student_auth, teacher_auth
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -33,6 +35,8 @@ if "firebase_functions" not in sys.modules:
         INVALID_ARGUMENT = "INVALID_ARGUMENT"
         INTERNAL = "INTERNAL"
         NOT_FOUND = "NOT_FOUND"
+        UNAUTHENTICATED = "UNAUTHENTICATED"
+        PERMISSION_DENIED = "PERMISSION_DENIED"
 
     class _HttpsError(Exception):
         def __init__(self, code, message, details=None):
@@ -73,10 +77,17 @@ def _import_module():
     return importlib.import_module("extract_exercise")
 
 
-def _fake_request(data):
-    from firebase_functions import https_fn
+def _fake_request(data, auth=None):
+    return make_request(data, auth=auth if auth is not None else teacher_auth())
 
-    return https_fn.CallableRequest(data)
+
+@pytest.fixture(autouse=True)
+def _teacher_profile(monkeypatch):
+    """`teacher-1` is a teacher; everyone else has no profile."""
+    import auth_guard
+
+    db = FakeFirestore({"users/teacher-1": {"role": "teacher"}})
+    monkeypatch.setattr(auth_guard, "_get_firestore", lambda: db)
 
 
 def _fake_anthropic_response(text):
@@ -154,3 +165,56 @@ def test_empty_extraction_rejected(monkeypatch):
             mod.extract_exercise_handler(_fake_request({
                 "storagePath": "exercises/abc.jpg",
             }))
+
+
+# ---------------------------------------------------------------------------
+# Authorization
+# ---------------------------------------------------------------------------
+
+
+def _error_code(excinfo):
+    return excinfo.value.code
+
+
+def test_rejects_unauthenticated_caller():
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    req = make_request({"storagePath": "exercises/abc.jpg"}, auth=None)
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.extract_exercise_handler(req)
+    assert _error_code(excinfo) == https_fn.FunctionsErrorCode.UNAUTHENTICATED
+
+
+def test_rejects_students():
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    req = _fake_request({"storagePath": "exercises/abc.jpg"}, auth=student_auth())
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.extract_exercise_handler(req)
+    assert _error_code(excinfo) == https_fn.FunctionsErrorCode.PERMISSION_DENIED
+
+
+def test_rejects_signed_in_user_without_teacher_profile():
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    req = _fake_request({"storagePath": "exercises/abc.jpg"}, auth=teacher_auth("someone-else"))
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.extract_exercise_handler(req)
+    assert _error_code(excinfo) == https_fn.FunctionsErrorCode.PERMISSION_DENIED
+
+
+@pytest.mark.parametrize("path", [
+    "submissions/class-1/stu-1/ex_attempt1.png",
+    "exercises/../submissions/class-1/stu-1/x.png",
+    "exercises/",
+])
+def test_rejects_paths_outside_exercises(path):
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.extract_exercise_handler(_fake_request({"storagePath": path}))
+    assert _error_code(excinfo) == https_fn.FunctionsErrorCode.PERMISSION_DENIED

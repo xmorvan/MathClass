@@ -8,8 +8,11 @@
 import FirebaseAuth
 import FirebaseFirestore
 
-/// Manages Firebase Authentication for teachers.
-/// Students do not use Firebase Auth — they authenticate via class code + name selection.
+/// Manages Firebase Authentication.
+/// - Teachers: email + password accounts with a `users/{uid}` profile.
+/// - Students: anonymous accounts. `StudentSessionManager` binds them to one
+///   student via the `claim_student_seat` Cloud Function, which sets the
+///   custom claims the security rules check.
 @MainActor
 final class AuthenticationService: ObservableObject {
     static let shared = AuthenticationService()
@@ -30,11 +33,13 @@ final class AuthenticationService: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.currentUser = user
-                if let user = user {
+                if let user = user, !user.isAnonymous {
                     await self.fetchUserRole(userId: user.uid)
-                } else {
+                } else if user == nil {
                     self.userRole = nil
                 }
+                // Anonymous (student) accounts have no users/{uid} profile;
+                // StudentSessionManager sets the student role itself.
             }
         }
     }
@@ -74,11 +79,39 @@ final class AuthenticationService: ObservableObject {
         self.userRole = nil
     }
 
-    // MARK: - Student Role (no Firebase Auth)
+    /// True when a teacher (non-anonymous account) is signed in.
+    var isTeacherAccount: Bool {
+        guard let user = currentUser else { return false }
+        return !user.isAnonymous
+    }
 
-    /// Set the role to student for the current session (students don't use Firebase Auth).
-    /// Class is @MainActor, so the assignment is guaranteed to publish on main —
-    /// no more DispatchQueue.main.async dance.
+    // MARK: - Student Accounts (anonymous)
+
+    /// Return the current anonymous account, creating one if needed.
+    /// Signs out a teacher account first: an iPad is used either by a
+    /// teacher or by a student, never both at once.
+    func signInAnonymouslyIfNeeded() async throws -> User {
+        if let user = auth.currentUser, user.isAnonymous {
+            return user
+        }
+        if auth.currentUser != nil {
+            try auth.signOut()
+        }
+        return try await auth.signInAnonymously().user
+    }
+
+    /// Sign out the anonymous student account (student logout).
+    func signOutStudent() {
+        guard let user = auth.currentUser, user.isAnonymous else { return }
+        do {
+            try auth.signOut()
+        } catch {
+            print("AuthenticationService.signOutStudent error: \(error.localizedDescription)")
+        }
+    }
+
+    /// Set the role to student once the anonymous account holds its claims.
+    /// Class is @MainActor, so the assignment is guaranteed to publish on main.
     func setStudentRole() {
         userRole = .student
     }

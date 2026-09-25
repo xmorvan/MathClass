@@ -18,6 +18,8 @@ import time
 import anthropic
 from firebase_functions import https_fn
 
+import auth_guard
+
 # SymPy is imported lazily on first call — `import sympy` alone takes
 # several seconds and blows the 10-second Cloud Functions deployment
 # introspection timeout when combined with the other heavy imports
@@ -342,19 +344,63 @@ def _persist_correction(
     return last_error
 
 
+def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
+    """Check that the calling student owns the submission.
+
+    Returns the grading context read from Firestore (expected answer,
+    statement, notation strictness) so the client cannot change what it
+    is graded against.
+    """
+    identity = auth_guard.require_student(req)
+    db = _get_firestore()
+
+    submission = db.collection("submissions").document(submission_id).get()
+    if not submission.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Soumission introuvable.",
+        )
+    submission_data = submission.to_dict() or {}
+    if submission_data.get("studentID") != identity.student_id:
+        raise auth_guard._denied()
+
+    exercise_id = submission_data.get("exerciseID")
+    exercise = (
+        db.collection("exercises").document(exercise_id).get()
+        if isinstance(exercise_id, str) and exercise_id
+        else None
+    )
+    if exercise is None or not exercise.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Exercice introuvable.",
+        )
+    exercise_data = exercise.to_dict() or {}
+
+    class_doc = db.collection("classes").document(identity.class_id).get()
+    class_data = (class_doc.to_dict() or {}) if class_doc.exists else {}
+    notation_strict = class_data.get("notationStrict")
+
+    return {
+        "expected_answer": exercise_data.get("expectedAnswer", ""),
+        "statement": exercise_data.get("statement", ""),
+        # Legacy classes without the field default to strict.
+        "notation_strict": True if notation_strict is None else bool(notation_strict),
+    }
+
+
 def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
     """Handle the correct_submission Cloud Function call.
 
     Args:
         req.data:
             - studentSteps: list of LaTeX strings (student's work)
-            - expectedAnswer: LaTeX string (the correct answer)
-            - statement: Exercise statement for context
             - submissionID: Firestore document ID — the function will patch
               correctionResult + finalResult on this doc via Admin SDK.
-              Required because students have no Firebase Auth and the
-              firestore.rules update guard is `isTeacher()`; the client
-              cannot persist correction results itself.
+              The caller must be the student who owns it (custom claims);
+              the rules forbid clients from writing correction results.
+            - expectedAnswer / statement / notationStrict: ignored. They are
+              read from the exercise and class documents instead.
             - attemptNumber: 1 or 2 (used to compute success_1st vs success_2nd).
 
     Returns:
@@ -373,14 +419,8 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         )
 
     student_steps = req.data.get("studentSteps", [])
-    expected_answer = req.data.get("expectedAnswer", "")
-    statement = req.data.get("statement", "")
     submission_id = req.data.get("submissionID")
     attempt_number = req.data.get("attemptNumber")
-    # New: class-level notation strictness (default True). When True the
-    # function flags notation issues separately without flipping the
-    # verdict; when False notation is ignored entirely.
-    notation_strict = bool(req.data.get("notationStrict", True))
 
     if not isinstance(student_steps, list):
         raise https_fn.HttpsError(
@@ -407,6 +447,13 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="'attemptNumber' doit être 1 ou 2.",
         )
+
+    # Grade against the exercise stored in Firestore, not against whatever
+    # expected answer the client sent.
+    context = _authorize(req, submission_id)
+    expected_answer = context["expected_answer"]
+    statement = context["statement"]
+    notation_strict = context["notation_strict"]
 
     if not student_steps:
         return {

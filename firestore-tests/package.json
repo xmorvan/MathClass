@@ -1,0 +1,13 @@
+{
+  "name": "mathclass-rules-tests",
+  "private": true,
+  "description": "Security-rules tests for firestore.rules and storage.rules, run against the Firebase emulators.",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,storage --project demo-mathclass --config ../firebase.json \"node --test\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^13.35.1"
+  }
+}

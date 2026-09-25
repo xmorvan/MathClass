@@ -1,19 +1,59 @@
 rules_version = '2';
+
+// Same identity model as firestore.rules: teachers are email/password
+// accounts with users/{uid}.role == 'teacher'; students are anonymous
+// accounts carrying the {role, classID, studentID} custom claims set by
+// the `claim_student_seat` Cloud Function.
+//
+// Tested by firestore-tests/ against the emulator.
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Exercise images — teachers upload, anyone can read
-    match /exercises/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+
+    function isAnonymous() {
+      return request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
 
-    // Student submissions — students have no Firebase Auth, so writes are
-    // public, but scoped to a single file per student/exercise path with
-    // strict size and content-type guards to make abuse painful.
-    match /submissions/{studentID}/{fileName} {
-      allow read: if true;
-      allow write: if request.resource.size < 5 * 1024 * 1024
-                && request.resource.contentType.matches('image/.*');
+    function isTeacher() {
+      return request.auth != null
+        && !isAnonymous()
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    function isStudent() {
+      return request.auth != null
+        && request.auth.token.get('role', '') == 'student';
+    }
+
+    function ownsClass(classId) {
+      return isTeacher()
+        && firestore.get(/databases/(default)/documents/classes/$(classId)).data.teacherID == request.auth.uid;
+    }
+
+    function isImageUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Exercise statement images. Not personal data; students need them to
+    // display their exercises.
+    match /exercises/{fileName} {
+      allow get: if isTeacher() || isStudent();
+      allow create, update: if isTeacher() && isImageUnder5MB();
+    }
+
+    // Students' handwritten work: submissions/{classID}/{studentID}/{file}.
+    // Only that student writes it; that student and the class's teacher
+    // read it. No listing.
+    match /submissions/{classId}/{studentId}/{fileName} {
+      allow get: if (isStudent()
+                     && request.auth.token.classID == classId
+                     && request.auth.token.studentID == studentId)
+                 || ownsClass(classId);
+      allow create, update: if isStudent()
+                 && request.auth.token.classID == classId
+                 && request.auth.token.studentID == studentId
+                 && isImageUnder5MB();
     }
   }
 }

@@ -15,16 +15,21 @@ final class PeriodRepository: ObservableObject {
 
     private let firebase = FirebaseService.shared
     private var listener: ListenerRegistration?
+    /// Per-chunk listeners for `startListeningAcrossClasses` (Firestore caps
+    /// `in` at 30 values), merged by period ID.
+    private var chunkListeners: [ListenerRegistration] = []
+    private var chunkResults: [Int: [Period]] = [:]
 
     deinit {
         listener?.remove()
+        chunkListeners.forEach { $0.remove() }
     }
 
     private let collectionPath = "periods"
 
     /// Listen for periods of a single class, ordered by startTime ascending.
     func startListening(classID: String) {
-        listener?.remove()
+        stopListening()
         listener = firebase.addQueryListener(
             from: collectionPath,
             whereField: "classID",
@@ -35,28 +40,36 @@ final class PeriodRepository: ObservableObject {
     }
 
     /// Listen across multiple classes (used by the macOS teacher dashboard
-    /// when the teacher has more than one class). Falls back to listening
-    /// for everything and filtering client-side because Firestore's `in`
-    /// query is capped at 30 values; for typical 1–5 classes that's fine.
+    /// when the teacher has more than one class). One `classID in [...]`
+    /// listener per 30 classes — the security rules refuse a listener on the
+    /// whole collection, since it would include other teachers' periods.
     func startListeningAcrossClasses(classIDs: [String]) {
-        listener?.remove()
+        stopListening()
         guard !classIDs.isEmpty else {
             self.periods = []
             return
         }
-        let allowed = Set(classIDs)
-        listener = firebase.addCollectionListener(
-            collection: collectionPath
-        ) { [weak self] (periods: [Period]) in
-            self?.periods = periods
-                .filter { allowed.contains($0.classID) }
-                .sorted { $0.startTime < $1.startTime }
+        for (index, chunk) in classIDs.chunked(into: 30).enumerated() {
+            let query = firebase.db.collection(collectionPath).whereField("classID", in: chunk)
+            let registration = firebase.addQueryListener(query, label: collectionPath) { [weak self] (periods: [Period]) in
+                guard let self else { return }
+                self.chunkResults[index] = periods
+                var seen: Set<String> = []
+                self.periods = self.chunkResults.values
+                    .flatMap { $0 }
+                    .filter { period in period.id.map { seen.insert($0).inserted } ?? true }
+                    .sorted { $0.startTime < $1.startTime }
+            }
+            chunkListeners.append(registration)
         }
     }
 
     func stopListening() {
         listener?.remove()
         listener = nil
+        chunkListeners.forEach { $0.remove() }
+        chunkListeners = []
+        chunkResults = [:]
     }
 
     func createPeriod(_ period: Period) async throws -> String {

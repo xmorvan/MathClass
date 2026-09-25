@@ -17,6 +17,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from conftest import make_request, student_auth, teacher_auth
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -30,6 +32,8 @@ if "firebase_functions" not in sys.modules:
         INVALID_ARGUMENT = "INVALID_ARGUMENT"
         INTERNAL = "INTERNAL"
         NOT_FOUND = "NOT_FOUND"
+        UNAUTHENTICATED = "UNAUTHENTICATED"
+        PERMISSION_DENIED = "PERMISSION_DENIED"
 
     class _HttpsError(Exception):
         def __init__(self, code, message, details=None):
@@ -68,10 +72,8 @@ def _import_module():
     return importlib.import_module("recognize_handwriting")
 
 
-def _fake_request(data):
-    from firebase_functions import https_fn
-
-    return https_fn.CallableRequest(data)
+def _fake_request(data, auth=None):
+    return make_request(data, auth=auth if auth is not None else student_auth())
 
 
 def _fake_anthropic_response(text):
@@ -108,7 +110,7 @@ def test_happy_path_returns_steps(monkeypatch):
         mock_storage.bucket.return_value = fake_bucket
 
         result = mod.recognize_handwriting_handler(_fake_request({
-            "storagePath": "submissions/abc/ex_attempt1.png",
+            "storagePath": "submissions/class-1/stu-1/ex_attempt1.png",
             "format": "png",
         }))
 
@@ -138,9 +140,51 @@ def test_blank_canvas_returns_empty_steps(monkeypatch):
          patch("anthropic.Anthropic", return_value=fake_client):
         mock_storage.bucket.return_value = fake_bucket
         result = mod.recognize_handwriting_handler(_fake_request({
-            "storagePath": "submissions/abc/ex_attempt1.png",
+            "storagePath": "submissions/class-1/stu-1/ex_attempt1.png",
             "format": "png",
         }))
 
     assert result["steps"] == []
     assert result["confidence"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Authorization
+# ---------------------------------------------------------------------------
+
+
+def test_rejects_unauthenticated_caller():
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    req = make_request({"storagePath": "submissions/class-1/stu-1/a.png"}, auth=None)
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.recognize_handwriting_handler(req)
+    assert excinfo.value.code == https_fn.FunctionsErrorCode.UNAUTHENTICATED
+
+
+def test_rejects_teacher_accounts():
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    req = _fake_request(
+        {"storagePath": "submissions/class-1/stu-1/a.png"}, auth=teacher_auth()
+    )
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.recognize_handwriting_handler(req)
+    assert excinfo.value.code == https_fn.FunctionsErrorCode.PERMISSION_DENIED
+
+
+@pytest.mark.parametrize("path", [
+    "submissions/class-1/stu-2/a.png",          # classmate's drawing
+    "submissions/class-2/stu-1/a.png",          # other class
+    "submissions/class-1/stu-1/../stu-2/a.png",  # traversal
+    "exercises/abc.jpg",
+])
+def test_rejects_other_students_drawings(path):
+    mod = _import_module()
+    from firebase_functions import https_fn
+
+    with pytest.raises(https_fn.HttpsError) as excinfo:
+        mod.recognize_handwriting_handler(_fake_request({"storagePath": path}))
+    assert excinfo.value.code == https_fn.FunctionsErrorCode.PERMISSION_DENIED

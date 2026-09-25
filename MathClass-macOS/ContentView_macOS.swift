@@ -18,7 +18,7 @@ struct ContentView_macOS: View {
         Group {
             if authService.userRole == .teacher {
                 TeacherView_macOS()
-            } else if authService.currentUser != nil {
+            } else if authService.isTeacherAccount {
                 ProgressView("Chargement...".tr)
             } else {
                 teacherAuthView

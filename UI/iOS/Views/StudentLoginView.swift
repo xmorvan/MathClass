@@ -27,13 +27,13 @@ struct StudentLoginView: View {
                     )
 
                 case .selectName:
-                    if let classRoom = viewModel.matchedClass {
+                    if let joinedClass = viewModel.matchedClass {
                         StudentNameSelectionView(
-                            classRoom: classRoom,
+                            className: joinedClass.name,
+                            classCode: joinedClass.classCode,
                             students: viewModel.studentsInClass,
                             onSelectStudent: { student in
                                 viewModel.selectStudent(student)
-                                dismiss()
                             },
                             onBack: { viewModel.goBack() }
                         )
@@ -46,6 +46,17 @@ struct StudentLoginView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler".tr) { dismiss() }
                 }
+            }
+            .overlay {
+                if viewModel.isLoggingIn {
+                    ProgressView("Connexion…".tr)
+                        .padding()
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .disabled(viewModel.isLoggingIn)
+            .onChange(of: viewModel.didLogIn) { _, loggedIn in
+                if loggedIn { dismiss() }
             }
             .alert("Erreur".tr, isPresented: $viewModel.showError) {
                 Button("OK".tr, role: .cancel) {}

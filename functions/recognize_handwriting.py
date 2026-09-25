@@ -21,6 +21,8 @@ import firebase_admin
 from firebase_admin import storage
 from firebase_functions import https_fn
 
+import auth_guard
+
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
     firebase_admin.initialize_app()
@@ -97,6 +99,13 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="'storagePath' ou 'imageBase64' est requis.",
         )
+
+    # Only the student who uploaded a drawing may have it read back.
+    identity = auth_guard.require_student(req)
+    if storage_path and not auth_guard.is_safe_path(
+        storage_path, auth_guard.student_storage_prefix(identity)
+    ):
+        raise auth_guard._denied()
 
     # Get Anthropic API key
     api_key = os.environ.get("ANTHROPIC_API_KEY")

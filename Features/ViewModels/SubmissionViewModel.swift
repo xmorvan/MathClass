@@ -117,9 +117,12 @@ class SubmissionViewModel: ObservableObject {
         do {
             // Upload PNG to Cloud Storage via the DataService gateway
             // (replaces direct Storage.storage() access — see CLAUDE.md).
+            // Path layout is fixed by storage.rules: only this student
+            // writes here; they and the class's teacher read it back.
             let studentID = studentViewModel.studentID
+            let classID = studentViewModel.classID
             let exerciseID = exercise.id ?? "unknown"
-            let imagePath = "submissions/\(studentID)/\(exerciseID)_attempt\(currentAttempt).png"
+            let imagePath = "submissions/\(classID)/\(studentID)/\(exerciseID)_attempt\(currentAttempt).png"
             _ = try await DataService.shared.uploadData(imageData, path: imagePath)
             self.pngURL = imagePath
 

@@ -9,7 +9,8 @@ import SwiftUI
 
 /// Step 2 of student onboarding: Select your name from the class student list.
 struct StudentNameSelectionView: View {
-    let classRoom: ClassRoom
+    let className: String
+    let classCode: String
     let students: [Student]
     var onSelectStudent: (Student) -> Void
     var onBack: () -> Void
@@ -20,11 +21,11 @@ struct StudentNameSelectionView: View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 8) {
-                Text(classRoom.name)
+                Text(className)
                     .font(.title2)
                     .bold()
 
-                Text("Code: \(classRoom.classCode)")
+                Text("Code: \(classCode)")
                     .font(.caption)
                     .foregroundColor(.secondary)
 

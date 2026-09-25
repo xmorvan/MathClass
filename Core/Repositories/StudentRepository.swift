@@ -97,6 +97,16 @@ class StudentRepository: ObservableObject {
         )
     }
 
+    /// Link the student to this iPad (student action — the security rules
+    /// only let a student change `deviceToken` on their own document).
+    func updateDeviceToken(_ token: String, studentID: String, classID: String) async throws {
+        try await firebase.updateFields(
+            ["deviceToken": token],
+            in: collectionPath(classID: classID),
+            documentID: studentID
+        )
+    }
+
     /// Reset a student's device link (teacher action).
     /// Routed through `FirebaseService.updateFields` instead of touching
     /// `firebase.db` directly — see CLAUDE.md.

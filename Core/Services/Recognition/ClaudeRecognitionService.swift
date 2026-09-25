@@ -53,7 +53,7 @@ final class ClaudeRecognitionService: RecognitionService {
     /// Recognize handwriting from a PNG already uploaded to Cloud Storage.
     /// This is the primary flow used by SubmissionViewModel.
     ///
-    /// - Parameter path: Cloud Storage path to the PNG (e.g., "submissions/student123/exercise456_attempt1.png")
+    /// - Parameter path: Cloud Storage path to the PNG (e.g., "submissions/class1/student123/exercise456_attempt1.png")
     /// - Returns: A `RecognitionResult` with extracted LaTeX steps and confidence.
     /// - Throws: `RecognitionError` on failure.
     func recognizeFromStorage(path: String) async throws -> RecognitionResult {

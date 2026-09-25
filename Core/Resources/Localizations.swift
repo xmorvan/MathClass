@@ -55,6 +55,7 @@ enum Localizations {
         "Connexion Professeur": "Teacher Sign-In",
         "Inscription Professeur": "Teacher Sign-Up",
         "Connexion Élève": "Student Sign-In",
+        "Connexion…": "Signing in…",
         "Créer un compte": "Create an account",
         "Créer le compte": "Create account",
         "MathClass pour Professeurs": "MathClass for Teachers",

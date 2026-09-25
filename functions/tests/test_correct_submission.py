@@ -31,6 +31,8 @@ if "firebase_functions" not in sys.modules:
         INVALID_ARGUMENT = "invalid-argument"
         INTERNAL = "internal"
         UNAVAILABLE = "unavailable"
+        UNAUTHENTICATED = "unauthenticated"
+        PERMISSION_DENIED = "permission-denied"
 
     class _HttpsError(Exception):
         def __init__(self, code, message, details=None):
@@ -60,6 +62,12 @@ if "firebase_admin" not in sys.modules:
     sys.modules["firebase_admin.firestore"] = fake_firestore
 
 import correct_submission as cs  # noqa: E402  (after sys.path injection)
+from conftest import FakeFirestore, make_request, student_auth, teacher_auth  # noqa: E402
+
+# The autouse fixture below stubs these out; keep the real ones for the
+# tests that exercise them directly.
+_real_persist_correction = cs._persist_correction
+_real_authorize = cs._authorize
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +105,7 @@ def test_sympy_returns_none_on_garbage():
 
 
 def _fake_request(data: dict) -> object:
-    return types.SimpleNamespace(data=data)
+    return make_request(data, auth=student_auth())
 
 
 def _fake_anthropic_with_pairs(pairs: list[dict]):
@@ -120,6 +128,17 @@ def _stub_environment(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     # Default: persist succeeds. Individual tests override.
     monkeypatch.setattr(cs, "_persist_correction", lambda **_: None)
+    # Default: the caller owns the submission and is graded against the
+    # expected answer it sent. The real check is tested further down.
+    monkeypatch.setattr(
+        cs,
+        "_authorize",
+        lambda req, _sid: {
+            "expected_answer": req.data.get("expectedAnswer", ""),
+            "statement": req.data.get("statement", ""),
+            "notation_strict": bool(req.data.get("notationStrict", True)),
+        },
+    )
 
 
 def test_handler_pads_short_pair_list_with_false(monkeypatch):
@@ -225,7 +244,7 @@ def test_persist_helper_retries_then_returns_error(monkeypatch):
     # Skip the sleep so the test runs fast.
     monkeypatch.setattr(cs.time, "sleep", lambda _x: None)
 
-    err = cs._persist_correction(
+    err = _real_persist_correction(
         submission_id="x",
         step_results=[True],
         first_error_index=None,
@@ -291,3 +310,88 @@ def test_handler_returns_empty_for_empty_steps(monkeypatch):
     result = cs.correct_submission_handler(req)
     assert result["stepResults"] == []
     assert result["firstErrorIndex"] is None
+
+
+# ---------------------------------------------------------------------------
+# Authorization: only the owning student, graded against server-side data
+# ---------------------------------------------------------------------------
+
+
+def _grading_db():
+    return FakeFirestore({
+        "classes/class-1": {"teacherID": "teacher-1", "notationStrict": False},
+        "exercises/ex-1": {"expectedAnswer": "x = 4", "statement": "Résoudre $2x = 8$"},
+        "submissions/sub-1": {"studentID": "stu-1", "exerciseID": "ex-1"},
+    })
+
+
+def _patch_db(monkeypatch, db):
+    monkeypatch.setattr(cs, "_get_firestore", lambda: db)
+
+
+def test_authorize_returns_server_side_grading_context(monkeypatch):
+    _patch_db(monkeypatch, _grading_db())
+    req = make_request({"expectedAnswer": "forged"}, auth=student_auth())
+
+    context = _real_authorize(req, "sub-1")
+
+    assert context == {
+        "expected_answer": "x = 4",
+        "statement": "Résoudre $2x = 8$",
+        "notation_strict": False,
+    }
+
+
+def test_authorize_defaults_notation_strict_for_legacy_classes(monkeypatch):
+    db = _grading_db()
+    db.docs["classes/class-1"] = {"teacherID": "teacher-1"}
+    _patch_db(monkeypatch, db)
+
+    context = _real_authorize(make_request({}, auth=student_auth()), "sub-1")
+    assert context["notation_strict"] is True
+
+
+@pytest.mark.parametrize("auth, expected_code", [
+    (None, "UNAUTHENTICATED"),
+    (teacher_auth(), "PERMISSION_DENIED"),
+    (student_auth(student_id="stu-2"), "PERMISSION_DENIED"),
+])
+def test_authorize_rejects_non_owners(monkeypatch, auth, expected_code):
+    _patch_db(monkeypatch, _grading_db())
+    https_fn = sys.modules["firebase_functions"].https_fn
+
+    with pytest.raises(https_fn.HttpsError) as exc_info:
+        _real_authorize(make_request({}, auth=auth), "sub-1")
+    assert exc_info.value.code == getattr(https_fn.FunctionsErrorCode, expected_code)
+
+
+def test_authorize_rejects_unknown_submission(monkeypatch):
+    _patch_db(monkeypatch, _grading_db())
+    https_fn = sys.modules["firebase_functions"].https_fn
+
+    with pytest.raises(https_fn.HttpsError) as exc_info:
+        _real_authorize(make_request({}, auth=student_auth()), "missing")
+    assert exc_info.value.code == https_fn.FunctionsErrorCode.NOT_FOUND
+
+
+def test_handler_grades_against_stored_answer_not_client_value(monkeypatch):
+    """A forged expectedAnswer in the request must not reach the prompt."""
+    _patch_db(monkeypatch, _grading_db())
+    monkeypatch.setattr(cs, "_authorize", _real_authorize)
+    fake_client = _fake_anthropic_with_pairs([
+        {"studentExpr": "x = 4", "referenceExpr": "x = 4", "description": ""},
+    ])
+    monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+    monkeypatch.setattr(cs, "sympy_check_equivalence", lambda a, b: True)
+
+    cs.correct_submission_handler(_fake_request({
+        "studentSteps": ["x = 4"],
+        "expectedAnswer": "FORGED",
+        "statement": "FORGED",
+        "submissionID": "sub-1",
+        "attemptNumber": 1,
+    }))
+
+    prompt = fake_client.messages.create.call_args_list[0].kwargs["messages"][0]["content"]
+    assert "x = 4" in prompt
+    assert "FORGED" not in prompt

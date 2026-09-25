@@ -22,9 +22,12 @@ class StudentOnboardingViewModel: ObservableObject {
 
     @Published var step: Step = .enterCode
     @Published var classCode: String = ""
-    @Published var matchedClass: ClassRoom?
+    @Published var matchedClass: JoinableClass?
     @Published var studentsInClass: [Student] = []
     @Published var isLookingUp: Bool = false
+    @Published var isLoggingIn: Bool = false
+    /// Flips to true once the seat is claimed; the view dismisses on it.
+    @Published var didLogIn: Bool = false
     @Published var showError: Bool = false
     @Published var errorMessage: String = ""
 
@@ -37,12 +40,9 @@ class StudentOnboardingViewModel: ObservableObject {
         isLookingUp = true
         Task {
             do {
-                if let classRoom = try await sessionManager.lookupClass(code: classCode) {
-                    let classID = classRoom.id ?? ""
-                    let students = try await sessionManager.getStudents(classID: classID)
-
-                    self.matchedClass = classRoom
-                    self.studentsInClass = students
+                if let joinedClass = try await sessionManager.joinClass(code: classCode) {
+                    self.matchedClass = joinedClass
+                    self.studentsInClass = joinedClass.students
                     self.step = .selectName
                 } else {
                     self.errorMessage = "Code classe introuvable. Vérifiez le code et réessayez."
@@ -58,9 +58,17 @@ class StudentOnboardingViewModel: ObservableObject {
 
     /// Log in as the selected student.
     func selectStudent(_ student: Student) {
-        guard let classID = matchedClass?.id else { return }
+        guard let joinedClass = matchedClass, !isLoggingIn else { return }
+        isLoggingIn = true
         Task {
-            await sessionManager.login(student: student, classID: classID)
+            await sessionManager.login(student: student, joinedClass: joinedClass)
+            self.isLoggingIn = false
+            if sessionManager.isLoggedIn {
+                self.didLogIn = true
+            } else {
+                self.errorMessage = sessionManager.loginError ?? "Connexion impossible. Réessayez."
+                self.showError = true
+            }
         }
     }
 

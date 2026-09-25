@@ -5,6 +5,66 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "teacherID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "assignmentID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teacherID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "assignmentID",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teacherID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "exerciseID",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teacherID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "studentID",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "assignmentID",
           "order": "ASCENDING"
         },

@@ -21,6 +21,8 @@ import firebase_admin
 from firebase_admin import storage
 from firebase_functions import https_fn
 
+import auth_guard
+
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
     firebase_admin.initialize_app()
@@ -83,6 +85,12 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="Le champ 'storagePath' est requis.",
         )
+
+    # Teachers only, and only exercise images: this must not become a way
+    # to read students' drawings.
+    auth_guard.require_teacher(req)
+    if not auth_guard.is_safe_path(storage_path, "exercises/"):
+        raise auth_guard._denied()
 
     # Optional teacher competency catalog: [{ "id": "abc", "label": "Équations du 1er degré" }, ...].
     # If absent or empty, the AI will not propose any tags.

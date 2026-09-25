@@ -113,7 +113,40 @@ class FirebaseService {
         return try snapshot.documents.map { try $0.data(as: T.self) }
     }
 
+    /// Fetch the documents matching a query built by the caller (compound
+    /// filters, e.g. the per-caller scoping `SubmissionRepository` applies).
+    func getDocuments<T: Decodable>(matching query: Query) async throws -> [T] {
+        let snapshot = try await query.getDocuments()
+        return try snapshot.documents.map { try $0.data(as: T.self) }
+    }
+
     // MARK: - Real-time Listeners
+
+    /// Listen to a query built by the caller. `label` only appears in logs.
+    func addQueryListener<T: Decodable>(
+        _ query: Query,
+        label: String,
+        onUpdate: @escaping ([T]) -> Void
+    ) -> ListenerRegistration {
+        return query.addSnapshotListener { snapshot, error in
+            if let error = error {
+                print("Erreur écoute collection \(label): \(error.localizedDescription)")
+                onUpdate([])
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                onUpdate([])
+                return
+            }
+            do {
+                let decoded = try documents.map { try $0.data(as: T.self) }
+                onUpdate(decoded)
+            } catch {
+                print("Erreur décodage collection \(label): \(error.localizedDescription)")
+                onUpdate([])
+            }
+        }
+    }
 
     /// Listen to changes on a single document.
     func addDocumentListener<T: Decodable>(

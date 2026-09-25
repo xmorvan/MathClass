@@ -6,6 +6,9 @@ Functions:
   - extract_exercise: Extract LaTeX from exercise image using Claude Haiku 4.5 Vision
   - recognize_handwriting: Recognize student handwriting from PencilKit PNG
   - correct_submission: Hybrid correction pipeline using Claude + SymPy
+  - join_class / claim_student_seat: class-code login for students
+    (anonymous Firebase Auth + custom claims)
+  - generate_class_code: unique MX-XXXX code for a new class
 """
 
 from firebase_functions import https_fn, options, params
@@ -53,3 +56,24 @@ def correct_submission(req: https_fn.CallableRequest) -> dict:
     """Correct a student's submission using hybrid Claude + SymPy pipeline."""
     from correct_submission import correct_submission_handler
     return correct_submission_handler(req)
+
+
+@https_fn.on_call()
+def join_class(req: https_fn.CallableRequest) -> dict:
+    """Resolve a class code into the class name and its student picker list."""
+    from student_auth import join_class_handler
+    return join_class_handler(req)
+
+
+@https_fn.on_call()
+def claim_student_seat(req: https_fn.CallableRequest) -> dict:
+    """Bind the caller's anonymous account to one student of a class."""
+    from student_auth import claim_student_seat_handler
+    return claim_student_seat_handler(req)
+
+
+@https_fn.on_call()
+def generate_class_code(req: https_fn.CallableRequest) -> dict:
+    """Return an MX-XXXX code no other class uses (teachers only)."""
+    from student_auth import generate_class_code_handler
+    return generate_class_code_handler(req)

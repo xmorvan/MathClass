@@ -13,6 +13,12 @@ import FirebaseFirestore
 struct Submission: Identifiable, Codable {
     @DocumentID var id: String?
     var studentID: String
+    /// Class and teacher the submission belongs to. Copied from the class
+    /// when the student submits; the security rules check both and use
+    /// `teacherID` to let the teacher read it. Optional so documents written
+    /// before these fields existed still decode.
+    var classID: String?
+    var teacherID: String?
     var exerciseID: String
     var assignmentID: String
     /// 1 for first attempt, 2 for second attempt (2nd chance)
@@ -35,6 +41,8 @@ struct Submission: Identifiable, Codable {
     init(
         id: String? = nil,
         studentID: String,
+        classID: String? = nil,
+        teacherID: String? = nil,
         exerciseID: String,
         assignmentID: String,
         attemptNumber: Int = 1,
@@ -48,6 +56,8 @@ struct Submission: Identifiable, Codable {
     ) {
         self.id = id
         self.studentID = studentID
+        self.classID = classID
+        self.teacherID = teacherID
         self.exerciseID = exerciseID
         self.assignmentID = assignmentID
         self.attemptNumber = attemptNumber

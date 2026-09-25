@@ -45,6 +45,10 @@ class StudentViewModel: ObservableObject {
     /// carry the field yet.
     @Published private(set) var notationStrict: Bool = true
 
+    /// Owner of the class, stamped on every submission (the security rules
+    /// check it and use it to let that teacher read the work).
+    private var teacherID: String?
+
     // MARK: - Init
 
     init(
@@ -63,16 +67,20 @@ class StudentViewModel: ObservableObject {
         self.submissionRepo = submissionRepo ?? dataService.submissionRepository
         self.classRepo = classRepo ?? dataService.classRepository
 
-        // Best-effort fetch of the class doc to know notation strictness.
-        // The student session has no auth so the class is publicly
-        // readable per firestore.rules.
+        // Best-effort fetch of the class doc for notation strictness and
+        // the owning teacher. The student's claims allow reading their own
+        // class.
         Task { [weak self] in
             guard let self else { return }
             do {
                 let cls = try await self.classRepo.getClass(id: classID)
-                await MainActor.run { self.notationStrict = cls.isNotationStrict }
+                await MainActor.run {
+                    self.notationStrict = cls.isNotationStrict
+                    self.teacherID = cls.teacherID
+                }
             } catch {
-                // Default stays true (strict).
+                // Default stays true (strict); teacherID is fetched again
+                // on the first submission.
             }
         }
     }
@@ -187,8 +195,14 @@ class StudentViewModel: ObservableObject {
             throw StudentError.noCurrentExercise
         }
 
+        if teacherID == nil {
+            teacherID = try await classRepo.getClass(id: classID).teacherID
+        }
+
         let submission = Submission(
             studentID: studentID,
+            classID: classID,
+            teacherID: teacherID,
             exerciseID: exerciseID,
             assignmentID: assignmentID,
             attemptNumber: attemptNumber,
@@ -199,18 +213,6 @@ class StudentViewModel: ObservableObject {
         )
 
         return try await submissionRepo.createSubmission(submission)
-    }
-
-    /// Update a submission with correction results.
-    func updateSubmissionWithResult(
-        _ submission: Submission,
-        correctionResult: CorrectionResult,
-        finalResult: SubmissionResult
-    ) async throws {
-        var updated = submission
-        updated.correctionResult = correctionResult
-        updated.finalResult = finalResult
-        try await submissionRepo.updateSubmission(updated)
     }
 
     // MARK: - Assignment Mode Queries

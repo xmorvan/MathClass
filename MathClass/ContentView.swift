@@ -8,8 +8,8 @@
 import SwiftUI
 
 /// Root view that routes to the appropriate interface based on authentication state.
-/// - Teacher logged in via Firebase Auth → TeacherView
-/// - Student session exists (class code + name) → StudentView
+/// - Teacher logged in via Firebase Auth (email/password) → TeacherView
+/// - Student session exists (class code + name, anonymous Firebase account) → StudentView
 /// - Neither → RoleSelectionView
 struct ContentView: View {
     @StateObject private var authService = AuthenticationService.shared
@@ -18,7 +18,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if authService.userRole == .teacher, authService.currentUser != nil {
+            if authService.userRole == .teacher, authService.isTeacherAccount {
                 // Teacher is authenticated via Firebase Auth
                 TeacherView()
             } else if sessionManager.sessionState == .loading {
@@ -32,8 +32,10 @@ struct ContentView: View {
                       let classID = sessionManager.currentClassID {
                 // Student has an active session (class code + name selection)
                 StudentView(studentID: studentID, classID: classID)
-            } else if authService.currentUser != nil {
-                // Authenticated but role not yet loaded
+            } else if authService.isTeacherAccount {
+                // Teacher authenticated but role not yet loaded. (An
+                // anonymous account without a student session is a student
+                // mid-onboarding: fall through to role selection.)
                 ProgressView("Chargement...".tr)
             } else {
                 // Not authenticated — show role selection

@@ -57,15 +57,9 @@ class ClassRepository: ObservableObject {
         try await firebase.getDocument(id, from: collectionPath)
     }
 
-    /// Fetch a classroom by its unique class code.
-    func getClass(byCode code: String) async throws -> ClassRoom? {
-        let results: [ClassRoom] = try await firebase.queryDocuments(
-            from: collectionPath,
-            whereField: "classCode",
-            isEqualTo: code.uppercased()
-        )
-        return results.first
-    }
+    // Looking a class up by its code is done server-side (`join_class`,
+    // `generate_class_code` Cloud Functions): the rules don't let clients
+    // search other teachers' classes.
 
     /// Update an existing classroom.
     func updateClass(_ classRoom: ClassRoom) async throws {
