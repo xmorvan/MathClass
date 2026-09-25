@@ -110,7 +110,7 @@ test("AI functions (reported, not asserted)", async () => {
     const r = await student.call("correct_submission", {
       submissionID: s.submissionID, studentSteps: ["2x = 8", "x = 4"], attemptNumber: 1,
     });
-    console.log("correct_submission OK: finalResult =", r.finalResult);
+    console.log("correct_submission OK:", JSON.stringify(r));
   } catch (e) {
     console.log("correct_submission FAILED:", e.code, e.message);
   }

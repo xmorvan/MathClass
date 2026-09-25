@@ -14,8 +14,10 @@ Fait :
 - test sur le vrai serveur (`cd firestore-tests && node --test prod.smoke.mjs`) : tout le parcours passe, sauf l'IA ;
 - App Store Connect : app « MathClass » créée (iOS + macOS), build 1.0 (1) iPad et Mac envoyés, groupe TestFlight interne « Équipe interne » (compte du propriétaire seulement).
 
+**Provisoire :** en attendant le quota Vertex AI, les fonctions utilisent l'API Anthropic directe (`CLAUDE_PROVIDER=anthropic` dans functions/.env, nouvelle clé dans Secret Manager). Données traitées aux États-Unis : tests internes et données de démo uniquement, pas de vrais élèves ni de prospects. Refaire la demande de quota à partir du 27.09.2026, puis remettre `CLAUDE_PROVIDER=vertex` et redéployer `functions`.
+
 En attente :
-- **Quota Vertex AI** : tous les quotas de Claude Haiku 4.5 sont à 0 sur un compte de facturation neuf. Demande d'augmentation envoyée le 25.09.2026 (n° 124785c8) pour europe-west1 : 60 requêtes, 200 000 tokens d'entrée et 20 000 tokens de sortie par minute. Tant qu'elle n'est pas accordée, la reconnaissance et la correction renvoient « Quota exceeded ». Suivi : Google Cloud, IAM et administration, Quotas, onglet « Demandes d'augmentation ».
+- **Quota Vertex AI** : tous les quotas de Claude Haiku 4.5 sont à 0 sur un compte de facturation neuf. Demande envoyée le 25.09.2026 (n° 124785c8), refusée le jour même : compte de facturation trop récent, refaire la demande après 48 h pour europe-west1 : 60 requêtes, 200 000 tokens d'entrée et 20 000 tokens de sortie par minute. Tant qu'elle n'est pas accordée, la reconnaissance et la correction renvoient « Quota exceeded ». Suivi : Google Cloud, IAM et administration, Quotas, onglet « Demandes d'augmentation ».
 - Build 1.0 (1) : envoyé avant d'avoir testé l'IA en production. Envoyer un build 2 seulement après un essai complet sur le vrai serveur.
 
 ## 1. Console Firebase et Google Cloud
