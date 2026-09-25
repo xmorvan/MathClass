@@ -125,6 +125,10 @@ struct TeacherView_macOS: View {
             TeacherProfileView_macOS()
         }
         .onAppear {
+            if LocalizationManager.shared.reopenProfileAfterRebuild {
+                LocalizationManager.shared.reopenProfileAfterRebuild = false
+                showingProfile = true
+            }
             if let teacherID = authService.currentUser?.uid {
                 viewModel.startListening(teacherID: teacherID)
             }

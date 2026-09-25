@@ -46,7 +46,13 @@ struct TeacherProfileView_macOS: View {
                     }
 
                     Section {
-                        Picker(selection: $localization.language) {
+                        Picker(selection: Binding(
+                            get: { localization.language },
+                            set: { newLanguage in
+                                localization.reopenProfileAfterRebuild = true
+                                localization.language = newLanguage
+                            }
+                        )) {
                             ForEach(AppLanguage.allCases, id: \.self) { lang in
                                 Text("\(lang.flag) \(lang.displayName)").tag(lang)
                             }

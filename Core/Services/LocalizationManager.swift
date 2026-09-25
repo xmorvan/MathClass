@@ -43,6 +43,11 @@ final class LocalizationManager: ObservableObject {
         }
     }
 
+    /// Set when the language is changed from the profile sheet: the
+    /// `.id(language)` rebuild dismisses every sheet, so the teacher view
+    /// reopens the profile once it reappears.
+    var reopenProfileAfterRebuild: Bool = false
+
     private init() {
         if let raw = UserDefaults.standard.string(forKey: storageKey),
            let stored = AppLanguage(rawValue: raw) {
