@@ -14,12 +14,13 @@ Accepts either a Cloud Storage path or a base64-encoded image directly.
 import base64
 import json
 import os
-import re
 
 import anthropic
 import firebase_admin
 from firebase_admin import storage
 from firebase_functions import https_fn
+
+from _helpers import extract_json, make_anthropic_client
 
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
@@ -82,6 +83,20 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
     Raises:
         https_fn.HttpsError on validation or processing failures.
     """
+    # Caller must be a linked iPad student (claim set by link_student_session).
+    auth = getattr(req, "auth", None)
+    token = getattr(auth, "token", None) if auth is not None else None
+    caller_student_id = (
+        token.get("studentID")
+        if isinstance(token, dict) and isinstance(token.get("studentID"), str)
+        else None
+    )
+    if not caller_student_id:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Session élève manquante. Reconnectez-vous.",
+        )
+
     if not req.data:
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
@@ -97,6 +112,19 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="'storagePath' ou 'imageBase64' est requis.",
         )
+
+    # Path-traversal guard: only allow reads under this caller's submissions
+    # prefix. Without this, a student could supply
+    # `submissions/<other-student-id>/...` and read that student's PNG
+    # (ISSUE-014).
+    if storage_path is not None:
+        expected_prefix = f"submissions/{caller_student_id}/"
+        if not isinstance(storage_path, str) or storage_path.startswith("/") \
+                or ".." in storage_path or not storage_path.startswith(expected_prefix):
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.PERMISSION_DENIED,
+                message="Chemin de stockage non autorisé.",
+            )
 
     # Get Anthropic API key
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -137,7 +165,7 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
         media_type = media_type_map.get(ext, "image/png")
 
         # Call Claude Haiku 4.5 Vision
-        client = anthropic.Anthropic(api_key=api_key)
+        client = make_anthropic_client(api_key)
 
         message = client.messages.create(
             # Claude Haiku 4.5 — see extract_exercise.py for the rationale
@@ -165,21 +193,14 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
             ],
         )
 
-        # Parse response
-        response_text = message.content[0].text.strip()
-
+        # Parse response (markdown fences and trailing prose tolerated).
         try:
-            result = json.loads(response_text)
+            result = extract_json(message.content[0].text)
         except json.JSONDecodeError:
-            # Try to extract JSON from markdown-wrapped response
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                result = json.loads(json_match.group())
-            else:
-                raise https_fn.HttpsError(
-                    code=https_fn.FunctionsErrorCode.INTERNAL,
-                    message="Impossible de parser la réponse de reconnaissance.",
-                )
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.INTERNAL,
+                message="Impossible de parser la réponse de reconnaissance.",
+            )
 
         steps = result.get("steps", [])
         confidence = result.get("confidence", 0.0)

@@ -73,10 +73,13 @@ def _import_module():
     return importlib.import_module("extract_exercise")
 
 
-def _fake_request(data):
-    from firebase_functions import https_fn
-
-    return https_fn.CallableRequest(data)
+def _fake_request(data, *, uid: str = "stub-teacher-uid"):
+    """Stub CallableRequest carrying a teacher's auth UID. extract_exercise
+    rejects unauthenticated callers (ISSUE-014)."""
+    return types.SimpleNamespace(
+        data=data,
+        auth=types.SimpleNamespace(uid=uid, token={"role": "teacher"}),
+    )
 
 
 def _fake_anthropic_response(text):

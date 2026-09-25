@@ -113,18 +113,51 @@ class FirebaseService {
         return try snapshot.documents.map { try $0.data(as: T.self) }
     }
 
+    // MARK: - Batch writes
+
+    /// Atomically write multiple documents to the same collection in a
+    /// single Firestore batch. Use for bulk imports (paste roster, demo
+    /// seed) — a 30-row paste used to fire 30 sequential writes (one
+    /// network round-trip each); a batch is one round-trip total.
+    /// Firestore caps a batch at 500 ops; the helper chunks past that.
+    func createDocuments<T: Encodable>(
+        _ items: [T],
+        in collection: String,
+        idFor: (T) -> String? = { _ in nil }
+    ) async throws {
+        guard !items.isEmpty else { return }
+        for chunk in items.chunked(into: 450) {
+            let batch = db.batch()
+            for item in chunk {
+                let docRef = idFor(item).map { db.collection(collection).document($0) }
+                    ?? db.collection(collection).document()
+                let encoded = try Firestore.Encoder().encode(item)
+                batch.setData(encoded, forDocument: docRef)
+            }
+            try await batch.commit()
+        }
+    }
+
     // MARK: - Real-time Listeners
 
     /// Listen to changes on a single document.
+    ///
+    /// `onError` (optional) fires once per listener error and once on
+    /// decode failure. Callers that want to surface listener failures
+    /// to the UI (e.g. a "permission denied" badge on a read-restricted
+    /// collection) pass a closure; the default no-op preserves the prior
+    /// behaviour of silently calling `onUpdate(nil)`.
     func addDocumentListener<T: Decodable>(
         documentID: String,
         in collection: String,
-        onUpdate: @escaping (T?) -> Void
+        onUpdate: @escaping (T?) -> Void,
+        onError: ((Error) -> Void)? = nil
     ) -> ListenerRegistration {
         let docRef = db.collection(collection).document(documentID)
         return docRef.addSnapshotListener { snapshot, error in
             if let error = error {
                 print("Erreur écoute document \(collection)/\(documentID): \(error.localizedDescription)")
+                onError?(error)
                 onUpdate(nil)
                 return
             }
@@ -137,22 +170,27 @@ class FirebaseService {
                 onUpdate(decoded)
             } catch {
                 print("Erreur décodage document \(collection)/\(documentID): \(error.localizedDescription)")
+                onError?(error)
                 onUpdate(nil)
             }
         }
     }
 
     /// Listen to changes on a collection query filtered by a single field.
+    /// `onError` (optional) surfaces listener failure to the caller. See
+    /// `addDocumentListener` for the rationale.
     func addQueryListener<T: Decodable>(
         from collection: String,
         whereField field: String,
         isEqualTo value: Any,
-        onUpdate: @escaping ([T]) -> Void
+        onUpdate: @escaping ([T]) -> Void,
+        onError: ((Error) -> Void)? = nil
     ) -> ListenerRegistration {
         let query = db.collection(collection).whereField(field, isEqualTo: value)
         return query.addSnapshotListener { snapshot, error in
             if let error = error {
                 print("Erreur écoute collection \(collection): \(error.localizedDescription)")
+                onError?(error)
                 onUpdate([])
                 return
             }
@@ -165,19 +203,24 @@ class FirebaseService {
                 onUpdate(decoded)
             } catch {
                 print("Erreur décodage collection \(collection): \(error.localizedDescription)")
+                onError?(error)
                 onUpdate([])
             }
         }
     }
 
     /// Listen to all documents in a collection (no filter).
+    /// `onError` (optional) surfaces listener failure to the caller. See
+    /// `addDocumentListener` for the rationale.
     func addCollectionListener<T: Decodable>(
         collection: String,
-        onUpdate: @escaping ([T]) -> Void
+        onUpdate: @escaping ([T]) -> Void,
+        onError: ((Error) -> Void)? = nil
     ) -> ListenerRegistration {
         return db.collection(collection).addSnapshotListener { snapshot, error in
             if let error = error {
                 print("Erreur écoute collection \(collection): \(error.localizedDescription)")
+                onError?(error)
                 onUpdate([])
                 return
             }
@@ -190,6 +233,7 @@ class FirebaseService {
                 onUpdate(decoded)
             } catch {
                 print("Erreur décodage collection \(collection): \(error.localizedDescription)")
+                onError?(error)
                 onUpdate([])
             }
         }

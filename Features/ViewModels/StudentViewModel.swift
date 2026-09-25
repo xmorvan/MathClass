@@ -30,6 +30,17 @@ class StudentViewModel: ObservableObject {
     /// Progress: number of exercises completed in the current assignment.
     @Published var completedCount: Int = 0
 
+    /// Whether the active assignment lets the student pick any exercise
+    /// rather than walking them in order. Mirrors `Assignment.isFreeOrder`
+    /// (legacy path) and `Session.allowFreeOrder` (new path). The view
+    /// renders a card grid when `true`; otherwise it forces `currentExercise`
+    /// via `advanceToNextExercise`.
+    @Published private(set) var allowFreeOrder: Bool = false
+
+    /// Exercises still available for the student to pick when in free-order
+    /// mode (i.e. `assignedExercises` minus those already completed).
+    @Published private(set) var freeOrderDeck: [Exercise] = []
+
     // MARK: - Configuration
 
     let studentID: String
@@ -122,6 +133,7 @@ class StudentViewModel: ObservableObject {
         guard let assignmentID = assignment.id else { return }
         isLoading = true
         selectedAssignment = assignment
+        allowFreeOrder = assignment.isFreeOrder
 
         do {
             // Get exercises assigned to this student
@@ -143,13 +155,32 @@ class StudentViewModel: ObservableObject {
             // Start listening for this student's submissions in this assignment
             submissionRepo.startListening(studentID: studentID, assignmentID: assignmentID)
 
-            // Compute progress and set current exercise
+            // Compute progress and set current exercise. In free-order mode
+            // the deck is the source of truth and `currentExercise` stays
+            // nil until the student explicitly picks one.
             updateProgress()
         } catch {
             self.error = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    /// In free-order mode, lock in the picked exercise as the current one.
+    /// Has no effect in linear mode.
+    func selectFromDeck(_ exercise: Exercise) {
+        guard allowFreeOrder, let id = exercise.id else { return }
+        guard let index = assignedExercises.firstIndex(where: { $0.id == id }) else { return }
+        currentExerciseIndex = index
+        currentExercise = exercise
+    }
+
+    /// In free-order mode, return to the deck after submitting one exercise.
+    /// Has no effect in linear mode.
+    func returnToDeck() {
+        guard allowFreeOrder else { return }
+        currentExercise = nil
+        rebuildFreeOrderDeck()
     }
 
     // MARK: - Exercise Navigation
@@ -258,7 +289,14 @@ class StudentViewModel: ObservableObject {
             return isExerciseCompleted(id)
         }.count
 
-        // Find the first uncompleted exercise
+        if allowFreeOrder {
+            // In free-order mode the deck drives the UI and `currentExercise`
+            // only fills when the student picks one. Don't auto-advance.
+            rebuildFreeOrderDeck()
+            return
+        }
+
+        // Linear mode: snap to the first uncompleted exercise.
         if let firstUncompletedIndex = assignedExercises.firstIndex(where: { exercise in
             guard let id = exercise.id else { return true }
             return !isExerciseCompleted(id)
@@ -268,6 +306,13 @@ class StudentViewModel: ObservableObject {
         } else {
             // All done
             currentExercise = nil
+        }
+    }
+
+    private func rebuildFreeOrderDeck() {
+        freeOrderDeck = assignedExercises.filter { exercise in
+            guard let id = exercise.id else { return true }
+            return !isExerciseCompleted(id)
         }
     }
 

@@ -53,3 +53,25 @@ def correct_submission(req: https_fn.CallableRequest) -> dict:
     """Correct a student's submission using hybrid Claude + SymPy pipeline."""
     from correct_submission import correct_submission_handler
     return correct_submission_handler(req)
+
+
+@https_fn.on_call()
+def link_student_session(req: https_fn.CallableRequest) -> dict:
+    """Bind an anonymous Firebase Auth UID to a (classID, studentID) pair
+    via custom claims. Required so subsequent Firestore / Storage / callable
+    requests carry `request.auth.token.studentID` for the security rules and
+    server-side ownership checks. See link_student_session.py for the flow.
+    """
+    from link_student_session import link_student_session_handler
+    return link_student_session_handler(req)
+
+
+@https_fn.on_call()
+def delete_student_data(req: https_fn.CallableRequest) -> dict:
+    """Hard-delete a student's PII (the student doc, all submissions, all
+    Storage PNGs, levelProgress rows). Teacher-only; the function verifies
+    `classes/{classID}.teacherID == auth.uid` before any delete. Used to
+    satisfy GDPR / CCPA right-to-erasure for minors.
+    """
+    from delete_student_data import delete_student_data_handler
+    return delete_student_data_handler(req)

@@ -22,18 +22,30 @@ struct Assignment: Identifiable, Codable, Hashable {
     var isActive: Bool
     /// When the assignment was created
     var createdAt: Date
+    /// When `true`, the student picks any available exercise rather than
+    /// being forced through them in order. Mirrors `Session.allowFreeOrder`
+    /// for the legacy flat-assignment path so the iPad student VM can react
+    /// without reading the new Period/Session tree (ISSUE-014 §1.1).
+    /// Optional in the JSON for backward compat with documents that
+    /// pre-date this field — defaults to `false` (linear).
+    var allowFreeOrder: Bool?
 
     init(
         id: String? = nil,
         classID: String,
         mode: AssignmentMode,
         isActive: Bool = true,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        allowFreeOrder: Bool? = nil
     ) {
         self.id = id
         self.classID = classID
         self.mode = mode
         self.isActive = isActive
         self.createdAt = createdAt
+        self.allowFreeOrder = allowFreeOrder
     }
+
+    /// Resolved free-order flag (defaults to false for legacy docs).
+    var isFreeOrder: Bool { allowFreeOrder ?? false }
 }

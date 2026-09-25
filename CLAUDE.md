@@ -47,10 +47,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Students have **no Firebase Auth account**. They log in via QR code or class code + name; session (studentID + classID) is persisted in the iOS Keychain. Test student UUID: `00000000-0000-0000-0000-000000000001`.
 
 ### Cloud Functions (Python)
-Three functions in `functions/main.py`:
-1. **`extract_exercise`** — Claude Vision reads an exercise photo → returns LaTeX statement + expected answer + AI-suggested `competencyIDs` chosen from the teacher's catalog (request includes `competencies: [{id,label}]`).
-2. **`recognize_handwriting`** — Claude Vision reads a PencilKit PNG export → returns list of LaTeX steps + confidence score.
-3. **`correct_submission`** — Hybrid: Claude structures student steps vs. reference, SymPy verifies algebraic equivalence (fallback to Claude judgment), returns per-step boolean array, first error index, optional `notationNote` when the class has `notationStrict=true`, and per-step `errorTags` (e.g. "sign_error", "arithmetic", "notation"). The request includes `notationStrict: Bool`.
+Five functions in `functions/main.py`:
+1. **`extract_exercise`** — Claude Vision reads an exercise photo → returns LaTeX statement + expected answer + AI-suggested `competencyIDs` chosen from the teacher's catalog (request includes `competencies: [{id,label}]`). Requires teacher auth + storagePath under `exercises/`.
+2. **`recognize_handwriting`** — Claude Vision reads a PencilKit PNG export → returns list of LaTeX steps + confidence score. Requires student auth claim + storagePath under `submissions/{caller_studentID}/`.
+3. **`correct_submission`** — Hybrid: Claude structures student steps vs. reference, SymPy verifies algebraic equivalence (fallback to Claude judgment), returns per-step boolean array, first error index, optional `notationNoteKey` (one of `missing_brackets`, `decimal_separator`, `implicit_multiplication`, `missing_unit`, `ambiguous_fraction`, `power_notation`) when the class has `notationStrict=true`, and per-step `errorTags` (e.g. "sign_error", "arithmetic", "notation"). The request includes `notationStrict: Bool`. Owner-checks the submission against `req.auth.token.studentID` before persisting via Admin SDK.
+4. **`link_student_session`** — Bind an iPad student's anonymous Firebase Auth UID to a `(classID, studentID)` pair via custom claims. TOFU device-token check on first call; rejects subsequent device-mismatches. Required so subsequent Firestore / Storage / callable requests carry `request.auth.token.studentID` for the security rules and server-side ownership checks.
+5. **`delete_student_data`** — Teacher-only GDPR right-to-erasure. Hard-deletes the student doc, all `/submissions/{id}` where `studentID == target`, all Storage objects under `submissions/{studentID}/`, and the student's `levelProgress/*` subtree. Verifies `classes/{classID}.teacherID == auth.uid` before any delete.
+
+`notationNoteKey` localization: the Cloud Function returns a language-neutral key. The iOS client maps it to a localized phrase via `NotationNote.localizedMessage(forKey:)` in `Core/Models/Submission.swift`, which then runs through `Localizations.swift` for FR/EN.
 
 ### Localization
 The app is bilingual French/English. FR is the source-of-truth for keys: views call `Text("Foo")` with the French copy as the literal, and `String.tr` looks up the English translation in `Core/Resources/Localizations.swift`. The teacher profile has a language picker; the choice is persisted in `UserDefaults` and the SwiftUI tree rebuilds via `.id(language)` so every visible string flips immediately. `LocalizationManager.shared` is the single source of truth.

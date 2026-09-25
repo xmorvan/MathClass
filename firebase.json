@@ -8,7 +8,11 @@
       "source": "functions",
       "codebase": "default",
       "runtime": "python312",
-      "region": "europe-west6"
+      "region": "europe-west6",
+      "memory": "512MB",
+      "timeoutSeconds": 120,
+      "maxInstances": 30,
+      "concurrency": 4
     }
   ],
   "storage": {

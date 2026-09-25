@@ -43,6 +43,29 @@ struct ClassManagementView: View {
 
     @ViewBuilder
     private func classDetailView(_ classRoom: ClassRoom) -> some View {
+        if let _ = classRoom.id {
+            ClassDetailView_iOS(classRoom: classRoom, viewModel: viewModel)
+        }
+    }
+}
+
+/// Sub-view so we can keep state (notationStrict toggle, save status) for
+/// the currently-shown class without polluting the parent List.
+private struct ClassDetailView_iOS: View {
+    let classRoom: ClassRoom
+    @ObservedObject var viewModel: TeacherViewModel
+
+    @State private var notationStrict: Bool
+    @State private var isSaving: Bool = false
+    @State private var saveError: String?
+
+    init(classRoom: ClassRoom, viewModel: TeacherViewModel) {
+        self.classRoom = classRoom
+        self.viewModel = viewModel
+        self._notationStrict = State(initialValue: classRoom.isNotationStrict)
+    }
+
+    var body: some View {
         if let classID = classRoom.id {
             List {
                 Section(header: Text("Informations".tr)) {
@@ -55,6 +78,23 @@ struct ClassManagementView: View {
                     }
                 }
 
+                Section {
+                    Toggle("Notation stricte".tr, isOn: $notationStrict)
+                        .onChange(of: notationStrict) { _, newValue in
+                            saveNotationStrict(newValue)
+                        }
+                    Text("L'IA signale les problèmes de notation séparément, sans pénaliser le fond.".tr)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if let saveError {
+                        Text(saveError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                } header: {
+                    Text("Réglages de la classe".tr)
+                }
+
                 Section(header: Text("Élèves (\(viewModel.studentsInClass(classID).count))")) {
                     ForEach(viewModel.studentsInClass(classID)) { student in
                         StudentRow(student: student)
@@ -65,6 +105,23 @@ struct ClassManagementView: View {
             .onAppear {
                 viewModel.selectClass(classID)
             }
+        }
+    }
+
+    private func saveNotationStrict(_ newValue: Bool) {
+        var updated = classRoom
+        updated.notationStrict = newValue
+        isSaving = true
+        saveError = nil
+        Task {
+            do {
+                try await viewModel.updateClass(updated)
+            } catch {
+                saveError = error.localizedDescription
+                // Roll the toggle back so the UI matches the persisted state.
+                notationStrict = classRoom.isNotationStrict
+            }
+            isSaving = false
         }
     }
 }
@@ -134,16 +191,12 @@ struct AddClassView: View {
                     case .paste:
                         TextEditor(text: $studentsText)
                             .frame(height: 180)
-                        Text("Collez votre liste : un élève par ligne. Les en-têtes et séparateurs sont détectés automatiquement.".tr)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        InlineHint("Collez votre liste : un élève par ligne. Les en-têtes et séparateurs sont détectés automatiquement.", icon: "doc.on.clipboard")
 
                     case .manual:
                         TextEditor(text: $studentsText)
                             .frame(height: 180)
-                        Text("Un élève par ligne au format « Prénom Nom »".tr)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        InlineHint("Un élève par ligne au format « Prénom Nom ».", icon: "text.alignleft")
 
                     case .csv:
                         Button {
@@ -152,9 +205,7 @@ struct AddClassView: View {
                             Label("Importer un CSV".tr, systemImage: "doc.badge.arrow.up")
                         }
                         if studentsText.isEmpty {
-                            Text("Aucun fichier importé".tr)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            InlineHint("Aucun fichier importé.", icon: "doc")
                         } else {
                             TextEditor(text: .constant(studentsText))
                                 .frame(height: 140)

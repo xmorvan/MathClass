@@ -40,7 +40,11 @@ struct LiveDashboardView_iOS: View {
                             StudentTile_iOS(
                                 student: student,
                                 latestSubmission: latestSubmission(for: student),
-                                exerciseTitle: latestExerciseTitle(for: student)
+                                exerciseTitle: latestExerciseTitle(for: student),
+                                pushableExercises: pushableExercises(for: student),
+                                onPushExercise: { exerciseID in
+                                    pushExercise(exerciseID, to: student)
+                                }
                             )
                         }
                     }
@@ -52,7 +56,17 @@ struct LiveDashboardView_iOS: View {
         .onAppear {
             if let classID = activeClassID {
                 viewModel.startListeningToPeriods(classID: classID)
+                if let pid = activePeriod?.id {
+                    viewModel.startListeningToSessions(periodID: pid)
+                }
             }
+        }
+        .onDisappear {
+            // Without this the period + session listeners outlive the view
+            // and the per-class fan-out accumulates as the teacher class-
+            // switches (ISSUE-014 §4.A.3).
+            viewModel.stopListeningToPeriods()
+            viewModel.stopListeningToSessions()
         }
     }
 
@@ -110,12 +124,52 @@ struct LiveDashboardView_iOS: View {
         guard let sub = latestSubmission(for: student) else { return nil }
         return viewModel.exercises.first(where: { $0.id == sub.exerciseID })?.title
     }
+
+    private var activeSession: Session? {
+        viewModel.sessions.first(where: { $0.isActive })
+    }
+
+    /// Exercises the teacher can push to a specific student right now.
+    /// Excludes ones the student already submitted in the active period.
+    private func pushableExercises(for student: Student) -> [Exercise] {
+        guard let sid = student.id else { return [] }
+        let completedIDs: Set<String> = Set(
+            viewModel.submissionRepo.submissions
+                .filter { $0.studentID == sid }
+                .map { $0.exerciseID }
+        )
+        return viewModel.exercises.filter { ex in
+            guard let id = ex.id else { return false }
+            return !completedIDs.contains(id)
+        }
+    }
+
+    private func pushExercise(_ exerciseID: String, to student: Student) {
+        guard let studentID = student.id,
+              let period = activePeriod, let periodID = period.id,
+              let session = activeSession, let sessionID = session.id
+        else { return }
+        Task {
+            do {
+                try await viewModel.sessionRepo.appendExercises(
+                    exerciseIDs: [exerciseID],
+                    forStudentID: studentID,
+                    periodID: periodID,
+                    sessionID: sessionID
+                )
+            } catch {
+                print("Erreur push-more: \((error as NSError).code)")
+            }
+        }
+    }
 }
 
 private struct StudentTile_iOS: View {
     let student: Student
     let latestSubmission: Submission?
     let exerciseTitle: String?
+    let pushableExercises: [Exercise]
+    let onPushExercise: (String) -> Void
 
     private var statusKey: String {
         guard let sub = latestSubmission else { return "En attente" }
@@ -161,6 +215,20 @@ private struct StudentTile_iOS: View {
                 Circle().fill(statusColor).frame(width: 6, height: 6)
                 Text(statusKey.tr).font(.caption2)
                 Spacer()
+                if statusKey == "Terminé" && !pushableExercises.isEmpty {
+                    Menu {
+                        ForEach(pushableExercises) { exercise in
+                            Button(exercise.title) {
+                                if let id = exercise.id {
+                                    onPushExercise(id)
+                                }
+                            }
+                        }
+                    } label: {
+                        Label("Plus".tr, systemImage: "plus.circle")
+                            .font(.caption2)
+                    }
+                }
             }
         }
         .padding(10)

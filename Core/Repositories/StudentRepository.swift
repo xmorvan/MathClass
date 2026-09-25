@@ -59,11 +59,20 @@ class StudentRepository: ObservableObject {
         return docRef.documentID
     }
 
-    /// Add multiple students to a class (batch import).
+    /// Add multiple students to a class (batch import). Uses a single
+    /// Firestore batch — a 30-row paste used to fire 30 sequential writes
+    /// (one round-trip each); the batch makes it one round-trip total.
     func addStudents(_ students: [Student], classID: String) async throws {
-        for student in students {
-            _ = try await addStudent(student, classID: classID)
+        let prepared = students.map { student -> Student in
+            var copy = student
+            copy.classID = classID
+            return copy
         }
+        try await firebase.createDocuments(
+            prepared,
+            in: collectionPath(classID: classID),
+            idFor: { $0.id }
+        )
     }
 
     /// Fetch a single student by ID.

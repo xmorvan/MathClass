@@ -126,6 +126,7 @@ struct CreatePeriodView_macOS: View {
                 Spacer()
             }
             Toggle("Ordre libre".tr, isOn: draft.allowFreeOrder)
+            InlineHint("En ordre libre, l'élève choisit n'importe quel exercice de la liste plutôt que de les enchaîner dans l'ordre.", icon: "info.circle")
         }
         .padding(.vertical, 4)
     }

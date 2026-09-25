@@ -1,18 +1,27 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Exercise images — teachers upload, anyone can read
+    // Exercise images — teachers upload (writes require auth = teacher
+    // signed in via email/password); reads are public so students in any
+    // class can fetch the assigned exercise.
     match /exercises/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+                && request.resource.size < 5 * 1024 * 1024
+                && request.resource.contentType.matches('image/.*');
     }
 
-    // Student submissions — students have no Firebase Auth, so writes are
-    // public, but scoped to a single file per student/exercise path with
-    // strict size and content-type guards to make abuse painful.
+    // Student submissions — writes are gated by the `studentID` custom
+    // claim attached to the iPad's anonymous Firebase Auth UID by the
+    // `link_student_session` Cloud Function. Without that claim, no upload
+    // is allowed. The previous rule allowed any unauthenticated client to
+    // upload to any student's prefix, which was a cross-student privilege
+    // vector. (ISSUE-014)
     match /submissions/{studentID}/{fileName} {
       allow read: if true;
-      allow write: if request.resource.size < 5 * 1024 * 1024
+      allow write: if request.auth != null
+                && request.auth.token.studentID == studentID
+                && request.resource.size < 5 * 1024 * 1024
                 && request.resource.contentType.matches('image/.*');
     }
   }

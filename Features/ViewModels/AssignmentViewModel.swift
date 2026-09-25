@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import SwiftUI
+import Combine
 
 /// ViewModel for assignment creation, management, and exercise selection.
 /// Used by both the assignment list and creation views.

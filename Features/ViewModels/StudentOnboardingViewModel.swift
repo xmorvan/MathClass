@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import SwiftUI
+import Combine
 
 /// ViewModel for the student onboarding flow.
 /// Manages: code entry → class lookup → name selection → session creation.

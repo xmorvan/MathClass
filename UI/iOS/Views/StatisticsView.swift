@@ -24,6 +24,7 @@ struct StatisticsView: View {
         case perStudent = "Par élève"
         case perExercise = "Par exercice"
         case perClass = "Par classe"
+        case trends = "Tendances"
     }
 
     private let statisticsService = StatisticsService.shared
@@ -48,6 +49,8 @@ struct StatisticsView: View {
                     exerciseStatsList
                 case .perClass:
                     classOverview
+                case .trends:
+                    trendsView
                 }
             }
         }
@@ -113,14 +116,28 @@ struct StatisticsView: View {
         let baseTitle: String = String(format: "Rapport - %@".tr, className)
         let tabTitle: String = selectedTab.rawValue.tr
         let title: String = "\(baseTitle) — \(tabTitle)"
-        // Render the lightweight summary card as a PDF page.
-        let report = VStack(alignment: .leading, spacing: 12) {
+
+        // Render the trend + error-taxonomy charts inline so the iPad PDF
+        // matches macOS parity (ISSUE-014 §1.14). Previous version emitted
+        // a single-line "Soumissions: N" stub, which the README still
+        // claimed was a real report.
+        let exerciseCompetencyMap = buildExerciseCompetencyMap()
+        let labels = competencyLabelMap()
+        let report = VStack(alignment: .leading, spacing: 16) {
             Text(title).font(.title2).bold()
             Text(Date().formatted(date: .long, time: .shortened))
                 .font(.caption)
                 .foregroundColor(.secondary)
             Divider()
             Text("Soumissions: \(submissions.count)").font(.headline)
+
+            ConceptTrendChart(
+                submissions: submissions,
+                exerciseCompetencyMap: exerciseCompetencyMap,
+                competencyLabels: labels
+            )
+
+            ErrorTaxonomyChart(submissions: submissions)
         }
         .padding(36)
         .frame(width: 612, height: 792, alignment: .topLeading)
@@ -384,6 +401,39 @@ struct StatisticsView: View {
         } catch {
             print("Erreur chargement statistiques: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Trends (iPad chart parity, ISSUE-014 §1.4)
+
+    private var trendsView: some View {
+        let exerciseCompetencyMap = buildExerciseCompetencyMap()
+        let labels = competencyLabelMap()
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                ConceptTrendChart(
+                    submissions: submissions,
+                    exerciseCompetencyMap: exerciseCompetencyMap,
+                    competencyLabels: labels
+                )
+                Divider()
+                ErrorTaxonomyChart(submissions: submissions)
+                Divider()
+                ErrorCoOccurrenceHeatmap(submissions: submissions)
+                Divider()
+                ErrorCoOccurrenceList(submissions: submissions)
+            }
+            .padding()
+        }
+    }
+
+    private func competencyLabelMap() -> [String: String] {
+        var map: [String: String] = [:]
+        for chapter in viewModel.chapters {
+            for comp in viewModel.chapterRepo.competencies[chapter.id ?? ""] ?? [] {
+                if let id = comp.id { map[id] = comp.label }
+            }
+        }
+        return map
     }
 
     private func buildExerciseCompetencyMap() -> [String: [String]] {

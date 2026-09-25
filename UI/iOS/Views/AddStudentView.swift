@@ -23,6 +23,7 @@ struct AddStudentView: View {
                 Section(header: Text("Informations de l'élève".tr)) {
                     TextField("Prénom".tr, text: $firstName)
                     TextField("Nom".tr, text: $lastName)
+                    InlineHint("Le nom apparaîtra sur la liste de la classe et sur les rapports.", icon: "person")
                 }
 
                 Section {
@@ -42,9 +43,7 @@ struct AddStudentView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    Text("Le niveau guide la différenciation : exercices et progression sont adaptés au niveau initial.".tr)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    InlineHint("Le niveau guide la différenciation : exercices et progression sont adaptés au niveau initial.", icon: "info.circle")
                 } header: {
                     Text("Niveau initial (1–5)".tr)
                 }

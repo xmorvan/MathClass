@@ -7,7 +7,9 @@
 
 import Foundation
 import SwiftUI
+import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 
 /// Manages student sessions via class code + name selection.
 /// Students authenticate by entering a class code (MX-XXXX) and selecting their name.
@@ -77,13 +79,19 @@ final class StudentSessionManager: ObservableObject {
         _ = KeychainHelper.shared.save(key: studentIDKey, data: Data(studentID.utf8))
         _ = KeychainHelper.shared.save(key: classIDKey, data: Data(classID.utf8))
 
-        // Update device token on the student document
+        // Bind the iPad's anonymous Firebase identity to this student so all
+        // subsequent Firestore/Storage/callable requests carry an
+        // `auth.token.studentID` claim. The rules and Cloud Functions rely on
+        // that claim for ownership checks (ISSUE-014). Failure here is fatal
+        // for the session — without the claim, the student cannot read their
+        // own submissions or upload PNGs.
         do {
-            var updatedStudent = student
-            updatedStudent.deviceToken = deviceToken
-            try await DataService.shared.studentRepository.updateStudent(updatedStudent, classID: classID)
+            try await self.linkSession(studentID: studentID, classID: classID)
         } catch {
-            print("Erreur mise à jour device token: \(error.localizedDescription)")
+            await setError("Erreur d'authentification: \(error.localizedDescription)")
+            _ = KeychainHelper.shared.delete(key: studentIDKey)
+            _ = KeychainHelper.shared.delete(key: classIDKey)
+            return
         }
 
         // Class is @MainActor, so direct mutation is safe (and any await
@@ -104,6 +112,18 @@ final class StudentSessionManager: ObservableObject {
         // Clear Keychain
         _ = KeychainHelper.shared.delete(key: studentIDKey)
         _ = KeychainHelper.shared.delete(key: classIDKey)
+
+        // Sign out of the anonymous Firebase identity so a different student
+        // can claim the iPad without inheriting the previous student's
+        // `auth.token.studentID` claim. Firebase Auth state changes are
+        // observed by AuthenticationService, which clears userRole.
+        do {
+            if let user = Auth.auth().currentUser, user.isAnonymous {
+                try Auth.auth().signOut()
+            }
+        } catch {
+            print("Erreur déconnexion Firebase Auth (\((error as NSError).code))")
+        }
 
         // Reset state
         currentStudent = nil
@@ -136,8 +156,15 @@ final class StudentSessionManager: ObservableObject {
 
         // Stay in `.loading` while the Firestore round-trip resolves so the
         // UI doesn't flash a "signed out" screen on cold start (ISSUE-007).
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             do {
+                // Re-establish the auth claim before the Firestore read —
+                // anonymous users persist across launches, but the custom
+                // claim must be reattached when the deviceToken on the
+                // Student doc has been rotated (or when we reinstalled).
+                try await self.linkSession(studentID: studentID, classID: classID)
+
                 let student: Student = try await FirebaseService.shared.getDocument(
                     studentID,
                     from: "classes/\(classID)/students"
@@ -157,6 +184,39 @@ final class StudentSessionManager: ObservableObject {
                 self.sessionState = .signedOut
             }
         }
+    }
+
+    // MARK: - Anonymous-auth + linkStudentSession
+
+    /// Sign in anonymously (if not already), call the `link_student_session`
+    /// Cloud Function to attach `studentID` / `classID` / `role` claims to
+    /// this UID, and force an ID-token refresh so the new claims propagate
+    /// to subsequent Firestore / Storage / callable requests.
+    ///
+    /// Idempotent: subsequent calls for the same student/device validate the
+    /// existing deviceToken on the Student doc; the first call binds it
+    /// (trust-on-first-use). Mismatched deviceTokens are rejected by the
+    /// function — the teacher must reset the deviceToken on the Student doc
+    /// before a different device can claim that identity.
+    private func linkSession(studentID: String, classID: String) async throws {
+        let auth = Auth.auth()
+        if auth.currentUser == nil {
+            _ = try await auth.signInAnonymously()
+        }
+
+        let functions = Functions.functions(region: "europe-west6")
+        let callable = functions.httpsCallable("link_student_session")
+        callable.timeoutInterval = 20
+        _ = try await callable.call([
+            "classID": classID,
+            "studentID": studentID,
+            "deviceToken": deviceToken,
+        ])
+
+        // Pull a fresh ID token so the next Firestore / callable request
+        // carries the new claim. Without this, claims set by the function
+        // only become visible on the next "natural" refresh (~1h).
+        _ = try await auth.currentUser?.getIDTokenResult(forcingRefresh: true)
     }
 
     // MARK: - Helpers

@@ -68,10 +68,14 @@ def _import_module():
     return importlib.import_module("recognize_handwriting")
 
 
-def _fake_request(data):
-    from firebase_functions import https_fn
-
-    return https_fn.CallableRequest(data)
+def _fake_request(data, *, student_id: str = "abc"):
+    """Stub CallableRequest carrying a `studentID` claim. Default matches
+    the `submissions/abc/...` paths used in the happy-path tests so the
+    new path-traversal guard (ISSUE-014) lets them through."""
+    return types.SimpleNamespace(
+        data=data,
+        auth=types.SimpleNamespace(uid="anon-uid", token={"studentID": student_id}),
+    )
 
 
 def _fake_anthropic_response(text):

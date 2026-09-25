@@ -14,14 +14,13 @@ import FirebaseFirestore
 final class AuthenticationService: ObservableObject {
     static let shared = AuthenticationService()
     private let auth: Auth
-    private let db: Firestore
+    private let firebase = FirebaseService.shared
 
     @Published var currentUser: User? = nil
     @Published var userRole: UserRole? = nil
 
     private init() {
         self.auth = Auth.auth()
-        self.db = Firestore.firestore()
 
         // Firebase delivers auth-state callbacks on a background queue. Hop
         // explicitly to MainActor so all @Published mutations stay on main —
@@ -50,15 +49,17 @@ final class AuthenticationService: ObservableObject {
     ) async throws {
         let authResult = try await auth.createUser(withEmail: email, password: password)
 
-        let userData: [String: Any] = [
-            "email": email,
-            "firstName": firstName,
-            "lastName": lastName,
-            "role": UserRole.teacher.rawValue,
-            "createdAt": Timestamp()
-        ]
-
-        try await db.collection("users").document(authResult.user.uid).setData(userData)
+        try await firebase.updateFields(
+            [
+                "email": email,
+                "firstName": firstName,
+                "lastName": lastName,
+                "role": UserRole.teacher.rawValue,
+                "createdAt": FieldValue.serverTimestamp(),
+            ],
+            in: "users",
+            documentID: authResult.user.uid
+        )
         self.userRole = .teacher
     }
 
@@ -94,14 +95,16 @@ final class AuthenticationService: ObservableObject {
     /// need a closure-based completion path anymore.
     private func fetchUserRole(userId: String) async {
         do {
-            let snapshot = try await db.collection("users").document(userId).getDocument()
-            if let data = snapshot.data(),
-               let roleString = data["role"] as? String,
-               let role = UserRole(rawValue: roleString) {
+            let teacher: Teacher = try await firebase.getDocument(userId, from: "users")
+            if let role = UserRole(rawValue: teacher.role) {
                 self.userRole = role
             }
         } catch {
-            print("AuthenticationService.fetchUserRole error: \(error.localizedDescription)")
+            // Doc-not-found is the common case for a freshly-created
+            // anonymous student session — they have no /users/{uid}.
+            // Leave role unset; the StudentSessionManager will set it
+            // explicitly via `setStudentRole()` after linkSession.
+            print("AuthenticationService.fetchUserRole — no role for uid (\((error as NSError).code))")
         }
     }
 

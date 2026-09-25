@@ -32,6 +32,8 @@ if "firebase_functions" not in sys.modules:
         INTERNAL = "internal"
         UNAVAILABLE = "unavailable"
         NOT_FOUND = "not-found"
+        UNAUTHENTICATED = "unauthenticated"
+        PERMISSION_DENIED = "permission-denied"
 
     class _HttpsError(Exception):
         def __init__(self, code, message, details=None):
@@ -70,6 +72,11 @@ if "firebase_admin" not in sys.modules:
     fake_storage.bucket = lambda: MagicMock()
     fake_admin.storage = fake_storage
 
+    fake_auth = types.ModuleType("firebase_admin.auth")
+    fake_auth.set_custom_user_claims = MagicMock()
+    fake_admin.auth = fake_auth
+
     sys.modules["firebase_admin"] = fake_admin
     sys.modules["firebase_admin.firestore"] = fake_firestore
     sys.modules["firebase_admin.storage"] = fake_storage
+    sys.modules["firebase_admin.auth"] = fake_auth

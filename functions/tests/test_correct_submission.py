@@ -96,8 +96,18 @@ def test_sympy_returns_none_on_garbage():
 # ---------------------------------------------------------------------------
 
 
-def _fake_request(data: dict) -> object:
-    return types.SimpleNamespace(data=data)
+_STUB_STUDENT_ID = "stub_student"
+
+
+def _fake_request(data: dict, *, student_id: str = _STUB_STUDENT_ID) -> object:
+    """Build a stub CallableRequest carrying a `studentID` claim. The
+    handler's ownership check (ISSUE-014) reads `req.auth.token.studentID`
+    and compares it against the existing submission's `studentID`. Tests
+    that need to exercise the rejection path can pass a different
+    `student_id`.
+    """
+    auth = types.SimpleNamespace(uid="anon-uid", token={"studentID": student_id})
+    return types.SimpleNamespace(data=data, auth=auth)
 
 
 def _fake_anthropic_with_pairs(pairs: list[dict]):
@@ -116,8 +126,19 @@ def _fake_anthropic_with_pairs(pairs: list[dict]):
 
 @pytest.fixture(autouse=True)
 def _stub_environment(monkeypatch):
-    """Set ANTHROPIC_API_KEY and bypass the real persist call by default."""
+    """Set ANTHROPIC_API_KEY, stub firestore so the ownership lookup returns
+    a submission owned by `_STUB_STUDENT_ID`, and bypass the real persist
+    call by default."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+    submission_snap = MagicMock()
+    submission_snap.exists = True
+    submission_snap.to_dict.return_value = {"studentID": _STUB_STUDENT_ID}
+    fake_db = MagicMock()
+    fake_db.collection.return_value.document.return_value.get.return_value = (
+        submission_snap
+    )
+    monkeypatch.setattr(cs, "_get_firestore", lambda: fake_db)
     # Default: persist succeeds. Individual tests override.
     monkeypatch.setattr(cs, "_persist_correction", lambda **_: None)
 
@@ -234,6 +255,47 @@ def test_persist_helper_retries_then_returns_error(monkeypatch):
 
     assert isinstance(err, RuntimeError)
     assert call_count["n"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Ownership check (ISSUE-014)
+# ---------------------------------------------------------------------------
+
+
+def test_handler_rejects_missing_auth_claim():
+    """A request without a `studentID` claim is rejected as UNAUTHENTICATED."""
+    https_fn = sys.modules["firebase_functions"].https_fn
+    req = types.SimpleNamespace(
+        data={
+            "studentSteps": ["x"],
+            "expectedAnswer": "x",
+            "statement": "",
+            "submissionID": "sub_x",
+            "attemptNumber": 1,
+        },
+        auth=None,
+    )
+    with pytest.raises(https_fn.HttpsError) as exc_info:
+        cs.correct_submission_handler(req)
+    assert exc_info.value.code == https_fn.FunctionsErrorCode.UNAUTHENTICATED
+
+
+def test_handler_rejects_submission_owned_by_other_student():
+    """A submission whose studentID doesn't match the caller's claim is denied."""
+    https_fn = sys.modules["firebase_functions"].https_fn
+    req = _fake_request(
+        {
+            "studentSteps": ["x"],
+            "expectedAnswer": "x",
+            "statement": "",
+            "submissionID": "sub_y",
+            "attemptNumber": 1,
+        },
+        student_id="impostor",
+    )
+    with pytest.raises(https_fn.HttpsError) as exc_info:
+        cs.correct_submission_handler(req)
+    assert exc_info.value.code == https_fn.FunctionsErrorCode.PERMISSION_DENIED
 
 
 # ---------------------------------------------------------------------------

@@ -2,10 +2,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: check if the authenticated user is a teacher
+    // Helper: check if the authenticated user is a teacher.
+    // Defensive: a freshly-created auth user may hit the rule before their
+    // /users/{uid} doc is written. exists() guards against the cryptic deny
+    // that `get(...).data.role` would otherwise produce.
     function isTeacher() {
       return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    // Helper: check that the caller is an iPad student bound to a specific
+    // student doc via the `link_student_session` Cloud Function. The
+    // function sets `request.auth.token.studentID` (and `classID`) as a
+    // custom claim on the anonymous Firebase Auth UID; without that claim
+    // students have no recognised identity in these rules.
+    function isStudent(classId, studentId) {
+      return request.auth != null
+        && request.auth.token.studentID == studentId
+        && request.auth.token.classID == classId;
     }
 
     // Helper: check if the teacher owns a class
@@ -50,9 +65,10 @@ service cloud.firestore {
       match /students/{studentId} {
         allow read: if true; // Students need to see the name list
         allow write: if isClassOwner(classId);
-        // Allow device token update from any source (student iPad)
-        allow update: if request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['deviceToken']);
+        // deviceToken is now bound exclusively by the link_student_session
+        // Cloud Function (Admin SDK). The previous open update path was a
+        // privilege-escalation vector — anyone could rebind any student's
+        // deviceToken to their own device. (ISSUE-014)
       }
 
       // Chapters subcollection
@@ -109,11 +125,11 @@ service cloud.firestore {
     // Levels-mode progress (per student per assignment)
     // ────────────────────────────────────────────────
     // Stored under classes/{classId}/students/{studentId}/levelProgress/{assignmentId}.
-    // Open to public read/write because students have no Firebase Auth — same
-    // posture as /submissions.
+    // Previously public read+write; tightened so a student can only mutate
+    // their own progress and only the owning teacher can see it (ISSUE-014).
     match /classes/{classId}/students/{studentId}/levelProgress/{assignmentId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isClassOwner(classId) || isStudent(classId, studentId);
+      allow write: if isClassOwner(classId) || isStudent(classId, studentId);
     }
 
     // ────────────────────────────────────────────────
@@ -145,17 +161,18 @@ service cloud.firestore {
     // Submissions (top-level)
     // ────────────────────────────────────────────────
     match /submissions/{submissionId} {
-      // Submissions are still creatable without auth (students have no
-      // Firebase Auth) but reads now require either a teacher or a
-      // matching `studentID` claim from the device token check.
-      // For MVP-launch safety we read-allow only if request claims a
-      // matching studentID via a `X-Mathclass-Student-Token` header
-      // (forwarded by the SDK via `request.auth.token`); fall back to
-      // teachers otherwise. Server-side correction writes via the
-      // Admin SDK bypass these rules.
+      // Reads: teachers, OR the student who owns the submission via their
+      // `auth.token.studentID` claim (set by link_student_session).
       allow read: if isTeacher()
-        || (request.auth != null && resource.data.studentID == request.auth.uid);
-      allow create: if true;
+        || (request.auth != null
+            && resource.data.studentID == request.auth.token.studentID);
+      // Creates: a student creating their own submission. The auth claim
+      // gates create as well so an attacker can't create submissions
+      // attributed to other students.
+      allow create: if request.auth != null
+        && request.resource.data.studentID == request.auth.token.studentID;
+      // Updates: only the teacher (correction results land via Admin SDK
+      // from the correct_submission Cloud Function, which bypasses rules).
       allow update: if isTeacher();
     }
   }
