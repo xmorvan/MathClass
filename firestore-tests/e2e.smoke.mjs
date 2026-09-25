@@ -211,3 +211,22 @@ test("teacher deletes an extra class through delete_class", async () => {
   assert.ok(!remaining.docs.some((d) => d.id === id));
   assert.equal(remaining.size, state.extraClassIDs.length);
 });
+
+test("teacher photographs an exercise and gets it transcribed", async () => {
+  const { storage, call } = state.teacher;
+  const path = `exercises/e2e-${Date.now()}.jpg`;
+  await uploadBytes(ref(storage, path), PNG, { contentType: "image/jpeg" });
+  const extracted = await call("extract_exercise", { storagePath: path, competencies: [] });
+  assert.ok(extracted.statement);
+  assert.ok(extracted.expectedAnswer);
+});
+
+test("teacher deletes their account and all their data", async () => {
+  const { auth, call } = state.teacher;
+  await call("delete_account");
+  // The Auth account is gone: signing in again must fail.
+  const email = auth.currentUser?.email;
+  await auth.signOut();
+  const { signInWithEmailAndPassword } = await import("firebase/auth");
+  await assert.rejects(signInWithEmailAndPassword(auth, email, "Demo1234"));
+});
