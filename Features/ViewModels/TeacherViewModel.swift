@@ -194,8 +194,15 @@ class TeacherViewModel: ObservableObject {
         try await groupRepo.removeStudent(studentID: studentID, fromGroup: groupID, classID: classID)
     }
 
+    /// Which view model currently owns the shared repositories' listeners.
+    /// A language switch rebuilds the teacher view: the new view model
+    /// starts listening before the old one's view disappears, so the old
+    /// one must not tear the listeners down.
+    private static var listeningOwner: ObjectIdentifier?
+
     /// Start all listeners for a teacher session.
     func startListening(teacherID: String) {
+        Self.listeningOwner = ObjectIdentifier(self)
         classRepo.startListening(teacherID: teacherID)
         exerciseRepo.startListening(teacherID: teacherID)
 
@@ -233,6 +240,8 @@ class TeacherViewModel: ObservableObject {
 
     func stopListening() {
         cancellables.removeAll()
+        guard Self.listeningOwner == ObjectIdentifier(self) else { return }
+        Self.listeningOwner = nil
         classRepo.stopListening()
         studentRepo.stopListening()
         exerciseRepo.stopListening()
