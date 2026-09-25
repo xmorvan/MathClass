@@ -67,11 +67,6 @@ class ClassRepository: ObservableObject {
         try await firebase.updateDocument(classRoom, in: collectionPath, documentID: id)
     }
 
-    /// Delete a classroom and its subcollections.
-    func deleteClass(id: String) async throws {
-        // Note: Firestore does not cascade delete subcollections.
-        // Subcollections (students, chapters) should be deleted first
-        // or handled by a Cloud Function.
-        try await firebase.deleteDocument(from: collectionPath, documentID: id)
-    }
+    // Deleting a class is server-side (`DataDeletionService.deleteClass`):
+    // Firestore does not cascade to subcollections, submissions or images.
 }

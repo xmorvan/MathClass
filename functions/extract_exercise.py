@@ -2,7 +2,7 @@
 extract_exercise.py
 Cloud Function that extracts LaTeX content from a photographed/scanned exercise image.
 
-Uses Claude Haiku 4.5 Vision to:
+Uses Claude Vision (model set in claude_client.py) to:
 1. Analyze the exercise image
 2. Extract the mathematical statement as LaTeX
 3. Identify the expected answer
@@ -23,7 +23,8 @@ from firebase_admin import storage
 from firebase_functions import https_fn
 
 import auth_guard
-from _helpers import extract_json, make_anthropic_client
+import claude_client
+from _helpers import extract_json
 
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
@@ -126,13 +127,9 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
     else:
         catalog_block = "(catalogue vide — retourne competencyIDs: [])"
 
-    # Get Anthropic API key from environment
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INTERNAL,
-            message="Clé API Anthropic non configurée.",
-        )
+    # Claude client for the configured provider (Vertex AI in Europe by
+    # default, see claude_client.py).
+    client = claude_client.create_client()
 
     try:
         # Download image from Cloud Storage
@@ -159,13 +156,9 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
         }
         media_type = media_type_map.get(ext, "image/jpeg")
 
-        # Call Claude Haiku 4.5 Vision
-        client = make_anthropic_client(api_key)
-
+        # Call Claude Vision
         message = client.messages.create(
-            # Claude Haiku 4.5 — the previous "20241022" suffix corresponds
-            # to Claude 3.5 Haiku and is rejected by the Anthropic API.
-            model="claude-haiku-4-5-20251001",
+            model=claude_client.model_id(),
             max_tokens=2048,
             messages=[
                 {

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Confidentialité MathClass</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icon.png">
+</head>
+<body>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">x²</span>MathClass</a>
+      <nav class="site-nav" aria-label="Sections">
+        <a href="index.html#essai">Essayer</a>
+      </nav>
+    </header>
+    <main class="doc">
+      <article class="doc-body">
+<h1>Politique de confidentialité de MathClass</h1>
+<p>Version de travail du 25 septembre 2026. À faire relire par un juriste avant publication. Les passages marqués À COMPLÉTER ou À VÉRIFIER doivent être réglés avant la mise en ligne.</p>
+<h2>1. Qui est responsable</h2>
+<p>MathClass est édité par Xavier Morvan, Genève, Suisse (adresse postale : À COMPLÉTER). Contact pour toute question sur vos données : À COMPLÉTER (adresse e-mail dédiée).</p>
+<p>MathClass est un outil pour la classe. Deux situations se présentent.</p>
+<p>Pour les comptes des enseignants, MathClass décide de l'usage des données et en est responsable.</p>
+<p>Pour les données des élèves, c'est l'établissement scolaire (ou l'enseignant qui utilise MathClass de sa propre initiative) qui décide de l'usage de l'outil avec sa classe. MathClass traite ces données pour son compte, selon ses instructions, en qualité de sous-traitant. Un contrat de sous-traitance est proposé aux établissements.</p>
+<h2>2. Données traitées</h2>
+<h3>Enseignants</h3>
+<p>Nom, prénom et adresse e-mail, fournis à l'inscription. Le mot de passe est géré par le service d'authentification de Google (Firebase Authentication) ; MathClass n'y a jamais accès en clair.</p>
+<p>Le contenu créé par l'enseignant : classes, listes d'élèves, groupes, chapitres, compétences, exercices et photos d'exercices, séances.</p>
+<h3>Élèves</h3>
+<p>Les élèves n'ont ni adresse e-mail ni mot de passe. Ils rejoignent leur classe avec un code fourni par l'enseignant, puis choisissent leur nom dans une liste.</p>
+<p>MathClass traite les données suivantes :</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Donnée</th>
+<th>Origine</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prénom et nom</td>
+<td>saisis par l'enseignant</td>
+<td>identifier l'élève dans la classe</td>
+</tr>
+<tr>
+<td>Niveau (1 à 5) et groupe</td>
+<td>saisis par l'enseignant</td>
+<td>proposer des exercices adaptés</td>
+</tr>
+<tr>
+<td>Copie manuscrite (image du tracé sur l'iPad)</td>
+<td>produite par l'élève</td>
+<td>transcrire le raisonnement</td>
+</tr>
+<tr>
+<td>Étapes transcrites en notation mathématique</td>
+<td>vérifiées par l'élève</td>
+<td>corriger le raisonnement</td>
+</tr>
+<tr>
+<td>Résultat par étape, catégorie d'erreur, temps passé, progression</td>
+<td>calculés par MathClass</td>
+<td>retour à l'élève, suivi par l'enseignant</td>
+</tr>
+<tr>
+<td>Identifiant d'iPad</td>
+<td>nombre aléatoire créé par l'app</td>
+<td>savoir quel iPad est lié à quel élève</td>
+</tr>
+<tr>
+<td>Identifiant de connexion anonyme</td>
+<td>créé par Firebase Authentication</td>
+<td>réserver à l'élève l'accès à son propre travail</td>
+</tr>
+</tbody>
+</table></div>
+<p>La liste des noms proposée lors de la connexion n'affiche que le prénom et l'initiale du nom.</p>
+<h3>Données techniques</h3>
+<p>Firebase Authentication conserve les adresses IP de connexion pendant quelques semaines. MathClass n'intègre aucun outil de mesure d'audience, aucun traceur publicitaire et aucun service d'analyse de comportement.</p>
+<h2>3. Pourquoi ces données sont traitées</h2>
+<p>Les données servent uniquement à faire fonctionner MathClass en classe : proposer les exercices, transcrire et corriger le travail des élèves, donner un retour immédiat, et permettre à l'enseignant de suivre sa classe (statistiques, rapports PDF).</p>
+<p>MathClass ne vend aucune donnée, n'affiche aucune publicité et ne se sert pas des données des élèves à d'autres fins.</p>
+<h2>4. Correction automatique</h2>
+<p>La transcription des copies et la correction étape par étape sont réalisées par un modèle d'intelligence artificielle (Claude, développé par Anthropic), complété par un calcul symbolique (SymPy) qui vérifie l'équivalence des expressions. Le résultat est une aide pédagogique. L'élève vérifie la transcription avant correction, et l'enseignant voit chaque copie et chaque résultat. Aucune décision ayant des effets juridiques pour l'élève n'est prise automatiquement.</p>
+<p>Ce qui est envoyé au modèle : l'image du tracé, les étapes transcrites, l'énoncé de l'exercice et la réponse attendue. Le nom de l'élève, son niveau, sa classe et ses identifiants ne sont pas envoyés.</p>
+<h2>5. Prestataires et lieux de traitement</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Prestataire</th>
+<th>Service</th>
+<th>Lieu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google (Firebase)</td>
+<td>base de données Cloud Firestore et stockage des images Cloud Storage</td>
+<td>À VÉRIFIER dans la console Firebase (emplacement de la base et du bucket)</td>
+</tr>
+<tr>
+<td>Google (Firebase)</td>
+<td>fonctions serveur (Cloud Functions)</td>
+<td>Zurich, Suisse (europe-west6)</td>
+</tr>
+<tr>
+<td>Google (Firebase Authentication)</td>
+<td>comptes enseignants, comptes anonymes des élèves</td>
+<td>États-Unis</td>
+</tr>
+<tr>
+<td>Google Cloud (Vertex AI)</td>
+<td>exécution du modèle Claude</td>
+<td>Union européenne (région europe-west1, Belgique)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Selon la documentation de Firebase, le service Firebase Authentication fonctionne uniquement depuis des centres de données situés aux États-Unis. Google déclare respecter le Swiss-U.S. Data Privacy Framework et l'EU-U.S. Data Privacy Framework. Depuis le 15 septembre 2024, la Suisse reconnaît un niveau de protection adéquat aux entreprises américaines certifiées dans ce cadre. Pour un élève, Firebase Authentication ne contient qu'un identifiant anonyme, sans nom ni adresse e-mail.</p>
+<p>Google agit comme sous-traitant de MathClass selon ses conditions de traitement des données (Data Processing and Security Terms).</p>
+<h2>6. Durée de conservation</h2>
+<p>Les copies manuscrites, les transcriptions et les résultats sont supprimés automatiquement douze mois après leur envoi.</p>
+<p>Quand un enseignant supprime une classe, MathClass supprime immédiatement la classe, ses élèves, leurs copies, leurs images et leur progression.</p>
+<p>Quand un enseignant supprime son compte depuis l'app, MathClass supprime immédiatement ses classes (avec tout ce qu'elles contiennent), ses exercices et son profil. Selon la documentation de Firebase, les données d'authentification disparaissent ensuite des systèmes actifs et des sauvegardes de Google dans un délai de 180 jours.</p>
+<p>Selon Google, les requêtes envoyées au modèle Claude via Vertex AI ne sont pas conservées. À VÉRIFIER dans les conditions de Google Cloud applicables au compte.</p>
+<h2>7. Sécurité</h2>
+<p>Les échanges entre l'app et les serveurs sont chiffrés (HTTPS). L'accès aux données est contrôlé côté serveur : un enseignant n'accède qu'aux classes qu'il a créées ; un élève n'accède qu'à sa propre classe et à son propre travail, jamais aux fiches de ses camarades. Ces règles font l'objet de tests automatisés.</p>
+<h2>8. Vos droits</h2>
+<p>Toute personne concernée peut demander l'accès à ses données, leur rectification ou leur suppression. Pour un élève, la demande passe normalement par l'enseignant ou l'établissement, qui peut corriger ou supprimer les données directement dans l'app. Vous pouvez aussi écrire à l'adresse de contact indiquée au point 1.</p>
+<p>En Suisse, l'autorité de surveillance est le Préposé fédéral à la protection des données et à la transparence (PFPDT). Pour une école publique, l'autorité cantonale de protection des données est compétente (à Genève, le Préposé cantonal à la protection des données et à la transparence). En France, il s'agit de la CNIL.</p>
+<h2>9. Modifications</h2>
+<p>Toute modification de cette politique est publiée sur cette page avec sa date. Les établissements sous contrat sont informés à l'avance de tout changement de prestataire.</p>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <span>MathClass, Genève</span>
+      <nav aria-label="Informations"><a href="index.html">Accueil</a></nav>
+    </footer>
+  </div>
+</body>
+</html>

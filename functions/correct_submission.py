@@ -12,6 +12,7 @@ Correction process:
 
 import json
 import os
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
@@ -19,7 +20,8 @@ import anthropic
 from firebase_functions import https_fn
 
 import auth_guard
-from _helpers import extract_json, make_anthropic_client
+import claude_client
+from _helpers import extract_json
 
 # SymPy is imported lazily on first call — `import sympy` alone takes
 # several seconds and blows the 10-second Cloud Functions deployment
@@ -176,7 +178,7 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
 
 
 def claude_check_equivalence(
-    client: anthropic.Anthropic,
+    client,
     student_expr: str,
     reference_expr: str,
     description: str,
@@ -193,9 +195,7 @@ def claude_check_equivalence(
     )
 
     message = client.messages.create(
-        # Claude Haiku 4.5 — see extract_exercise.py for the rationale
-        # on the date suffix.
-        model="claude-haiku-4-5-20251001",
+        model=claude_client.model_id(),
         max_tokens=256,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -242,7 +242,7 @@ Si tu ne vois aucun problème de notation, retourne {"key": null}.
 
 
 def _detect_notation_issue(
-    client: anthropic.Anthropic,
+    client,
     student_steps: list,
     statement: str,
 ) -> str | None:
@@ -257,7 +257,7 @@ def _detect_notation_issue(
         formatted = "\n".join([f"Étape {i + 1}: {s}" for i, s in enumerate(student_steps)])
         user = f"Énoncé : {statement or '(sans énoncé)'}\nÉtapes :\n{formatted}"
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=claude_client.model_id(),
             max_tokens=64,
             system=[
                 {
@@ -294,7 +294,7 @@ Réponds UNIQUEMENT en JSON :
 
 
 def _classify_errors(
-    client: anthropic.Anthropic,
+    client,
     student_steps: list,
     step_results: list,
 ) -> list:
@@ -309,7 +309,7 @@ def _classify_errors(
             lines.append(f"Étape {i + 1} ({verdict}): {student_steps[i]}")
         prompt = CLASSIFY_PROMPT.format(lines="\n".join(lines))
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=claude_client.model_id(),
             max_tokens=256,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -495,16 +495,11 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             "allCorrect": False,
         }
 
-    # Get Anthropic API key
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INTERNAL,
-            message="Clé API Anthropic non configurée.",
-        )
+    # Claude client for the configured provider (Vertex AI in Europe by
+    # default, see claude_client.py).
+    client = claude_client.create_client()
 
     try:
-        client = make_anthropic_client(api_key)
 
         # Phase 1: Use Claude to structure step pairs
         formatted_steps = "\n".join(
@@ -522,9 +517,7 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         )
 
         message = client.messages.create(
-            # Claude Haiku 4.5 — see extract_exercise.py for the rationale
-            # on the date suffix.
-            model="claude-haiku-4-5-20251001",
+            model=claude_client.model_id(),
             max_tokens=2048,
             system=[
                 {

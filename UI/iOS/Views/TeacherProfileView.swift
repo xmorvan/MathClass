@@ -14,9 +14,8 @@ struct TeacherProfileView: View {
     @StateObject private var viewModel = TeacherProfileViewModel()
     @ObservedObject private var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
+    @State private var showDeleteConfirmation: Bool = false
 
-    @State private var showResetConfirm: Bool = false
-    @State private var demoStatus: String?
 
     var body: some View {
         NavigationView {
@@ -73,28 +72,42 @@ struct TeacherProfileView: View {
 
                     Section {
                         Button {
-                            Task { await runDemoSeed() }
+                            Task { await viewModel.loadDemo() }
                         } label: {
                             Label("Charger les données de démo".tr, systemImage: "tray.and.arrow.down")
                         }
+                        .disabled(viewModel.isWorkingOnDemo)
 
                         Button(role: .destructive) {
-                            showResetConfirm = true
+                            Task { await viewModel.resetDemo() }
                         } label: {
                             Label("Réinitialiser la démo".tr, systemImage: "arrow.counterclockwise.circle")
                         }
+                        .disabled(viewModel.isWorkingOnDemo)
 
-                        Text("La démo crée une classe et un groupe d'exercices fictifs. La réinitialisation efface uniquement les données de démo, pas vos vraies classes.".tr)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        if let demoStatus {
-                            Text(demoStatus)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        if let demoMessage = viewModel.demoMessage {
+                            Label(demoMessage.tr, systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
                         }
                     } header: {
                         Text("Données de démo".tr)
+                    } footer: {
+                        Text("La démo crée une classe fictive avec dix élèves, six exercices et un devoir actif. Pour essayer côté élève, saisissez le code de cette classe sur un iPad. La réinitialisation efface uniquement les données de démo.".tr)
+                    }
+
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            if viewModel.isDeletingAccount {
+                                ProgressView()
+                            } else {
+                                Text("Supprimer mon compte".tr)
+                            }
+                        }
+                        .disabled(viewModel.isDeletingAccount)
+                    } footer: {
+                        Text("Supprime définitivement votre compte, vos classes, le travail de vos élèves et vos exercices.".tr)
                     }
 
                     if let error = viewModel.error {
@@ -135,36 +148,17 @@ struct TeacherProfileView: View {
                 await viewModel.load()
             }
             .confirmationDialog(
-                "Réinitialiser la démo ?".tr,
-                isPresented: $showResetConfirm,
+                "Supprimer votre compte ?".tr,
+                isPresented: $showDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Réinitialiser".tr, role: .destructive) {
-                    Task { await runDemoReset() }
+                Button("Supprimer définitivement".tr, role: .destructive) {
+                    Task { await viewModel.deleteAccount() }
                 }
                 Button("Annuler".tr, role: .cancel) {}
             } message: {
-                Text("La réinitialisation efface uniquement les données de démo, pas vos vraies classes.".tr)
+                Text("Cette action est irréversible.".tr)
             }
-        }
-    }
-
-    private func runDemoSeed() async {
-        guard let teacherID = AuthenticationService.shared.currentUser?.uid else { return }
-        do {
-            try await DemoSeedService.shared.seed(teacherID: teacherID)
-            demoStatus = "Données de démo chargées.".tr
-        } catch {
-            viewModel.error = "Démo: \(error.localizedDescription)"
-        }
-    }
-
-    private func runDemoReset() async {
-        do {
-            try await DemoSeedService.shared.reset()
-            demoStatus = "Démo réinitialisée.".tr
-        } catch {
-            viewModel.error = "Reset démo: \(error.localizedDescription)"
         }
     }
 }

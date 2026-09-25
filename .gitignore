@@ -104,6 +104,8 @@ node_modules/
 
 # dotenv environment variables file
 .env
+# Non-secret Cloud Functions config (Claude provider/region); secrets stay in Secret Manager.
+!functions/.env
 
 # dataconnect generated files
 .dataconnect

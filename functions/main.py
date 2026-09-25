@@ -3,15 +3,17 @@ MathClass Cloud Functions (Python)
 Entry point for Firebase Cloud Functions deployed to europe-west6.
 
 Functions:
-  - extract_exercise: Extract LaTeX from exercise image using Claude Haiku 4.5 Vision
+  - extract_exercise: Extract LaTeX from exercise image using Claude Vision
   - recognize_handwriting: Recognize student handwriting from PencilKit PNG
   - correct_submission: Hybrid correction pipeline using Claude + SymPy
   - join_class / claim_student_seat: class-code login for students
     (anonymous Firebase Auth + custom claims)
   - generate_class_code: unique MX-XXXX code for a new class
+  - delete_class / delete_account: cascade deletions for teachers
+  - purge_old_submissions: daily deletion of submissions older than a year
 """
 
-from firebase_functions import https_fn, options, params
+from firebase_functions import https_fn, options, params, scheduler_fn
 
 # Set region for all functions
 options.set_global_options(region=options.SupportedRegion.EUROPE_WEST6)
@@ -88,3 +90,22 @@ def delete_student_data(req: https_fn.CallableRequest) -> dict:
     """
     from delete_student_data import delete_student_data_handler
     return delete_student_data_handler(req)
+def delete_class(req: https_fn.CallableRequest) -> dict:
+    """Delete one of the caller's classes and everything that belongs to it."""
+    from data_deletion import delete_class_handler
+    return delete_class_handler(req)
+
+
+@https_fn.on_call()
+def delete_account(req: https_fn.CallableRequest) -> dict:
+    """Delete the calling teacher's account and all their data."""
+    from data_deletion import delete_account_handler
+    return delete_account_handler(req)
+
+
+@scheduler_fn.on_schedule(schedule="every day 03:00", timezone=scheduler_fn.Timezone("Europe/Zurich"))
+def purge_old_submissions(event: scheduler_fn.ScheduledEvent) -> None:
+    """Delete submissions and handwriting images older than the retention period."""
+    from data_deletion import purge_old_submissions as purge
+    deleted = purge()
+    print(f"[purge_old_submissions] deleted {deleted} submissions")

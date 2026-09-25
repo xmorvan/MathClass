@@ -113,10 +113,11 @@ def student_auth(class_id="class-1", student_id="stu-1", uid="anon-1"):
 
 
 class _Snapshot:
-    def __init__(self, doc_id, data):
+    def __init__(self, doc_id, data, reference=None):
         self.id = doc_id
         self._data = data
         self.exists = data is not None
+        self.reference = reference
 
     def to_dict(self):
         return dict(self._data) if self._data is not None else None
@@ -127,8 +128,12 @@ class _DocumentRef:
         self._store = store
         self._path = path
 
+    @property
+    def path(self):
+        return self._path
+
     def get(self):
-        return _Snapshot(self._path.rsplit("/", 1)[-1], self._store.get(self._path))
+        return _Snapshot(self._path.rsplit("/", 1)[-1], self._store.get(self._path), self)
 
     def collection(self, name):
         return _CollectionRef(self._store, f"{self._path}/{name}")
@@ -144,10 +149,14 @@ class _CollectionRef:
     def document(self, doc_id):
         return _DocumentRef(self._store, f"{self._path}/{doc_id}")
 
+    @property
+    def path(self):
+        return self._path
+
     def where(self, field, op, value):
-        assert op == "==", "FakeFirestore only supports equality filters"
+        assert op in ("==", "<"), "FakeFirestore supports == and < filters"
         return _CollectionRef(
-            self._store, self._path, self._filters + [(field, value)], self._limit
+            self._store, self._path, self._filters + [(field, op, value)], self._limit
         )
 
     def limit(self, n):
@@ -159,8 +168,9 @@ class _CollectionRef:
         for path, data in sorted(self._store.items()):
             if not path.startswith(prefix) or "/" in path[len(prefix):]:
                 continue
-            if all(data.get(f) == v for f, v in self._filters):
-                results.append(_Snapshot(path[len(prefix):], data))
+            if all(_matches(data.get(f), op, v) for f, op, v in self._filters):
+                doc_id = path[len(prefix):]
+                results.append(_Snapshot(doc_id, data, self.document(doc_id)))
         return results[: self._limit] if self._limit is not None else results
 
 
@@ -172,3 +182,47 @@ class FakeFirestore:
 
     def collection(self, name):
         return _CollectionRef(self.docs, name)
+
+    def recursive_delete(self, reference):
+        """Delete a document or collection and everything below it."""
+        root = reference.path
+        for path in [p for p in self.docs if p == root or p.startswith(root + "/")]:
+            del self.docs[path]
+
+
+def _matches(actual, op, expected):
+    if op == "==":
+        return actual == expected
+    return actual is not None and actual < expected
+
+
+class FakeBucket:
+    """Cloud Storage bucket holding object paths only."""
+
+    def __init__(self, paths=()):
+        self.paths = set(paths)
+
+    def blob(self, path):
+        bucket = self
+        return types.SimpleNamespace(
+            name=path,
+            exists=lambda: path in bucket.paths,
+            delete=lambda: bucket.paths.discard(path),
+        )
+
+    def list_blobs(self, prefix=""):
+        return [self.blob(p) for p in sorted(self.paths) if p.startswith(prefix)]
+
+
+# --- Claude provider ------------------------------------------------------------
+#
+# Handler tests patch `anthropic.Anthropic`; run them against the direct
+# Anthropic provider. test_claude_client.py covers the Vertex path.
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _direct_anthropic_provider(monkeypatch):
+    monkeypatch.setenv("CLAUDE_PROVIDER", "anthropic")
+    monkeypatch.delenv("CLAUDE_MODEL", raising=False)

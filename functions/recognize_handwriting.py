@@ -2,7 +2,7 @@
 recognize_handwriting.py
 Cloud Function that recognizes student handwriting from a PencilKit PNG export.
 
-Uses Claude Haiku 4.5 Vision to:
+Uses Claude Vision (model set in claude_client.py) to:
 1. Analyze the handwritten math work
 2. Identify each step of the student's reasoning
 3. Convert each step into LaTeX
@@ -14,6 +14,7 @@ Accepts either a Cloud Storage path or a base64-encoded image directly.
 import base64
 import json
 import os
+import re
 
 import anthropic
 import firebase_admin
@@ -21,7 +22,8 @@ from firebase_admin import storage
 from firebase_functions import https_fn
 
 import auth_guard
-from _helpers import extract_json, make_anthropic_client
+import claude_client
+from _helpers import extract_json
 
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
@@ -108,13 +110,9 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
     ):
         raise auth_guard._denied()
 
-    # Get Anthropic API key
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INTERNAL,
-            message="Clé API Anthropic non configurée.",
-        )
+    # Claude client for the configured provider (Vertex AI in Europe by
+    # default, see claude_client.py).
+    client = claude_client.create_client()
 
     try:
         # Get image data
@@ -146,13 +144,9 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
         }
         media_type = media_type_map.get(ext, "image/png")
 
-        # Call Claude Haiku 4.5 Vision
-        client = make_anthropic_client(api_key)
-
+        # Call Claude Vision
         message = client.messages.create(
-            # Claude Haiku 4.5 — see extract_exercise.py for the rationale
-            # on the date suffix.
-            model="claude-haiku-4-5-20251001",
+            model=claude_client.model_id(),
             max_tokens=2048,
             messages=[
                 {
