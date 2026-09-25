@@ -5,17 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Run
 
 - **iOS / macOS:** Open `MathClass.xcodeproj` in Xcode, select target, `Cmd+R`
-- **Firebase functions:** `firebase deploy --only functions,firestore:indexes`
-- **Firebase emulator:** `firebase emulators:start`
+- **Deploy:** `firebase deploy --only functions,firestore:rules,firestore:indexes,storage` (needs the Blaze plan)
+- **Firebase emulator:** `firebase emulators:start`. `functions/.env.local` with `CLAUDE_PROVIDER=fake` gives canned Claude answers (emulator only, see `functions/fake_claude.py`). Run the app in Debug with env `USE_FIREBASE_EMULATOR=1` to point it at the emulators (`Core/Services/FirebaseEmulator.swift`).
 - **Security-rules tests:** `cd firestore-tests && npm install && npm test` (emulators, needs Java)
-- **Functions tests:** `cd functions && python -m pytest tests`
+- **End-to-end smoke test:** `cd firestore-tests && npm run e2e` (teacher → student → correction → teacher through the real client SDK, all emulators, fake Claude)
+- **Functions tests:** `cd functions && venv/bin/python -m pytest tests`
+- **Swift tests:** scheme `MathClass`, `xcodebuild test -scheme MathClass -destination 'platform=iOS Simulator,name=<iPad on iOS ≥ 18.1>'` (target `MathClassTests`)
 - Requires `GoogleService-Info.plist` in the project root (not in source control)
 - Anthropic API key is stored as a Firebase secret. Before first deploy: `firebase functions:secrets:set ANTHROPIC_API_KEY`
 
 ## Architecture
 
 ### Tech Stack
-- **Frontend:** SwiftUI (iOS 16+, macOS 12+), MVVM, ObservableObject ViewModels
+- **Frontend:** SwiftUI (iOS 18.1+, macOS 15.1+), MVVM, ObservableObject ViewModels
 - **Backend:** Firebase Firestore + Cloud Storage + Auth
 - **Cloud Functions:** Python 3.12 in `europe-west6`, using Claude Haiku 4.5 + SymPy
 - **Math rendering:** KaTeX via WKWebView bridge

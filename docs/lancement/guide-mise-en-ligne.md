@@ -4,9 +4,20 @@ Objectif : envoyer à un enseignant un lien qui lui permet d'installer MathClass
 
 Les étapes sont dans l'ordre où elles se font. Compter une demi-journée sur le Mac si la compilation ne révèle pas de grosse surprise, puis un à deux jours d'attente pour la validation d'Apple.
 
+## État au 25.09.2026
+
+Fait :
+- connexion anonyme activée dans Firebase Authentication (étape 1.1) ;
+- les deux apps compilent ; tout le parcours enseignant → élève → correction → enseignant a été déroulé dans le simulateur contre les émulateurs Firebase, et plusieurs bugs bloquants ont été corrigés au passage ;
+- tests : Python (functions/tests), règles d'accès (npm test), bout en bout (npm run e2e) et Swift (Xcode, Product > Test) passent.
+
+Bloquant, à régler par le titulaire des comptes :
+- **Facturation Google** : la facturation du projet mathclass-a9328 est désactivée et les deux comptes de facturation Google sont fermés. Sans formule Blaze, les Cloud Functions ne peuvent ni être déployées ni tourner (reconnaissance et correction hors service). Réactiver un moyen de paiement, rattacher le projet, puis faire les étapes 1.3 à 1.6 et 2.
+- **Apple Developer Program** : le compte Apple utilisé dans Xcode n'est pas inscrit au programme (developer.apple.com affiche « Enroll today »). L'envoi sur App Store Connect échoue tant que l'inscription (99 USD par an) n'est pas faite. Ensuite, étape 4.
+
 ## 1. Console Firebase et Google Cloud
 
-1. Firebase, Authentication, Sign-in method : activer « Anonyme » (connexion des élèves). Laisser « E-mail/Mot de passe » actif.
+1. Firebase, Authentication, Sign-in method : « Anonyme » (connexion des élèves) est activé depuis le 25.09.2026. Laisser « E-mail/Mot de passe » actif.
 2. Firebase, Paramètres du projet, Général : relever l'emplacement de Cloud Firestore et du bucket Cloud Storage. Le reporter dans docs/legal (politique de confidentialité, fiche écoles, annexe 3 du contrat). Si l'emplacement n'est ni en Suisse ni dans l'UE, en parler au juriste avant d'inviter des prospects.
 3. Google Cloud console, même projet : activer l'API « Vertex AI ».
 4. Google Cloud, Vertex AI, Model Garden : ouvrir Claude Haiku 4.5 et l'activer (accepter les conditions d'Anthropic). Vérifier que la région europe-west1 est proposée.
@@ -21,19 +32,21 @@ Depuis le dossier du projet, sur le Mac :
 ```
 cd functions && python3.12 -m venv venv && venv/bin/pip install -r requirements.txt -r requirements-dev.txt
 venv/bin/python -m pytest tests
-cd ../firestore-tests && npm install && npm test
+cd ../firestore-tests && npm install && npm test && npm run e2e
 cd .. && firebase deploy --only functions,firestore:rules,firestore:indexes,storage
 ```
 
-Les deux séries de tests doivent passer avant le déploiement. Au premier déploiement, accepter la question sur l'accès des règles Storage à Firestore et la création de la tâche planifiée (Cloud Scheduler).
+Toutes les séries de tests doivent passer avant le déploiement (`npm run e2e` déroule le parcours complet sur les émulateurs, avec des réponses de Claude simulées). Au premier déploiement, accepter la question sur l'accès des règles Storage à Firestore et la création de la tâche planifiée (Cloud Scheduler).
 
-Contrôle après déploiement : dans la console Firebase, Functions, on doit voir neuf fonctions, dont purge_old_submissions.
+Contrôle après déploiement : dans la console Firebase, Functions, on doit voir dix fonctions, dont purge_old_submissions et delete_student_data.
 
 ## 3. Compilation dans Xcode
 
 1. Ouvrir MathClass.xcodeproj, laisser Xcode résoudre les paquets Swift.
-2. Compiler la cible iPad (MathClass) puis la cible Mac (MathClass-macOS). Le code modifié n'a pas pu être compilé dans l'environnement où il a été écrit ; s'il y a des erreurs, les copier et les faire corriger.
-3. Lancer sur le simulateur iPad et dérouler le scénario du paragraphe 5 une fois, de bout en bout.
+2. Compiler la cible iPad (MathClass) puis la cible Mac (MathClass-macOS, qui produit MathClass.app). Les deux compilent au 25.09.2026.
+3. Lancer sur le simulateur iPad et dérouler le scénario du paragraphe 5 une fois, de bout en bout, cette fois contre le vrai serveur (vraie reconnaissance par Claude).
+
+Pour tester sans toucher aux données réelles : `firebase emulators:start` (fichier functions/.env.local contenant `CLAUDE_PROVIDER=fake` pour simuler Claude), puis lancer l'app en Debug avec la variable d'environnement `USE_FIREBASE_EMULATOR=1` (Xcode, Scheme, Run, Arguments, Environment Variables).
 
 ## 4. TestFlight
 
@@ -49,7 +62,7 @@ Contrôle après déploiement : dans la console Firebase, Functions, on doit voi
 Avec un seul iPad :
 
 1. Installer TestFlight, ouvrir le lien public, installer MathClass.
-2. Choisir « Enseignant », créer un compte.
+2. Choisir « Professeur », créer un compte.
 3. Profil, « Charger les données de démo ». Une classe « Démo, 3e A » apparaît avec dix élèves, six exercices et un devoir actif. Relever son code (MX-XXXX).
 4. Se déconnecter, choisir « Élève », saisir le code, choisir un nom.
 5. Résoudre un exercice au stylet, vérifier la transcription, lire la correction.
