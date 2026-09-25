@@ -4,20 +4,23 @@ Objectif : envoyer à un enseignant un lien qui lui permet d'installer MathClass
 
 Les étapes sont dans l'ordre où elles se font. Compter une demi-journée sur le Mac si la compilation ne révèle pas de grosse surprise, puis un à deux jours d'attente pour la validation d'Apple.
 
-## État au 25.09.2026
+## État au 25.09.2026 (soir)
 
 Fait :
-- connexion anonyme activée dans Firebase Authentication (étape 1.1) ;
-- les deux apps compilent ; tout le parcours enseignant → élève → correction → enseignant a été déroulé dans le simulateur contre les émulateurs Firebase, et plusieurs bugs bloquants ont été corrigés au passage ;
-- tests : Python (functions/tests), règles d'accès (npm test), bout en bout (npm run e2e) et Swift (Xcode, Product > Test) passent.
+- facturation Blaze active sur mathclass-a9328, alerte de budget de 50 CHF par mois (e-mail à 50 %, 90 % et 100 %) ;
+- connexion anonyme activée ; API Vertex AI et Cloud Scheduler activées ;
+- Claude Haiku 4.5 activé dans le Model Garden (conditions d'Anthropic acceptées, formulaire d'accès rempli : usage éducatif avec des mineurs, protections décrites) ;
+- serveur déployé : règles Firestore et Storage, index, dix fonctions (europe-west6) ;
+- test sur le vrai serveur (`cd firestore-tests && node --test prod.smoke.mjs`) : tout le parcours passe, sauf l'IA ;
+- App Store Connect : app « MathClass » créée (iOS + macOS), build 1.0 (1) iPad et Mac envoyés, groupe TestFlight interne « Équipe interne » (compte du propriétaire seulement).
 
-Bloquant, à régler par le titulaire des comptes :
-- **Facturation Google** : la facturation du projet mathclass-a9328 est désactivée et les deux comptes de facturation Google sont fermés. Sans formule Blaze, les Cloud Functions ne peuvent ni être déployées ni tourner (reconnaissance et correction hors service). Réactiver un moyen de paiement, rattacher le projet, puis faire les étapes 1.3 à 1.6 et 2.
-- **Apple Developer Program** : le compte Apple utilisé dans Xcode n'est pas inscrit au programme (developer.apple.com affiche « Enroll today »). L'envoi sur App Store Connect échoue tant que l'inscription (99 USD par an) n'est pas faite. Ensuite, étape 4.
+En attente :
+- **Quota Vertex AI** : tous les quotas de Claude Haiku 4.5 sont à 0 sur un compte de facturation neuf. Demande d'augmentation envoyée le 25.09.2026 (n° 124785c8) pour europe-west1 : 60 requêtes, 200 000 tokens d'entrée et 20 000 tokens de sortie par minute. Tant qu'elle n'est pas accordée, la reconnaissance et la correction renvoient « Quota exceeded ». Suivi : Google Cloud, IAM et administration, Quotas, onglet « Demandes d'augmentation ».
+- Build 1.0 (1) : envoyé avant d'avoir testé l'IA en production. Envoyer un build 2 seulement après un essai complet sur le vrai serveur.
 
 ## 1. Console Firebase et Google Cloud
 
-1. Firebase, Authentication, Sign-in method : « Anonyme » (connexion des élèves) est activé depuis le 25.09.2026. Laisser « E-mail/Mot de passe » actif.
+1. Fait le 25.09.2026 : « Anonyme » activé dans Authentication (connexion des élèves). Laisser « E-mail/Mot de passe » actif.
 2. Firebase, Paramètres du projet, Général : relever l'emplacement de Cloud Firestore et du bucket Cloud Storage. Le reporter dans docs/legal (politique de confidentialité, fiche écoles, annexe 3 du contrat). Si l'emplacement n'est ni en Suisse ni dans l'UE, en parler au juriste avant d'inviter des prospects.
 3. Google Cloud console, même projet : activer l'API « Vertex AI ».
 4. Google Cloud, Vertex AI, Model Garden : ouvrir Claude Haiku 4.5 et l'activer (accepter les conditions d'Anthropic). Vérifier que la région europe-west1 est proposée.
