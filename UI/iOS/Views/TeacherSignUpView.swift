@@ -51,6 +51,13 @@ struct TeacherSignUpView: View {
                     // visible so the form is actually fillable.
                 }
 
+                Section(header: Text("Vos informations".tr)) {
+                    TextField("Prénom".tr, text: $viewModel.firstName)
+                        .textContentType(.givenName)
+                    TextField("Nom".tr, text: $viewModel.lastName)
+                        .textContentType(.familyName)
+                }
+
                 Section { passwordRequirements }
             }
             .navigationTitle("Inscription Professeur".tr)

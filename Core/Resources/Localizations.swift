@@ -16,6 +16,7 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Vos informations": "About you",
         "Votre enseignant·e vous a remis ce code, au format MX-XXXX.": "Your teacher gave you this code, in the format MX-XXXX.",
         "Code classe introuvable. Vérifiez le code et réessayez.": "Class code not found. Check the code and try again.",
         "Aucun dessin à reconnaître. Veuillez retourner au dessin.": "Nothing to recognize. Go back to the drawing.",

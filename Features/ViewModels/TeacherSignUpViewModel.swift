@@ -20,15 +20,6 @@ final class TeacherSignUpViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var isAccountCreated = false
 
-    init() {
-        // Teachers don't enter first/last names in the iOS sign-up form, so
-        // we set defaults here. The previous approach hid SwiftUI fields and
-        // populated them from a `.onAppear` chained on a hidden view — that
-        // was both unreliable AND broke the Confirm-password field.
-        self.firstName = "Enseignant"
-        self.lastName = "MathClass"
-    }
-
     var isValid: Bool {
         let emailIsValid = !email.isEmpty && email.contains("@")
         let passwordIsValid = !password.isEmpty
