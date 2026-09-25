@@ -221,9 +221,30 @@ class SubmissionViewModel: ObservableObject {
                 ungradedSubmission = (submissionID, confirmedSteps, currentAttempt)
             }
 
-            // In evaluation mode, no correction — just mark as submitted
+            // Evaluation mode: the student sees no result, but the work is
+            // still graded for the teacher (it used to stay ungraded, i.e.
+            // "pending" in the inbox and absent from statistics).
             if assignmentMode == .evaluation {
                 ungradedSubmission = nil
+                let service = correctionService
+                let steps = confirmedSteps
+                let attempt = currentAttempt
+                let strict = studentViewModel.notationStrict
+                let exerciseForGrading = exercise
+                Task {
+                    do {
+                        _ = try await service.correctAndUpdate(
+                            submissionID: submissionID,
+                            studentSteps: steps,
+                            expectedAnswer: exerciseForGrading.expectedAnswer,
+                            statement: exerciseForGrading.statement,
+                            attemptNumber: attempt,
+                            notationStrict: strict
+                        )
+                    } catch {
+                        print("Correction en évaluation échouée: \(error.localizedDescription)")
+                    }
+                }
                 self.finalResult = nil
                 self.correctionResult = nil
                 self.phase = .feedback
