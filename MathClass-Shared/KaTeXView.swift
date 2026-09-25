@@ -155,7 +155,7 @@ private extension KaTeXWebView {
             html = renderer.generateSingleExpressionHTML(latex: content, fontSize: fontSize, displayMode: displayMode)
         }
 
-        webView.loadHTMLString(html, baseURL: KaTeXRenderer.shared.katexBaseURL)
+        KaTeXPageLoader.load(html, in: webView)
         return webView
     }
 }
@@ -233,7 +233,7 @@ private class KaTeXCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDe
                 fontSize: fontSize,
                 displayMode: displayMode
             )
-            webView.loadHTMLString(html, baseURL: KaTeXRenderer.shared.katexBaseURL)
+            KaTeXPageLoader.load(html, in: webView)
         }
     }
 
@@ -250,4 +250,58 @@ private class KaTeXCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDe
         }
         return jsonString
     }
+}
+
+// MARK: - Page loading
+
+/// Loads a KaTeX page so the bundled katex.min.js / auto-render / fonts
+/// resolve. On macOS the sandboxed WebContent process can't read bundle
+/// files referenced from `loadHTMLString(baseURL:)`, so formulas stayed as
+/// raw `$…$` text. There the page and a copy of the KaTeX files are written
+/// to a cache folder and loaded with explicit read access to it.
+private enum KaTeXPageLoader {
+    static func load(_ html: String, in webView: WKWebView) {
+        #if os(macOS)
+        if let folder = stagingFolder {
+            let page = folder.appendingPathComponent("page-\(UUID().uuidString).html")
+            do {
+                try html.write(to: page, atomically: true, encoding: .utf8)
+                webView.loadFileURL(page, allowingReadAccessTo: folder)
+                return
+            } catch {
+                print("KaTeXPageLoader: \(error.localizedDescription)")
+            }
+        }
+        #endif
+        webView.loadHTMLString(html, baseURL: KaTeXRenderer.shared.katexBaseURL)
+    }
+
+    #if os(macOS)
+    /// Caches/KaTeXPages, holding the KaTeX assets (fonts under `fonts/`, as
+    /// katex.min.css expects). Rebuilt once per launch, which also clears
+    /// the previous launch's pages.
+    private static let stagingFolder: URL? = {
+        guard let bundleDir = KaTeXRenderer.shared.katexBaseURL,
+              let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+        else { return nil }
+        let fm = FileManager.default
+        let folder = caches.appendingPathComponent("KaTeXPages", isDirectory: true)
+        let fonts = folder.appendingPathComponent("fonts", isDirectory: true)
+        do {
+            try? fm.removeItem(at: folder)
+            try fm.createDirectory(at: fonts, withIntermediateDirectories: true)
+            for name in ["katex.min.js", "katex.min.css", "auto-render.min.js"] {
+                try fm.copyItem(at: bundleDir.appendingPathComponent(name), to: folder.appendingPathComponent(name))
+            }
+            let files = try fm.contentsOfDirectory(atPath: bundleDir.path)
+            for name in files where name.hasPrefix("KaTeX_") && name.hasSuffix(".woff2") {
+                try fm.copyItem(at: bundleDir.appendingPathComponent(name), to: fonts.appendingPathComponent(name))
+            }
+            return folder
+        } catch {
+            print("KaTeXPageLoader staging failed: \(error.localizedDescription)")
+            return nil
+        }
+    }()
+    #endif
 }

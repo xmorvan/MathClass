@@ -27,6 +27,13 @@ final class KaTeXRenderer {
             .map { $0.deletingLastPathComponent() }
     }
 
+    /// `crossorigin` only for the CDN: on bundled files it turns the load
+    /// into a CORS request, which WebKit refuses for local files, so KaTeX
+    /// never ran and formulas stayed as raw `$…$` text.
+    private var crossOrigin: String {
+        katexBaseURL == nil ? " crossorigin=\"anonymous\"" : ""
+    }
+
     private var katexCSS: String {
         if katexBaseURL != nil { return "katex.min.css" }
         return "https://cdn.jsdelivr.net/npm/katex@\(katexVersion)/dist/katex.min.css"
@@ -58,12 +65,9 @@ final class KaTeXRenderer {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="\(katexCSS)"
-                  crossorigin="anonymous">
-            <script defer src="\(katexJS)"
-                    crossorigin="anonymous"></script>
-            <script defer src="\(autoRenderJS)"
-                    crossorigin="anonymous"
+            <link rel="stylesheet" href="\(katexCSS)"\(crossOrigin)>
+            <script defer src="\(katexJS)"\(crossOrigin)></script>
+            <script defer src="\(autoRenderJS)"\(crossOrigin)
                     onload="renderContent()"></script>
             <style>
                 html, body {
@@ -131,12 +135,9 @@ final class KaTeXRenderer {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="\(katexCSS)"
-                  crossorigin="anonymous">
-            <script defer src="\(katexJS)"
-                    crossorigin="anonymous"></script>
-            <script defer src="\(autoRenderJS)"
-                    crossorigin="anonymous"
+            <link rel="stylesheet" href="\(katexCSS)"\(crossOrigin)>
+            <script defer src="\(katexJS)"\(crossOrigin)></script>
+            <script defer src="\(autoRenderJS)"\(crossOrigin)
                     onload="init()"></script>
             <style>
                 * { box-sizing: border-box; margin: 0; padding: 0; }
