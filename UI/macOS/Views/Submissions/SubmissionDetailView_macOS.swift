@@ -81,6 +81,9 @@ struct SubmissionDetailView_macOS: View {
                 Text("En attente de correction".tr)
                     .font(.headline)
                     .foregroundColor(.secondary)
+                if let submissionID = submission.id {
+                    GradeNowButton(submissionID: submissionID)
+                }
             }
         }
     }

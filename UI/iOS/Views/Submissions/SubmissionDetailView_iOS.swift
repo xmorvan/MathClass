@@ -84,6 +84,9 @@ struct SubmissionDetailView_iOS: View {
                 Text("En attente de correction".tr)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                if let submissionID = submission.id {
+                    GradeNowButton(submissionID: submissionID)
+                }
             }
         }
     }

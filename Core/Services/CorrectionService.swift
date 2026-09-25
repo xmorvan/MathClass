@@ -99,6 +99,20 @@ final class CorrectionService {
         }
     }
 
+    /// Teacher-side grading of a submission whose correction never ran
+    /// (e.g. an evaluation left while the iPad was closed). The server
+    /// grades the steps stored on the submission and persists the result;
+    /// the teacher's submission listener then shows it.
+    func gradeStoredSubmission(submissionID: String) async throws {
+        do {
+            let callable = functions.httpsCallable("correct_submission")
+            callable.timeoutInterval = functionTimeout
+            _ = try await callable.call(["submissionID": submissionID])
+        } catch {
+            throw CorrectionServiceError.apiError(error.localizedDescription)
+        }
+    }
+
     /// Correct a submission and return both the per-step result and the
     /// derived final outcome. The Firestore persistence happens server-side
     /// inside the Cloud Function (Admin SDK) — the client computes the same

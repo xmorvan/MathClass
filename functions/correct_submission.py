@@ -377,14 +377,25 @@ def _persist_correction(
     return last_error
 
 
+def _is_student_caller(req: https_fn.CallableRequest) -> bool:
+    token = getattr(getattr(req, "auth", None), "token", None) or {}
+    return token.get("role") == "student"
+
+
 def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
-    """Check that the calling student owns the submission.
+    """Check that the caller may grade the submission.
+
+    Callers are the student who owns it, or the teacher who owns its class
+    (to grade work whose background correction never ran, e.g. the iPad
+    was closed during an evaluation).
 
     Returns the grading context read from Firestore (expected answer,
-    statement, notation strictness) so the client cannot change what it
-    is graded against.
+    statement, notation strictness, and the stored steps and attempt
+    number) so the client cannot change what it is graded against.
     """
-    identity = auth_guard.require_student(req)
+    is_student = _is_student_caller(req)
+    identity = auth_guard.require_student(req) if is_student else None
+    teacher_uid = None if is_student else auth_guard.require_teacher(req)
     db = _get_firestore()
 
     submission = db.collection("submissions").document(submission_id).get()
@@ -394,7 +405,19 @@ def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
             message="Soumission introuvable.",
         )
     submission_data = submission.to_dict() or {}
-    if submission_data.get("studentID") != identity.student_id:
+
+    if identity is not None:
+        if submission_data.get("studentID") != identity.student_id:
+            raise auth_guard._denied()
+        class_id = identity.class_id
+    else:
+        class_id = submission_data.get("classID")
+        if not isinstance(class_id, str) or not class_id:
+            raise auth_guard._denied()
+
+    class_doc = db.collection("classes").document(class_id).get()
+    class_data = (class_doc.to_dict() or {}) if class_doc.exists else {}
+    if teacher_uid is not None and class_data.get("teacherID") != teacher_uid:
         raise auth_guard._denied()
 
     exercise_id = submission_data.get("exerciseID")
@@ -409,9 +432,6 @@ def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
             message="Exercice introuvable.",
         )
     exercise_data = exercise.to_dict() or {}
-
-    class_doc = db.collection("classes").document(identity.class_id).get()
-    class_data = (class_doc.to_dict() or {}) if class_doc.exists else {}
     notation_strict = class_data.get("notationStrict")
 
     return {
@@ -419,6 +439,9 @@ def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
         "statement": exercise_data.get("statement", ""),
         # Legacy classes without the field default to strict.
         "notation_strict": True if notation_strict is None else bool(notation_strict),
+        "is_teacher": teacher_uid is not None,
+        "stored_steps": submission_data.get("latexSteps") or [],
+        "stored_attempt": submission_data.get("attemptNumber"),
     }
 
 
@@ -445,11 +468,14 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             - studentSteps: list of LaTeX strings (student's work)
             - submissionID: Firestore document ID — the function will patch
               correctionResult + finalResult on this doc via Admin SDK.
-              The caller must be the student who owns it (custom claims);
-              the rules forbid clients from writing correction results.
+              The caller must be the student who owns it (custom claims)
+              or the teacher who owns its class; the rules forbid clients
+              from writing correction results.
             - expectedAnswer / statement / notationStrict: ignored. They are
               read from the exercise and class documents instead.
             - attemptNumber: 1 or 2 (used to compute success_1st vs success_2nd).
+            A teacher call only needs submissionID: steps and attempt
+            number are read from the submission.
 
     Returns:
         dict with:
@@ -466,9 +492,28 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             message="Aucune donnée fournie.",
         )
 
-    student_steps = req.data.get("studentSteps", [])
     submission_id = req.data.get("submissionID")
-    attempt_number = _as_int(req.data.get("attemptNumber"))
+    if not isinstance(submission_id, str) or not submission_id:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="'submissionID' est requis.",
+        )
+
+    # Grade against the exercise stored in Firestore, not against whatever
+    # expected answer the client sent. A teacher grades what the student
+    # submitted, as stored.
+    context = _authorize(req, submission_id)
+    expected_answer = context["expected_answer"]
+    statement = context["statement"]
+    notation_strict = context["notation_strict"]
+    if context["is_teacher"]:
+        student_steps = context["stored_steps"]
+        # Levels mode can store attempt 3+; only first-try vs later matters.
+        stored_attempt = _as_int(context["stored_attempt"]) or 1
+        attempt_number = 1 if stored_attempt <= 1 else 2
+    else:
+        student_steps = req.data.get("studentSteps", [])
+        attempt_number = _as_int(req.data.get("attemptNumber"))
 
     if not isinstance(student_steps, list):
         raise https_fn.HttpsError(
@@ -484,24 +529,11 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             message="Trop d'étapes (maximum 30).",
         )
 
-    if not isinstance(submission_id, str) or not submission_id:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
-            message="'submissionID' est requis.",
-        )
-
     if attempt_number not in (1, 2):
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="'attemptNumber' doit être 1 ou 2.",
         )
-
-    # Grade against the exercise stored in Firestore, not against whatever
-    # expected answer the client sent.
-    context = _authorize(req, submission_id)
-    expected_answer = context["expected_answer"]
-    statement = context["statement"]
-    notation_strict = context["notation_strict"]
 
     if not student_steps:
         return {

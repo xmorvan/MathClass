@@ -16,6 +16,8 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Lancer la correction": "Grade now",
+        "La correction a échoué. Réessayez.": "Grading failed. Try again.",
         "La classe de démo et le travail de ses élèves seront supprimés.": "The demo class and its students' work will be deleted.",
         "Essai %@": "Attempt %@",
         "Réussis": "Passed",

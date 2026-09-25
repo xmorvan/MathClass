@@ -137,6 +137,9 @@ def _stub_environment(monkeypatch):
             "expected_answer": req.data.get("expectedAnswer", ""),
             "statement": req.data.get("statement", ""),
             "notation_strict": bool(req.data.get("notationStrict", True)),
+            "is_teacher": False,
+            "stored_steps": [],
+            "stored_attempt": None,
         },
     )
 
@@ -321,12 +324,21 @@ def _grading_db():
     return FakeFirestore({
         "classes/class-1": {"teacherID": "teacher-1", "notationStrict": False},
         "exercises/ex-1": {"expectedAnswer": "x = 4", "statement": "Résoudre $2x = 8$"},
-        "submissions/sub-1": {"studentID": "stu-1", "exerciseID": "ex-1"},
+        "submissions/sub-1": {
+            "studentID": "stu-1",
+            "classID": "class-1",
+            "exerciseID": "ex-1",
+            "latexSteps": ["2x = 8", "x = 4"],
+            "attemptNumber": 1,
+        },
+        "users/teacher-1": {"role": "teacher"},
+        "users/teacher-2": {"role": "teacher"},
     })
 
 
 def _patch_db(monkeypatch, db):
     monkeypatch.setattr(cs, "_get_firestore", lambda: db)
+    monkeypatch.setattr(cs.auth_guard, "_get_firestore", lambda: db)
 
 
 def test_authorize_returns_server_side_grading_context(monkeypatch):
@@ -335,11 +347,20 @@ def test_authorize_returns_server_side_grading_context(monkeypatch):
 
     context = _real_authorize(req, "sub-1")
 
-    assert context == {
-        "expected_answer": "x = 4",
-        "statement": "Résoudre $2x = 8$",
-        "notation_strict": False,
-    }
+    assert context["expected_answer"] == "x = 4"
+    assert context["statement"] == "Résoudre $2x = 8$"
+    assert context["notation_strict"] is False
+    assert context["is_teacher"] is False
+
+
+def test_authorize_lets_the_class_teacher_grade_stored_work(monkeypatch):
+    _patch_db(monkeypatch, _grading_db())
+
+    context = _real_authorize(make_request({}, auth=teacher_auth()), "sub-1")
+
+    assert context["is_teacher"] is True
+    assert context["stored_steps"] == ["2x = 8", "x = 4"]
+    assert context["expected_answer"] == "x = 4"
 
 
 def test_authorize_defaults_notation_strict_for_legacy_classes(monkeypatch):
@@ -353,7 +374,8 @@ def test_authorize_defaults_notation_strict_for_legacy_classes(monkeypatch):
 
 @pytest.mark.parametrize("auth, expected_code", [
     (None, "UNAUTHENTICATED"),
-    (teacher_auth(), "PERMISSION_DENIED"),
+    (teacher_auth(uid="teacher-2"), "PERMISSION_DENIED"),
+    (teacher_auth(uid="not-a-teacher"), "PERMISSION_DENIED"),
     (student_auth(student_id="stu-2"), "PERMISSION_DENIED"),
 ])
 def test_authorize_rejects_non_owners(monkeypatch, auth, expected_code):
@@ -403,3 +425,29 @@ def test_as_int_accepts_apple_sdk_int64_wrapper():
     assert cs._as_int(1.0) == 1
     assert cs._as_int(True) is None
     assert cs._as_int("x") is None
+
+
+def test_teacher_call_grades_the_stored_steps(monkeypatch):
+    """A teacher regrade ignores client steps and uses the stored attempt."""
+    db = _grading_db()
+    db.docs["submissions/sub-1"]["attemptNumber"] = 3  # levels mode
+    _patch_db(monkeypatch, db)
+    monkeypatch.setattr(cs, "_authorize", _real_authorize)
+    persisted = {}
+    monkeypatch.setattr(cs, "_persist_correction", lambda **kw: persisted.update(kw))
+    fake_client = _fake_anthropic_with_pairs([
+        {"studentExpr": "2x = 8", "referenceExpr": "2x = 8", "description": ""},
+        {"studentExpr": "x = 4", "referenceExpr": "x = 4", "description": ""},
+    ])
+    monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+    monkeypatch.setattr(cs, "sympy_check_equivalence", lambda a, b: True)
+
+    result = cs.correct_submission_handler(make_request(
+        {"submissionID": "sub-1", "studentSteps": ["FORGED"]},
+        auth=teacher_auth(),
+    ))
+
+    prompt = fake_client.messages.create.call_args_list[0].kwargs["messages"][0]["content"]
+    assert "FORGED" not in prompt
+    assert result["stepResults"] == [True, True]
+    assert persisted["final_result"] == "success_2nd"
