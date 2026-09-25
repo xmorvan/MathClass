@@ -26,6 +26,7 @@ struct ExercisesListView: View {
                     Section(header: Text(section.title)) {
                         ForEach(section.exercises) { exercise in
                             ExerciseRow(exercise: exercise)
+                                .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectedExercise = exercise
                                 }

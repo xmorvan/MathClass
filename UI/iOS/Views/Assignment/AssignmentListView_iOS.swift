@@ -23,7 +23,10 @@ struct AssignmentListView_iOS: View {
     }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            ClassPickerBar(viewModel: viewModel)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
             if viewModel.assignments.isEmpty {
                 emptyState
             } else {
@@ -100,6 +103,7 @@ struct AssignmentListView_iOS: View {
                 Section("Actifs".tr) {
                     ForEach(assignmentVM.activeAssignments) { assignment in
                         assignmentRow(assignment)
+                            .contentShape(Rectangle())
                             .onTapGesture { selectedAssignment = assignment }
                     }
                 }
@@ -109,6 +113,7 @@ struct AssignmentListView_iOS: View {
                 Section("Terminés".tr) {
                     ForEach(assignmentVM.pastAssignments) { assignment in
                         assignmentRow(assignment)
+                            .contentShape(Rectangle())
                             .onTapGesture { selectedAssignment = assignment }
                     }
                 }

@@ -29,6 +29,10 @@ struct AssignmentListView_macOS: View {
             VStack(alignment: .leading, spacing: 0) {
                 assignmentListHeader
 
+                ClassPickerBar(viewModel: viewModel)
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+
                 Divider()
 
                 if viewModel.assignments.isEmpty {
