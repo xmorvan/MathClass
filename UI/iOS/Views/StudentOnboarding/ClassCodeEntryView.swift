@@ -47,7 +47,7 @@ struct ClassCodeEntryView: View {
                     if isCodeValid { onSubmit() }
                 }
 
-            InlineHint("Votre enseignant·e vous a remis ce code à 6 caractères.", icon: "lightbulb")
+            InlineHint("Votre enseignant·e vous a remis ce code, au format MX-XXXX.", icon: "lightbulb")
 
             // Scan button
             Button {

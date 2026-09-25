@@ -45,11 +45,11 @@ class StudentOnboardingViewModel: ObservableObject {
                     self.studentsInClass = joinedClass.students
                     self.step = .selectName
                 } else {
-                    self.errorMessage = "Code classe introuvable. Vérifiez le code et réessayez."
+                    self.errorMessage = "Code classe introuvable. Vérifiez le code et réessayez.".tr
                     self.showError = true
                 }
             } catch {
-                self.errorMessage = "Erreur: \(error.localizedDescription)"
+                self.errorMessage = LocalizationManager.shared.format("Erreur : %@", error.localizedDescription)
                 self.showError = true
             }
             self.isLookingUp = false

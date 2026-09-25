@@ -52,6 +52,10 @@ class SubmissionViewModel: ObservableObject {
     private let levelProgressRepo: LevelProgressRepository
     private var currentAttempt: Int = 1
     private var pngURL: String?
+    /// Submission created by a previous `confirmAndSubmit` whose correction
+    /// failed. Retrying with the same steps reuses it, so a network hiccup
+    /// doesn't leave an orphan "pending" submission in the teacher's inbox.
+    private var ungradedSubmission: (id: String, steps: [String], attempt: Int)?
     private var timeSpent: TimeInterval = 0
 
     // MARK: - Init
@@ -133,7 +137,7 @@ class SubmissionViewModel: ObservableObject {
         } catch let recognitionError as RecognitionError {
             handleRecognitionFailure(recognitionError)
         } catch {
-            self.error = "Erreur lors de l'envoi: \(error.localizedDescription)"
+            self.error = LocalizationManager.shared.format("Erreur lors de l'envoi : %@", error.localizedDescription)
             self.showError = true
             // Fallback: go to verification with empty steps
             self.recognizedSteps = []
@@ -148,7 +152,7 @@ class SubmissionViewModel: ObservableObject {
         guard let imagePath = pngURL else {
             // No PNG was ever uploaded — caller should send the student back
             // to the canvas instead of staying on this screen.
-            self.error = "Aucun dessin à reconnaître. Veuillez retourner au dessin."
+            self.error = "Aucun dessin à reconnaître. Veuillez retourner au dessin.".tr
             self.showError = true
             return
         }
@@ -160,7 +164,7 @@ class SubmissionViewModel: ObservableObject {
         } catch let recognitionError as RecognitionError {
             handleRecognitionFailure(recognitionError)
         } catch {
-            self.error = "Erreur lors de la reconnaissance: \(error.localizedDescription)"
+            self.error = LocalizationManager.shared.format("Erreur lors de la reconnaissance : %@", error.localizedDescription)
             self.showError = true
             self.phase = .verifying
         }
@@ -199,17 +203,27 @@ class SubmissionViewModel: ObservableObject {
         recognizedSteps = confirmedSteps
 
         do {
-            // Create submission in Firestore
-            let submissionID = try await studentViewModel.createSubmission(
-                latexSteps: confirmedSteps,
-                inkDataRef: nil,
-                pngURL: pngURL,
-                timeSpent: timeSpent,
-                attemptNumber: currentAttempt
-            )
+            // Create submission in Firestore, unless the last try with these
+            // exact steps already created one that never got graded.
+            let submissionID: String
+            if let pending = ungradedSubmission,
+               pending.steps == confirmedSteps,
+               pending.attempt == currentAttempt {
+                submissionID = pending.id
+            } else {
+                submissionID = try await studentViewModel.createSubmission(
+                    latexSteps: confirmedSteps,
+                    inkDataRef: nil,
+                    pngURL: pngURL,
+                    timeSpent: timeSpent,
+                    attemptNumber: currentAttempt
+                )
+                ungradedSubmission = (submissionID, confirmedSteps, currentAttempt)
+            }
 
             // In evaluation mode, no correction — just mark as submitted
             if assignmentMode == .evaluation {
+                ungradedSubmission = nil
                 self.finalResult = nil
                 self.correctionResult = nil
                 self.phase = .feedback
@@ -228,6 +242,7 @@ class SubmissionViewModel: ObservableObject {
                 notationStrict: studentViewModel.notationStrict
             )
 
+            ungradedSubmission = nil
             self.correctionResult = correction
             self.finalResult = result
 
@@ -264,7 +279,7 @@ class SubmissionViewModel: ObservableObject {
 
             self.phase = .feedback
         } catch {
-            self.error = "Erreur lors de la soumission: \(error.localizedDescription)"
+            self.error = LocalizationManager.shared.format("Erreur lors de la soumission : %@", error.localizedDescription)
             self.showError = true
             self.phase = .verifying
         }

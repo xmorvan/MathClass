@@ -24,9 +24,9 @@ enum AssignmentMode: String, Codable, Hashable, CaseIterable {
     /// Localized display name (French)
     var displayName: String {
         switch self {
-        case .differentiation: return String(localized: "Différenciation")
-        case .levels: return String(localized: "Niveaux progressifs")
-        case .evaluation: return String(localized: "Évaluation")
+        case .differentiation: return "Différenciation".tr
+        case .levels: return "Niveaux progressifs".tr
+        case .evaluation: return "Évaluation".tr
         }
     }
 

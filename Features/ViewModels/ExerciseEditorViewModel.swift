@@ -125,7 +125,7 @@ class ExerciseEditorViewModel: ObservableObject {
                 creationMethod = .image
                 isDirty = true
             } catch {
-                extractionError = "Impossible de charger l'image: \(error.localizedDescription)"
+                extractionError = LocalizationManager.shared.format("Impossible de charger l'image : %@", error.localizedDescription)
             }
         }
     }
@@ -134,7 +134,7 @@ class ExerciseEditorViewModel: ObservableObject {
     /// Extract LaTeX from the imported image using the Cloud Function.
     func extractFromImage() async {
         guard let imageData = importedImageData else {
-            extractionError = "Aucune image sélectionnée."
+            extractionError = "Aucune image sélectionnée.".tr
             return
         }
 
@@ -153,7 +153,7 @@ class ExerciseEditorViewModel: ObservableObject {
             self.creationMethod = .image
             self.isDirty = true
         } catch {
-            extractionError = "Erreur d'extraction: \(error.localizedDescription)"
+            extractionError = LocalizationManager.shared.format("Erreur d'extraction : %@", error.localizedDescription)
         }
 
         isExtracting = false
@@ -196,7 +196,7 @@ class ExerciseEditorViewModel: ObservableObject {
             isSaving = false
             return true
         } catch {
-            saveError = "Échec de la sauvegarde: \(error.localizedDescription)"
+            saveError = LocalizationManager.shared.format("Échec de la sauvegarde : %@", error.localizedDescription)
             showSaveError = true
             isSaving = false
             return false

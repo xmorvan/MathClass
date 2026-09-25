@@ -63,7 +63,7 @@ final class TeacherSignUpViewModel: ObservableObject {
                 }
             }
         } catch {
-            self.errorMessage = "Erreur : \(error.localizedDescription)\nVérifiez votre connexion Internet et réessayez."
+            self.errorMessage = LocalizationManager.shared.format("Erreur : %@\nVérifiez votre connexion Internet et réessayez.", error.localizedDescription)
             self.showError = true
         }
     }

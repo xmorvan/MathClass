@@ -42,7 +42,7 @@ class TeacherProfileViewModel: ObservableObject {
             email = teacher.email
             createdAt = teacher.createdAt
         } catch {
-            self.error = "Impossible de charger le profil."
+            self.error = "Impossible de charger le profil.".tr
         }
 
         isLoading = false
@@ -54,7 +54,7 @@ class TeacherProfileViewModel: ObservableObject {
         guard let teacherID else { return }
         guard !firstName.trimmingCharacters(in: .whitespaces).isEmpty,
               !lastName.trimmingCharacters(in: .whitespaces).isEmpty else {
-            error = "Le prénom et le nom ne peuvent pas être vides."
+            error = "Le prénom et le nom ne peuvent pas être vides.".tr
             return
         }
 
@@ -74,7 +74,7 @@ class TeacherProfileViewModel: ObservableObject {
             try await teacherRepo.updateTeacher(teacher)
             saveSuccess = true
         } catch {
-            self.error = "Impossible de sauvegarder le profil."
+            self.error = "Impossible de sauvegarder le profil.".tr
         }
 
         isSaving = false
@@ -95,7 +95,7 @@ class TeacherProfileViewModel: ObservableObject {
             try await DemoSeedService.shared.seed(teacherID: teacherID)
             demoMessage = "Classe de démo prête."
         } catch {
-            self.error = "Démo : \(error.localizedDescription)"
+            self.error = LocalizationManager.shared.format("Démo : %@", error.localizedDescription)
         }
         isWorkingOnDemo = false
     }
@@ -110,7 +110,7 @@ class TeacherProfileViewModel: ObservableObject {
             try await DemoSeedService.shared.reset(teacherID: teacherID)
             demoMessage = "Données de démo supprimées."
         } catch {
-            self.error = "Réinitialisation de la démo : \(error.localizedDescription)"
+            self.error = LocalizationManager.shared.format("Réinitialisation de la démo : %@", error.localizedDescription)
         }
         isWorkingOnDemo = false
     }
@@ -126,7 +126,7 @@ class TeacherProfileViewModel: ObservableObject {
             try await DataDeletionService.shared.deleteAccount()
             try? AuthenticationService.shared.signOut()
         } catch {
-            self.error = "Impossible de supprimer le compte. Vérifiez la connexion et réessayez."
+            self.error = "Impossible de supprimer le compte. Vérifiez la connexion et réessayez.".tr
         }
         isDeletingAccount = false
     }

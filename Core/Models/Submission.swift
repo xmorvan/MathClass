@@ -145,9 +145,9 @@ enum SubmissionResult: String, Codable, Hashable {
     /// Localized display name (French)
     var displayName: String {
         switch self {
-        case .success1st: return String(localized: "Réussi (1er essai)")
-        case .success2nd: return String(localized: "Réussi (2e essai)")
-        case .failed: return String(localized: "Échoué")
+        case .success1st: return "Réussi (1er essai)".tr
+        case .success2nd: return "Réussi (2e essai)".tr
+        case .failed: return "Échoué".tr
         }
     }
 

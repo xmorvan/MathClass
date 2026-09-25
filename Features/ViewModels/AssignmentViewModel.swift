@@ -169,11 +169,11 @@ class AssignmentViewModel: ObservableObject {
 
     func createAssignment() async {
         guard let classID = selectedClassID else {
-            error = "Veuillez sélectionner une classe."
+            error = "Veuillez sélectionner une classe.".tr
             return
         }
         guard !selectedExercises.isEmpty else {
-            error = "Veuillez ajouter au moins un exercice."
+            error = "Veuillez ajouter au moins un exercice.".tr
             return
         }
 
