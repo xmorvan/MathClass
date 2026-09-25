@@ -269,6 +269,11 @@ class StudentViewModel: ObservableObject {
         selectedAssignment?.mode
     }
 
+    /// Every submission of this student in the current assignment.
+    var assignmentSubmissions: [Submission] {
+        submissionRepo.submissions
+    }
+
     /// Get existing submissions for a specific exercise.
     func existingSubmissions(for exerciseID: String) -> [Submission] {
         submissionRepo.submissions.filter { $0.exerciseID == exerciseID }

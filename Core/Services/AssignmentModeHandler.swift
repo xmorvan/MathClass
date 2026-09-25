@@ -113,10 +113,14 @@ final class AssignmentModeHandler {
         newResult: SubmissionResult,
         attemptNumber: Int
     ) -> LevelProgress {
-        // Count consecutive first-attempt successes from the existing submissions
-        var consecutive = countConsecutiveFirstAttemptSuccesses(from: existingSubmissions)
+        // Replay the history with the same rule used for level-ups (every 3
+        // first-attempt successes in a row = +1 level, then the streak
+        // restarts), then apply the new result. `existingSubmissions` must
+        // not contain the submission being graded.
+        let history = replay(existingSubmissions)
+        let currentLevel = history.level
+        var consecutive = history.consecutive
 
-        // Apply the new result
         switch newResult {
         case .success1st:
             consecutive += 1
@@ -127,16 +131,9 @@ final class AssignmentModeHandler {
             consecutive = 0
         }
 
-        // Determine current level based on the exercises completed
-        // For simplicity, we track advancement threshold: every 3 consecutive = +1 level
-        let currentLevel = computeCurrentLevel(from: existingSubmissions)
         var didAdvance = false
-
         if consecutive >= 3 {
-            // Advance to next level
-            let newLevel = min(currentLevel + 1, 5)
-            didAdvance = newLevel > currentLevel
-            // Reset counter after advancement
+            didAdvance = currentLevel < 5
             consecutive = 0
         }
 
@@ -147,34 +144,14 @@ final class AssignmentModeHandler {
         )
     }
 
-    /// Count the trailing consecutive first-attempt successes in a sorted submission list.
-    private func countConsecutiveFirstAttemptSuccesses(from submissions: [Submission]) -> Int {
-        // Look at the most recent submissions (attempt 1 only) in reverse
-        let firstAttempts = submissions
-            .filter { $0.attemptNumber == 1 && $0.finalResult != nil }
-            .sorted { $0.timestamp < $1.timestamp }
-
-        var count = 0
-        for submission in firstAttempts.reversed() {
-            if submission.finalResult == .success1st {
-                count += 1
-            } else {
-                break
-            }
-        }
-        return count
-    }
-
-    /// Compute the current difficulty level based on submission history.
-    private func computeCurrentLevel(from submissions: [Submission]) -> Int {
-        // Count total level-ups: every 3 consecutive first-attempt successes = +1
+    /// Level and current streak implied by a submission history.
+    private func replay(_ submissions: [Submission]) -> (level: Int, consecutive: Int) {
         let firstAttempts = submissions
             .filter { $0.attemptNumber == 1 && $0.finalResult != nil }
             .sorted { $0.timestamp < $1.timestamp }
 
         var level = 1
         var consecutive = 0
-
         for submission in firstAttempts {
             if submission.finalResult == .success1st {
                 consecutive += 1
@@ -186,8 +163,7 @@ final class AssignmentModeHandler {
                 consecutive = 0
             }
         }
-
-        return level
+        return (level, consecutive)
     }
 
     // MARK: - Feedback Configuration

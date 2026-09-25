@@ -247,8 +247,12 @@ class SubmissionViewModel: ObservableObject {
             self.finalResult = result
 
             // Compute level progression for levels mode
-            if assignmentMode == .levels, let exerciseID = exercise.id {
-                let existingSubmissions = studentViewModel.existingSubmissions(for: exerciseID)
+            if assignmentMode == .levels, exercise.id != nil {
+                // The streak runs across the whole assignment, and must not
+                // count the submission just graded (it is already in the
+                // listener's snapshot): that double-counted every success.
+                let existingSubmissions = studentViewModel.assignmentSubmissions
+                    .filter { $0.id != submissionID }
                 let progress = modeHandler.computeLevelProgress(
                     existingSubmissions: existingSubmissions,
                     newResult: result,

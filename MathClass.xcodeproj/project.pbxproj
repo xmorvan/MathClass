@@ -28,6 +28,7 @@
 		885818547EE2C7002DF4783B /* NotationNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */; };
 		C4209DE4BF061D19BAFE9310 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F585CD5D7367CE0A93F27840 /* Foundation.framework */; };
 		CE598BABC872D7083495E684 /* StatisticsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D856D2E7255FFE5CBF2BBA2A /* StatisticsServiceTests.swift */; };
+		FED3A80786246A5A7069403B /* LevelProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56C5FD2365DC0D015C91A31 /* LevelProgressTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +51,7 @@
 		19676AFA2D4A8C6000AB6204 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		52AEE589E10C49B3558DB789 /* StudentImportParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StudentImportParserTests.swift; sourceTree = "<group>"; };
 		A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotationNoteTests.swift; sourceTree = "<group>"; };
+		D56C5FD2365DC0D015C91A31 /* LevelProgressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LevelProgressTests.swift; sourceTree = "<group>"; };
 		D856D2E7255FFE5CBF2BBA2A /* StatisticsServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatisticsServiceTests.swift; sourceTree = "<group>"; };
 		EF104AEB856D2BAED5FD213A /* MathClassTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MathClassTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F585CD5D7367CE0A93F27840 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -253,6 +255,7 @@
 				A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */,
 				D856D2E7255FFE5CBF2BBA2A /* StatisticsServiceTests.swift */,
 				52AEE589E10C49B3558DB789 /* StudentImportParserTests.swift */,
+				D56C5FD2365DC0D015C91A31 /* LevelProgressTests.swift */,
 			);
 			name = MathClassTests;
 			path = MathClassTests;
@@ -420,6 +423,7 @@
 				885818547EE2C7002DF4783B /* NotationNoteTests.swift in Sources */,
 				CE598BABC872D7083495E684 /* StatisticsServiceTests.swift in Sources */,
 				04E29481F7D5F71915BEA171 /* StudentImportParserTests.swift in Sources */,
+				FED3A80786246A5A7069403B /* LevelProgressTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
