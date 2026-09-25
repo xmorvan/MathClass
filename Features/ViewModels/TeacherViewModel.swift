@@ -312,6 +312,42 @@ class TeacherViewModel: ObservableObject {
         try await DataDeletionService.shared.deleteClass(id: id)
     }
 
+    // MARK: - Live: extra exercise for one student
+
+    enum PushExerciseError: LocalizedError {
+        case noActiveAssignment
+        var errorDescription: String? {
+            "Aucun devoir actif dans cette classe : créez ou activez un devoir pour envoyer un exercice.".tr
+        }
+    }
+
+    /// Send one more exercise to a student during the lesson. It is added to
+    /// the class's active assignment — the one the student is working on
+    /// when there is one — targeted at that student only, after the existing
+    /// exercises. (The student app reads assignments; pushing into a
+    /// Period/Session, as before, wrote data no student ever saw.)
+    func pushExercise(_ exerciseID: String, to studentID: String, classID: String) async throws {
+        let active = assignmentRepo.assignments
+            .filter { $0.classID == classID && $0.isActive }
+            .sorted { $0.createdAt > $1.createdAt }
+        let working = submissionRepo.submissions
+            .filter { $0.studentID == studentID && $0.classID == classID }
+            .sorted { $0.timestamp > $1.timestamp }
+            .compactMap { submission in active.first { $0.id == submission.assignmentID } }
+            .first
+        guard let assignment = working ?? active.first, let assignmentID = assignment.id else {
+            throw PushExerciseError.noActiveAssignment
+        }
+        let existing = try await assignmentRepo.getAssignmentExercises(assignmentID: assignmentID)
+        let extra = AssignmentExercise(
+            assignmentID: assignmentID,
+            exerciseID: exerciseID,
+            order: (existing.map(\.order).max() ?? 0) + 1,
+            targetStudentIDs: [studentID]
+        )
+        _ = try await assignmentRepo.addExerciseToAssignment(extra, assignmentID: assignmentID)
+    }
+
     // MARK: - Student Management
 
     func addStudent(firstName: String, lastName: String, classID: String, level: Int? = nil) async throws {

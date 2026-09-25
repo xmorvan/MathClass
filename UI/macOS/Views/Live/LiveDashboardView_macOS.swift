@@ -15,6 +15,7 @@ struct LiveDashboardView_macOS: View {
     @ObservedObject var viewModel: TeacherViewModel
     @State private var selectedClassID: String?
     @State private var showCreatePeriod: Bool = false
+    @State private var pushMessage: String?
 
     private var activeClassID: String? {
         selectedClassID ?? viewModel.classes.first?.id
@@ -56,6 +57,12 @@ struct LiveDashboardView_macOS: View {
                         }
                     }
                     .padding()
+        .alert(
+            pushMessage ?? "",
+            isPresented: Binding(get: { pushMessage != nil }, set: { if !$0 { pushMessage = nil } })
+        ) {
+            Button("OK".tr, role: .cancel) { pushMessage = nil }
+        }
                 }
             }
         }
@@ -153,20 +160,13 @@ struct LiveDashboardView_macOS: View {
     }
 
     private func pushExercise(_ exerciseID: String, to student: Student) {
-        guard let studentID = student.id,
-              let period = activePeriod, let periodID = period.id,
-              let session = activeSession, let sessionID = session.id
-        else { return }
+        guard let studentID = student.id, let classID = activeClassID else { return }
         Task {
             do {
-                try await viewModel.sessionRepo.appendExercises(
-                    exerciseIDs: [exerciseID],
-                    forStudentID: studentID,
-                    periodID: periodID,
-                    sessionID: sessionID
-                )
+                try await viewModel.pushExercise(exerciseID, to: studentID, classID: classID)
+                pushMessage = LocalizationManager.shared.format("Exercice envoyé à %@.", student.firstName)
             } catch {
-                print("Erreur push-more: \((error as NSError).code)")
+                pushMessage = error.localizedDescription
             }
         }
     }
