@@ -16,6 +16,9 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Désactiver": "Deactivate",
+        "Activer": "Activate",
+        "Actif": "Active",
         "Marquer réussi": "Mark as passed",
         "Marquer échoué": "Mark as failed",
         "Modifier la note": "Change grade",

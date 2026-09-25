@@ -92,7 +92,7 @@ struct ImageImportPanel_macOS: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            Text("ou")
+            Text("ou".tr)
                 .foregroundColor(.secondary)
 
             Button("Sélectionner un fichier".tr) {

@@ -206,7 +206,7 @@ struct AssignmentListView_macOS: View {
                 Task { await assignmentVM.toggleActive(assignment) }
             } label: {
                 Label(
-                    assignment.isActive ? "Désactiver" : "Activer",
+                    assignment.isActive ? "Désactiver".tr : "Activer".tr,
                     systemImage: assignment.isActive ? "pause.circle" : "play.circle"
                 )
             }
@@ -280,7 +280,7 @@ struct AssignmentDetailView_macOS: View {
             Circle()
                 .fill(assignment.isActive ? Color.green : Color.gray)
                 .frame(width: 8, height: 8)
-            Text(assignment.isActive ? "Actif" : "Terminé")
+            Text(assignment.isActive ? "Actif".tr : "Terminé".tr)
                 .font(.caption)
                 .foregroundColor(assignment.isActive ? .green : .secondary)
         }

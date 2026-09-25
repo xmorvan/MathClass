@@ -172,7 +172,7 @@ struct AssignmentListView_iOS: View {
                 Task { await assignmentVM.toggleActive(assignment) }
             } label: {
                 Label(
-                    assignment.isActive ? "Désactiver" : "Activer",
+                    assignment.isActive ? "Désactiver".tr : "Activer".tr,
                     systemImage: assignment.isActive ? "pause.circle" : "play.circle"
                 )
             }
@@ -209,7 +209,7 @@ struct AssignmentDetailView_iOS: View {
                 HStack {
                     Text("Statut".tr)
                     Spacer()
-                    Text(assignment.isActive ? "Actif" : "Terminé")
+                    Text(assignment.isActive ? "Actif".tr : "Terminé".tr)
                         .foregroundColor(assignment.isActive ? .green : .secondary)
                 }
 
