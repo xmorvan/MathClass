@@ -79,8 +79,13 @@ def delete_student_data_handler(req: https_fn.CallableRequest) -> dict:
         )
 
     deleted_submissions = 0
+    # Scoped to this class: student IDs are only unique within a class (the
+    # demo roster reuses "demo-stu-N" for every teacher).
     submissions_query = (
-        db.collection("submissions").where("studentID", "==", student_id).stream()
+        db.collection("submissions")
+        .where("classID", "==", class_id)
+        .where("studentID", "==", student_id)
+        .stream()
     )
     for sub in submissions_query:
         sub.reference.delete()
@@ -96,9 +101,12 @@ def delete_student_data_handler(req: https_fn.CallableRequest) -> dict:
     # Storage prefix.
     deleted_blobs = 0
     bucket = storage.bucket()
-    for blob in bucket.list_blobs(prefix=f"submissions/{student_id}/"):
-        blob.delete()
-        deleted_blobs += 1
+    # Drawings live under submissions/{classID}/{studentID}/ (the pre-2026-09
+    # layout was submissions/{studentID}/, kept for old uploads).
+    for prefix in (f"submissions/{class_id}/{student_id}/", f"submissions/{student_id}/"):
+        for blob in bucket.list_blobs(prefix=prefix):
+            blob.delete()
+            deleted_blobs += 1
 
     # Revoke any anonymous Firebase Auth UID that had this student's claim.
     # Best-effort — we don't know the UID directly, only the linked claim,

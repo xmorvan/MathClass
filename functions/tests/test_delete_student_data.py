@@ -72,6 +72,8 @@ def _build_db(
     submissions_query.stream.return_value = iter(submission_docs)
     submissions_collection = MagicMock(name="submissions_collection")
     submissions_collection.where.return_value = submissions_query
+    # The handler chains .where(classID).where(studentID).
+    submissions_query.where.return_value = submissions_query
 
     db = MagicMock(name="db")
 
@@ -91,7 +93,9 @@ def _build_db(
 def _build_bucket(prefix_blob_count: int) -> tuple[MagicMock, list[MagicMock]]:
     blobs = [MagicMock(name=f"blob_{i}") for i in range(prefix_blob_count)]
     bucket = MagicMock(name="bucket")
-    bucket.list_blobs.return_value = blobs
+    # Blobs sit under the current submissions/{classID}/{studentID}/ layout;
+    # the legacy submissions/{studentID}/ prefix is empty.
+    bucket.list_blobs.side_effect = lambda prefix: blobs if prefix.count("/") == 3 else []
     return bucket, blobs
 
 
@@ -225,3 +229,27 @@ def test_unknown_student_returns_not_found(monkeypatch):
             "studentID": "ghost",
         }))
     assert exc.value.code == https_fn.FunctionsErrorCode.NOT_FOUND
+
+
+def test_submissions_are_scoped_to_the_class(monkeypatch):
+    """Demo student IDs repeat across teachers: the query must filter on
+    classID as well as studentID, and storage uses the class prefix."""
+    db, _, _, _ = _build_db(
+        class_data={"teacherID": "teacher-uid"},
+        student_exists=True,
+        submission_ids=["s1"],
+        progress_ids=[],
+    )
+    bucket, _ = _build_bucket(prefix_blob_count=1)
+    monkeypatch.setattr(sys.modules["firebase_admin.firestore"], "client", lambda: db)
+    monkeypatch.setattr(sys.modules["firebase_admin.storage"], "bucket", lambda: bucket)
+
+    dsd.delete_student_data_handler(_fake_request({"classID": "cls1", "studentID": "stu1"}))
+
+    submissions = db.collection("submissions")
+    first_filter = submissions.where.call_args.args
+    second_filter = submissions.where.return_value.where.call_args.args
+    assert first_filter == ("classID", "==", "cls1")
+    assert second_filter == ("studentID", "==", "stu1")
+    prefixes = [c.kwargs.get("prefix") or c.args[0] for c in bucket.list_blobs.call_args_list]
+    assert "submissions/cls1/stu1/" in prefixes

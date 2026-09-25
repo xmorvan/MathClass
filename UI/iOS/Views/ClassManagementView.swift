@@ -13,6 +13,8 @@ struct ClassManagementView: View {
     @State private var showingAddClass = false
     @State private var selectedClassID: String?
 
+    @State private var classToDelete: ClassRoom?
+
     var body: some View {
         List {
             ForEach(viewModel.classes) { classRoom in
@@ -27,6 +29,13 @@ struct ClassManagementView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        classToDelete = classRoom
+                    } label: {
+                        Label("Supprimer".tr, systemImage: "trash")
+                    }
+                }
             }
         }
         .toolbar {
@@ -38,6 +47,20 @@ struct ClassManagementView: View {
         }
         .sheet(isPresented: $showingAddClass) {
             AddClassView(viewModel: viewModel)
+        }
+        .alert(
+            "Supprimer la classe ?".tr,
+            isPresented: Binding(get: { classToDelete != nil }, set: { if !$0 { classToDelete = nil } })
+        ) {
+            Button("Annuler".tr, role: .cancel) { classToDelete = nil }
+            Button("Supprimer".tr, role: .destructive) {
+                if let id = classToDelete?.id {
+                    Task { try? await viewModel.deleteClass(id: id) }
+                }
+                classToDelete = nil
+            }
+        } message: {
+            Text("La classe, ses élèves, leurs copies et leurs dessins seront définitivement supprimés.".tr)
         }
     }
 
@@ -56,6 +79,8 @@ private struct ClassDetailView_iOS: View {
     @ObservedObject var viewModel: TeacherViewModel
 
     @State private var notationStrict: Bool
+    @State private var showingAddStudent: Bool = false
+    @State private var studentToDelete: Student?
     @State private var isSaving: Bool = false
     @State private var saveError: String?
 
@@ -75,6 +100,16 @@ private struct ClassDetailView_iOS: View {
                         Text(classRoom.classCode)
                             .foregroundColor(.blue)
                             .bold()
+                    }
+                    // QR code to show the class, e.g. on the projector.
+                    if let data = ClassCodeService.generateQRCode(from: classRoom.classCode),
+                       let image = UIImage(data: data) {
+                        Image(uiImage: image)
+                            .interpolation(.none)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 160, height: 160)
+                            .frame(maxWidth: .infinity)
                     }
                 }
 
@@ -98,10 +133,43 @@ private struct ClassDetailView_iOS: View {
                 Section(header: Text("Élèves (\(viewModel.studentsInClass(classID).count))")) {
                     ForEach(viewModel.studentsInClass(classID)) { student in
                         StudentRow(student: student)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    studentToDelete = student
+                                } label: {
+                                    Label("Supprimer".tr, systemImage: "trash")
+                                }
+                            }
                     }
                 }
             }
             .navigationTitle(classRoom.name)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingAddStudent = true
+                    } label: {
+                        Label("Ajouter un élève".tr, systemImage: "person.badge.plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddStudent) {
+                AddStudentView(viewModel: viewModel, classID: classID)
+            }
+            .alert(
+                "Supprimer l'élève ?".tr,
+                isPresented: Binding(get: { studentToDelete != nil }, set: { if !$0 { studentToDelete = nil } })
+            ) {
+                Button("Annuler".tr, role: .cancel) { studentToDelete = nil }
+                Button("Supprimer".tr, role: .destructive) {
+                    if let id = studentToDelete?.id {
+                        Task { try? await viewModel.deleteStudent(id: id, classID: classID) }
+                    }
+                    studentToDelete = nil
+                }
+            } message: {
+                Text("L'élève, ses copies et ses dessins seront définitivement supprimés.".tr)
+            }
             .onAppear {
                 viewModel.selectClass(classID)
             }

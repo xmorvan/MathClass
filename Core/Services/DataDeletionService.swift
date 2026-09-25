@@ -2,7 +2,8 @@
 //  DataDeletionService.swift
 //  MathClass
 //
-//  Cascade deletions run server-side (`delete_class`, `delete_account`
+//  Cascade deletions run server-side (`delete_class`, `delete_student_data`,
+//  `delete_account`
 //  Cloud Functions): Firestore does not delete subcollections, and the
 //  security rules don't let a client wipe a class's submissions or images.
 //
@@ -21,6 +22,13 @@ final class DataDeletionService {
     /// chapters, assignments, periods, submissions and handwriting images.
     func deleteClass(id: String) async throws {
         _ = try await functions.httpsCallable("delete_class").call(["classID": id])
+    }
+
+    /// Erase one student: their roster entry, every submission and
+    /// handwriting image, and their level progress (right to erasure).
+    func deleteStudent(id: String, classID: String) async throws {
+        _ = try await functions.httpsCallable("delete_student_data")
+            .call(["classID": classID, "studentID": id])
     }
 
     /// Delete the current teacher's account and all their data. The caller

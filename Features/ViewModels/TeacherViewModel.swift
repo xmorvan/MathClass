@@ -324,8 +324,10 @@ class TeacherViewModel: ObservableObject {
         try await studentRepo.updateStudent(student, classID: classID)
     }
 
+    /// Erases the student and all their work (server-side cascade). Deleting
+    /// only the roster doc used to leave their submissions and drawings.
     func deleteStudent(id: String, classID: String) async throws {
-        try await studentRepo.deleteStudent(id: id, classID: classID)
+        try await DataDeletionService.shared.deleteStudent(id: id, classID: classID)
     }
 
     /// Reset a student's device so they can re-link from a different iPad.
