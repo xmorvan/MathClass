@@ -13,7 +13,6 @@ struct ClassDetailView_macOS: View {
     let classRoom: ClassRoom
 
     @State private var showingAddStudent = false
-    @State private var showingEditStudent = false
     @State private var showingDeleteConfirmation = false
     @State private var studentToEdit: Student?
     @State private var studentToDelete: Student?
@@ -50,10 +49,8 @@ struct ClassDetailView_macOS: View {
                 AddStudentView_macOS(viewModel: viewModel, classID: classID)
             }
         }
-        .sheet(isPresented: $showingEditStudent) {
-            if let student = studentToEdit {
+        .sheet(item: $studentToEdit) { student in
                 EditStudentView_macOS(viewModel: viewModel, student: student)
-            }
         }
         .alert("Supprimer l'élève".tr, isPresented: $showingDeleteConfirmation) {
             Button("Annuler".tr, role: .cancel) { }
@@ -154,7 +151,6 @@ struct ClassDetailView_macOS: View {
                         HStack(spacing: 8) {
                             Button("Éditer".tr) {
                                 studentToEdit = student
-                                showingEditStudent = true
                             }
                             .buttonStyle(BorderlessButtonStyle())
 

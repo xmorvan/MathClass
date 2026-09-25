@@ -75,7 +75,7 @@ struct EditStudentView_macOS: View {
             }
         }
         .padding()
-        .frame(width: 320, height: 240)
+        .frame(width: 480, height: 280)
         .alert("Erreur".tr, isPresented: $showError) {
             Button("OK".tr, role: .cancel) { }
         } message: {

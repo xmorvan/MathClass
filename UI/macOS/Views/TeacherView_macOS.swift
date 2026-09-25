@@ -171,6 +171,7 @@ struct ExerciseListView_macOS: View {
                     }
                 }
             }
+            .frame(minWidth: 240, idealWidth: 320, maxWidth: 420)
 
             // Right: exercise detail with KaTeX preview
             if let exerciseID = selectedExerciseID,

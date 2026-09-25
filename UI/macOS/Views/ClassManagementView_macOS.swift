@@ -57,12 +57,16 @@ struct ClassManagementView_macOS: View {
                 }
                 .padding()
             }
+            // Without bounds the list took most of the window and squeezed
+            // the class detail into a sliver (text wrapped letter by letter).
+            .frame(minWidth: 220, idealWidth: 280, maxWidth: 360)
 
             // MARK: - Detail
             if let classID = selectedClassID,
                let classRoom = viewModel.classes.first(where: { $0.id == classID }) {
                 ClassDetailView_macOS(viewModel: viewModel, classRoom: classRoom)
                     .id(classID)
+                    .frame(minWidth: 480, maxWidth: .infinity)
             } else {
                 Text("Sélectionnez une classe".tr)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

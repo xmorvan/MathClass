@@ -11,8 +11,6 @@ import SwiftUI
 struct ClassStudentsView_macOS: View {
     @ObservedObject var viewModel: TeacherViewModel
     let classID: String
-
-    @State private var showingEditStudent = false
     @State private var showingDeleteConfirmation = false
     @State private var studentToEdit: Student?
     @State private var studentToDelete: Student?
@@ -26,7 +24,6 @@ struct ClassStudentsView_macOS: View {
                         Spacer()
                         Button("Éditer".tr) {
                             studentToEdit = student
-                            showingEditStudent = true
                         }
                         .buttonStyle(BorderlessButtonStyle())
 
@@ -43,10 +40,8 @@ struct ClassStudentsView_macOS: View {
             }
             .listStyle(PlainListStyle())
         }
-        .sheet(isPresented: $showingEditStudent) {
-            if let student = studentToEdit {
+        .sheet(item: $studentToEdit) { student in
                 EditStudentView_macOS(viewModel: viewModel, student: student)
-            }
         }
         .alert("Supprimer l'élève".tr, isPresented: $showingDeleteConfirmation) {
             Button("Annuler".tr, role: .cancel) { }
