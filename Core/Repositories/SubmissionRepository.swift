@@ -196,6 +196,16 @@ class SubmissionRepository: ObservableObject {
     }
 
     /// Update a submission (e.g., after correction results arrive).
+    /// Teacher override of the automatic grade. The rules let the class's
+    /// teacher update their submissions; the per-step marks are kept.
+    func overrideResult(submissionID: String, result: SubmissionResult) async throws {
+        try await firebase.updateFields(
+            ["finalResult": result.rawValue, "gradedByTeacher": true],
+            in: collectionPath,
+            documentID: submissionID
+        )
+    }
+
     func updateSubmission(_ submission: Submission) async throws {
         guard let id = submission.id else { return }
         try await firebase.updateDocument(submission, in: collectionPath, documentID: id)

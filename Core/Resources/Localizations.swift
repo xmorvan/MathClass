@@ -16,6 +16,11 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Marquer réussi": "Mark as passed",
+        "Marquer échoué": "Mark as failed",
+        "Modifier la note": "Change grade",
+        "Note modifiée par l'enseignant": "Grade changed by the teacher",
+        "Modification impossible. Vérifiez la connexion.": "Could not change it. Check the connection.",
         "Écriture difficile à lire (confiance %@ %%). Vérifiez bien chaque étape, ou réécrivez plus lisiblement.": "Handwriting hard to read (confidence %@ %%). Check each step carefully, or write more clearly.",
         "Pas encore": "Not yet",
         "Une étape est à revoir.\nCorrigez-la et réessayez : vous avez une deuxième chance.": "One step needs another look.\nFix it and try again: you have a second chance.",

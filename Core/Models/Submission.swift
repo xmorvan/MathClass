@@ -33,6 +33,9 @@ struct Submission: Identifiable, Codable {
     var correctionResult: CorrectionResult?
     /// The final outcome of this submission
     var finalResult: SubmissionResult?
+    /// True once the teacher has set `finalResult` by hand, overriding the
+    /// automatic correction.
+    var gradedByTeacher: Bool?
     /// Time the student spent on this exercise, in seconds
     var timeSpent: TimeInterval
     /// When the submission was created

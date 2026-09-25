@@ -45,7 +45,10 @@ struct SubmissionDetailView_macOS: View {
                     .font(.title2)
                     .bold()
                 Spacer()
-                resultChip
+                VStack(alignment: .trailing, spacing: 6) {
+                    resultChip
+                    GradeOverrideMenu(submission: submission, repository: viewModel.submissionRepo)
+                }
             }
             HStack(spacing: 12) {
                 Label(exercise?.title ?? "Exercice inconnu", systemImage: "book")
