@@ -157,3 +157,57 @@ test("teacher sees the graded submission and the drawing", async () => {
   const bytes = await getBytes(ref(storage, state.pngPath));
   assert.equal(bytes.byteLength, PNG.byteLength);
 });
+
+// ── Teacher with many classes: the app's cross-class queries ──────────
+
+test("cross-class assignment and period queries work for a teacher with 12 classes", async () => {
+  const { db } = state.teacher;
+  const classIDs = [state.classID];
+  for (let i = 0; i < 11; i++) {
+    const id = `${state.classID}-extra-${i}`;
+    await setDoc(doc(db, "classes", id), {
+      name: `Classe ${i}`, classCode: `MX-X${String(i).padStart(3, "0")}`,
+      teacherID: state.teacherID, notationStrict: true,
+    });
+    classIDs.push(id);
+  }
+  for (const id of classIDs) {
+    await setDoc(doc(db, "assignments", `asg-${id}`), { classID: id, title: "Devoir", isActive: true });
+    await setDoc(doc(db, "periods", `per-${id}`), { classID: id, name: "Séance", isActive: true });
+  }
+  // AssignmentRepository.startListeningAcrossClasses / PeriodRepository:
+  // `whereField("classID", in: chunk)` with chunks of up to 30.
+  const assignments = await getDocs(query(collection(db, "assignments"), where("classID", "in", classIDs)));
+  assert.equal(assignments.size, classIDs.length);
+  const periods = await getDocs(query(collection(db, "periods"), where("classID", "in", classIDs)));
+  assert.equal(periods.size, classIDs.length);
+  state.extraClassIDs = classIDs.slice(1);
+});
+
+test("teacher creates a group; student reads it and saves level progress", async () => {
+  const groupRef = doc(collection(state.teacher.db, "classes", state.classID, "groups"));
+  await setDoc(groupRef, { name: "Groupe A", classID: state.classID, studentIDs: [state.studentID] });
+  const groups = await getDocs(collection(state.student.db, "classes", state.classID, "groups"));
+  assert.equal(groups.size, 1);
+  await setDoc(
+    doc(state.student.db, "classes", state.classID, "students", state.studentID, "levelProgress", `asg-${state.classID}`),
+    { consecutiveCorrect: 1, currentLevel: 3 },
+  );
+});
+
+test("student cannot read classmates or other classes", async () => {
+  const { db } = state.student;
+  await assert.rejects(getDocs(collection(db, "classes", state.classID, "students")));
+  await assert.rejects(getDoc(doc(db, "classes", state.extraClassIDs[0])));
+});
+
+test("teacher deletes an extra class through delete_class", async () => {
+  const id = state.extraClassIDs[0];
+  await state.teacher.call("delete_class", { classID: id });
+  // Same query as ClassRepository: the teacher's own classes.
+  const remaining = await getDocs(query(
+    collection(state.teacher.db, "classes"), where("teacherID", "==", state.teacherID),
+  ));
+  assert.ok(!remaining.docs.some((d) => d.id === id));
+  assert.equal(remaining.size, state.extraClassIDs.length);
+});
