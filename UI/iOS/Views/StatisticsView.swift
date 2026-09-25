@@ -54,7 +54,9 @@ struct StatisticsView: View {
                 }
             }
         }
-        .onChange(of: selectedClassID) { _, _ in
+        .onChange(of: selectedClassID) { _, newID in
+            // Load the roster too: studentsInClass only sees the selected class.
+            if let newID { viewModel.selectClass(newID) }
             Task { await loadSubmissions() }
         }
         .onAppear {
