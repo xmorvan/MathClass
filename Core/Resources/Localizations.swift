@@ -16,6 +16,11 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Créée le %@": "Created %@",
+        "Élèves (%@)": "Students (%@)",
+        "Chapitres (%@)": "Chapters (%@)",
+        "Appareil lié": "Linked device",
+        "Actions": "Actions",
         "Erreur de signe": "Sign error",
         "Calcul": "Arithmetic",
         "Algèbre": "Algebra",
@@ -417,7 +422,7 @@ enum Localizations {
         "Supprimer le groupe": "Delete group",
         "Êtes-vous sûr de vouloir supprimer ce groupe ?": "Are you sure you want to delete this group?",
         "Aucun groupe": "No groups",
-        "Glissez les élèves vers un groupe pour les organiser.": "Drag students to a group to organize them.",
+        "Dépliez un groupe pour y ajouter ou retirer des élèves.": "Expand a group to add or remove students.",
         "Membres": "Members",
         "Sans groupe": "No group",
         "Compétences suggérées": "Suggested competencies",

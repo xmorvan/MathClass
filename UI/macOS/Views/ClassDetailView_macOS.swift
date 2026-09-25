@@ -88,7 +88,7 @@ struct ClassDetailView_macOS: View {
                 }
 
                 if let createdAt = classRoom.createdAt {
-                    Text("Créée le \(createdAt.formatted(date: .abbreviated, time: .omitted))")
+                    Text(LocalizationManager.shared.format("Créée le %@", createdAt.formatted(date: .abbreviated, time: .omitted)))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -115,7 +115,7 @@ struct ClassDetailView_macOS: View {
         let classStudents = viewModel.studentsInClass(classRoom.id ?? "")
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Élèves (\(classStudents.count))")
+                Text(LocalizationManager.shared.format("Élèves (%@)", String(classStudents.count)))
                     .font(.title2)
                     .bold()
                 Spacer()
@@ -132,13 +132,13 @@ struct ClassDetailView_macOS: View {
                     .padding()
             } else {
                 Table(classStudents) {
-                    TableColumn("Prénom") { student in
+                    TableColumn("Prénom".tr) { student in
                         Text(student.firstName)
                     }
-                    TableColumn("Nom") { student in
+                    TableColumn("Nom".tr) { student in
                         Text(student.lastName)
                     }
-                    TableColumn("Appareil lié") { student in
+                    TableColumn("Appareil lié".tr) { student in
                         if student.deviceToken != nil {
                             Image(systemName: "ipad")
                                 .foregroundColor(.green)
@@ -147,7 +147,7 @@ struct ClassDetailView_macOS: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    TableColumn("Actions") { student in
+                    TableColumn("Actions".tr) { student in
                         HStack(spacing: 8) {
                             Button("Éditer".tr) {
                                 studentToEdit = student
@@ -187,7 +187,7 @@ struct ClassDetailView_macOS: View {
                 } label: {
                     Label("Ajouter un groupe".tr, systemImage: "person.3")
                 }
-                .popover(isPresented: $showingAddGroup) {
+                .popover(isPresented: $showingAddGroup, arrowEdge: .leading) {
                     VStack(spacing: 12) {
                         Text("Ajouter un groupe".tr)
                             .font(.headline)
@@ -199,6 +199,7 @@ struct ClassDetailView_macOS: View {
                                 newGroupName = ""
                                 showingAddGroup = false
                             }
+                            .keyboardShortcut(.cancelAction)
                             Spacer()
                             Button("Ajouter".tr) {
                                 guard !newGroupName.isEmpty, !classID.isEmpty else { return }
@@ -208,13 +209,14 @@ struct ClassDetailView_macOS: View {
                                     showingAddGroup = false
                                 }
                             }
+                            .keyboardShortcut(.defaultAction)
                             .disabled(newGroupName.isEmpty)
                         }
                     }
                     .padding()
                 }
             }
-            Text("Glissez les élèves vers un groupe pour les organiser.".tr)
+            Text("Dépliez un groupe pour y ajouter ou retirer des élèves.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -256,7 +258,7 @@ struct ClassDetailView_macOS: View {
     private var chaptersSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Chapitres (\(viewModel.chapters.count))")
+                Text(LocalizationManager.shared.format("Chapitres (%@)", String(viewModel.chapters.count)))
                     .font(.title2)
                     .bold()
                 Spacer()
@@ -265,7 +267,7 @@ struct ClassDetailView_macOS: View {
                 } label: {
                     Label("Ajouter".tr, systemImage: "plus")
                 }
-                .popover(isPresented: $showingAddChapter) {
+                .popover(isPresented: $showingAddChapter, arrowEdge: .leading) {
                     VStack(spacing: 12) {
                         Text("Nouveau chapitre".tr)
                             .font(.headline)
@@ -277,6 +279,7 @@ struct ClassDetailView_macOS: View {
                                 newChapterName = ""
                                 showingAddChapter = false
                             }
+                            .keyboardShortcut(.cancelAction)
                             Spacer()
                             Button("Ajouter".tr) {
                                 if let classID = classRoom.id, !newChapterName.isEmpty {
@@ -287,6 +290,7 @@ struct ClassDetailView_macOS: View {
                                     }
                                 }
                             }
+                            .keyboardShortcut(.defaultAction)
                             .disabled(newChapterName.isEmpty)
                         }
                     }
