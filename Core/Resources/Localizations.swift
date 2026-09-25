@@ -16,6 +16,11 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Erreur de signe": "Sign error",
+        "Calcul": "Arithmetic",
+        "Algèbre": "Algebra",
+        "Notation": "Notation",
+        "Compréhension": "Understanding",
         "Exercice envoyé à %@.": "Exercise sent to %@.",
         "Aucun devoir actif dans cette classe : créez ou activez un devoir pour envoyer un exercice.": "No active assignment in this class: create or activate one to send an exercise.",
         "Exercice %@ / %@": "Exercise %@ / %@",

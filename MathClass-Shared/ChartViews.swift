@@ -112,7 +112,7 @@ struct ErrorTaxonomyChart: View {
             } else {
                 Chart(errorBreakdown, id: \.tag) { item in
                     BarMark(
-                        x: .value("Catégorie", item.tag),
+                        x: .value("Catégorie", ErrorTagLabel.text(for: item.tag)),
                         y: .value("Occurrences", item.count)
                     )
                 }
@@ -151,14 +151,14 @@ struct ErrorCoOccurrenceList: View {
             } else {
                 ForEach(Array(coOccurrence.prefix(8)), id: \.self) { edge in
                     HStack {
-                        Text(edge.from)
+                        Text(ErrorTagLabel.text(for: edge.from))
                             .font(.subheadline)
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(Color.orange.opacity(0.15))
                             .cornerRadius(6)
                         Image(systemName: "arrow.right")
                             .foregroundColor(.secondary)
-                        Text(edge.to)
+                        Text(ErrorTagLabel.text(for: edge.to))
                             .font(.subheadline)
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(Color.red.opacity(0.15))
@@ -209,8 +209,8 @@ struct ErrorCoOccurrenceHeatmap: View {
             } else {
                 Chart(edges, id: \.self) { edge in
                     RectangleMark(
-                        x: .value("Si X", edge.from),
-                        y: .value("Alors Y", edge.to)
+                        x: .value("Si X", ErrorTagLabel.text(for: edge.from)),
+                        y: .value("Alors Y", ErrorTagLabel.text(for: edge.to))
                     )
                     .foregroundStyle(by: .value("P(Y|X)", edge.conditional))
                 }
@@ -291,6 +291,23 @@ struct VsClassAverageChart: View {
                 }
                 .frame(height: 240)
             }
+        }
+    }
+}
+
+// MARK: - Error tag labels
+
+/// Readable names for the error categories returned by correct_submission
+/// (the server sends language-neutral keys such as "sign_error").
+enum ErrorTagLabel {
+    static func text(for tag: String) -> String {
+        switch tag {
+        case "sign_error": return "Erreur de signe".tr
+        case "arithmetic": return "Calcul".tr
+        case "algebra": return "Algèbre".tr
+        case "notation": return "Notation".tr
+        case "conceptual": return "Compréhension".tr
+        default: return tag.replacingOccurrences(of: "_", with: " ")
         }
     }
 }

@@ -16,7 +16,6 @@ struct StatisticsView: View {
     @State private var isLoadingStats: Bool = false
     @State private var submissions: [Submission] = []
     @State private var lastExportURL: URL?
-    @State private var showShareSheet: Bool = false
     @State private var exportError: String?
     @State private var showExportError: Bool = false
 
@@ -59,6 +58,16 @@ struct StatisticsView: View {
             if let newID { viewModel.selectClass(newID) }
             Task { await loadSubmissions() }
         }
+        // The class's assignments arrive after it is selected: reload then,
+        // otherwise a cold start showed "no data".
+        .onChange(of: viewModel.assignments.compactMap(\.id)) { _, _ in
+            Task { await loadSubmissions() }
+        }
+        .onChange(of: viewModel.classes.count) { _, _ in
+            if selectedClassID == nil, let first = viewModel.classes.first {
+                selectedClassID = first.id
+            }
+        }
         .onAppear {
             if selectedClassID == nil, let first = viewModel.classes.first {
                 selectedClassID = first.id
@@ -100,11 +109,6 @@ struct StatisticsView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .sheet(isPresented: $showShareSheet) {
-            if let url = lastExportURL {
-                ShareSheet(items: [url])
-            }
-        }
         .alert("Erreur".tr, isPresented: $showExportError) {
             Button("OK".tr, role: .cancel) {}
         } message: {
@@ -148,7 +152,7 @@ struct StatisticsView: View {
         do {
             let url = try PDFExporter.exportToPDF(view: report, fileName: title)
             lastExportURL = url
-            showShareSheet = true
+            ShareSheet.present(items: [url])
         } catch {
             exportError = error.localizedDescription
             showExportError = true
