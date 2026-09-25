@@ -148,10 +148,34 @@ class ExerciseEditorViewModel: ObservableObject {
             importedImageURL = storagePath
 
             // Call extraction service
-            let result = try await ExerciseExtractionService.shared.extractExercise(storagePath: storagePath)
+            // Send the class's competency catalogue so the AI can tag the
+            // exercise, as the iPad import does.
+            let competencyTree = teacherViewModel.chapterRepo.competencies
+            let catalog = competencyTree.values.flatMap { $0 }.compactMap { competency -> ExerciseExtractionService.CatalogEntry? in
+                guard let id = competency.id else { return nil }
+                return ExerciseExtractionService.CatalogEntry(id: id, label: competency.label)
+            }
+            let result = try await ExerciseExtractionService.shared.extractExercise(
+                storagePath: storagePath,
+                competencies: catalog
+            )
+            if !result.suggestedCompetencyIDs.isEmpty {
+                selectedCompetencyIDs.formUnion(result.suggestedCompetencyIDs)
+                if selectedChapterID == nil,
+                   let chapterID = competencyTree.first(where: { _, competencies in
+                       competencies.contains { result.suggestedCompetencyIDs.contains($0.id ?? "") }
+                   })?.key {
+                    selectedChapterID = chapterID
+                }
+            }
             self.statement = result.statement
             self.expectedAnswer = result.expectedAnswer
             self.creationMethod = .image
+            // Suggest a readable title (no LaTeX) like the iPad import does.
+            if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               let firstLine = result.statement.split(separator: "\n").first {
+                self.title = String(String(firstLine).latexPlainPreview.prefix(60))
+            }
             self.isDirty = true
         } catch {
             extractionError = LocalizationManager.shared.format("Erreur d'extraction : %@", error.localizedDescription)
