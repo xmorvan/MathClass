@@ -391,6 +391,19 @@ class TeacherViewModel: ObservableObject {
         try await exerciseRepo.updateExercise(exercise)
     }
 
+    /// Number of the teacher's assignments that include this exercise, so
+    /// deleting it can warn that students will lose it.
+    func assignmentCount(usingExercise exerciseID: String) async -> Int {
+        var count = 0
+        for assignment in assignmentRepo.teacherAssignments {
+            guard let assignmentID = assignment.id,
+                  let exercises = try? await assignmentRepo.getAssignmentExercises(assignmentID: assignmentID)
+            else { continue }
+            if exercises.contains(where: { $0.exerciseID == exerciseID }) { count += 1 }
+        }
+        return count
+    }
+
     func deleteExercise(id: String) async throws {
         try await exerciseRepo.deleteExercise(id: id)
     }

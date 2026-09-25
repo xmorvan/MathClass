@@ -147,6 +147,7 @@ struct ExerciseListView_macOS: View {
     @State private var selectedExerciseID: String?
     @State private var showingDeleteAlert = false
     @State private var exerciseToDelete: Exercise?
+    @State private var exerciseInUseCount: Int = 0
 
     var body: some View {
         HSplitView {
@@ -167,8 +168,11 @@ struct ExerciseListView_macOS: View {
                         }
 
                         Button(role: .destructive) {
-                            exerciseToDelete = exercise
-                            showingDeleteAlert = true
+                            Task {
+                                exerciseInUseCount = await viewModel.assignmentCount(usingExercise: exercise.id ?? "")
+                                exerciseToDelete = exercise
+                                showingDeleteAlert = true
+                            }
                         } label: {
                             Label("Supprimer".tr, systemImage: "trash")
                         }
@@ -257,7 +261,15 @@ struct ExerciseListView_macOS: View {
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer cet exercice ?".tr)
+            Text(deleteExerciseMessage)
         }
+    }
+
+    private var deleteExerciseMessage: String {
+        exerciseInUseCount > 0
+            ? LocalizationManager.shared.format(
+                "Cet exercice est utilisé dans %@ devoir(s) : les élèves ne le verront plus et ses copies perdront leur énoncé.",
+                String(exerciseInUseCount))
+            : "L'exercice sera retiré de votre bibliothèque.".tr
     }
 }

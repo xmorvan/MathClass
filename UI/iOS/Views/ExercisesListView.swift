@@ -14,6 +14,7 @@ struct ExercisesListView: View {
     @State private var showingAddExercise = false
     @State private var selectedExercise: Exercise?
     @State private var exerciseToDelete: Exercise?
+    @State private var exerciseInUseCount: Int = 0
 
     var body: some View {
         List {
@@ -32,7 +33,10 @@ struct ExercisesListView: View {
                                 }
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
-                                        exerciseToDelete = exercise
+                                        Task {
+                                            exerciseInUseCount = await viewModel.assignmentCount(usingExercise: exercise.id ?? "")
+                                            exerciseToDelete = exercise
+                                        }
                                     } label: {
                                         Label("Supprimer".tr, systemImage: "trash")
                                     }
@@ -67,8 +71,16 @@ struct ExercisesListView: View {
                 exerciseToDelete = nil
             }
         } message: {
-            Text("L'exercice sera retiré de votre bibliothèque.".tr)
+            Text(deleteExerciseMessage)
         }
+    }
+
+    private var deleteExerciseMessage: String {
+        exerciseInUseCount > 0
+            ? LocalizationManager.shared.format(
+                "Cet exercice est utilisé dans %@ devoir(s) : les élèves ne le verront plus et ses copies perdront leur énoncé.",
+                String(exerciseInUseCount))
+            : "L'exercice sera retiré de votre bibliothèque.".tr
     }
 
     // MARK: - Grouping
