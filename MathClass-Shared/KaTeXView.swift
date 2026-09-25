@@ -166,6 +166,8 @@ private class KaTeXCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDe
     var contentBinding: Binding<String>?
     weak var webView: WKWebView?
     var isLoaded: Bool = false
+    /// Preview content received before the page reported it had rendered.
+    var pendingPreviewContent: String?
     var lastContent: String = ""
     /// Set by createWebView so .expression re-renders honour the caller's font size
     /// instead of silently falling back to KaTeXRenderer's default.
@@ -196,7 +198,16 @@ private class KaTeXCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDe
                 sendContentToEditor(binding.wrappedValue)
             }
         case "renderComplete":
-            break
+            // Preview pages signal readiness here. `isLoaded` was never set
+            // for them, so every later update was dropped and a preview
+            // stayed frozen on its first content.
+            if !isLoaded {
+                isLoaded = true
+                if let pending = pendingPreviewContent, let webView {
+                    pendingPreviewContent = nil
+                    updateContent(pending, in: webView, mode: .preview)
+                }
+            }
         default:
             break
         }
@@ -211,7 +222,11 @@ private class KaTeXCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDe
     // MARK: - Content Updates
 
     func updateContent(_ content: String, in webView: WKWebView, mode: KaTeXView.Mode) {
-        guard isLoaded, content != lastContent else { return }
+        if !isLoaded {
+            if case .preview = mode { pendingPreviewContent = content }
+            return
+        }
+        guard content != lastContent else { return }
         lastContent = content
 
         switch mode {

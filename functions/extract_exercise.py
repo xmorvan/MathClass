@@ -69,6 +69,19 @@ une chaîne vide pour expectedAnswer, et un tableau vide pour competencyIDs.
 """
 
 
+def normalize_expected_answer(value) -> str:
+    """The model sometimes returns a worked solution instead of the final
+    answer ("4x + 2 = 18\\n4x = 16\\nx = 4"): keep the last non-empty line,
+    without $ delimiters. The correction compares the student's last step
+    to this value, so it must be the answer alone."""
+    if not isinstance(value, str):
+        return ""
+    lines = [line.strip() for line in value.splitlines() if line.strip()]
+    if not lines:
+        return ""
+    return lines[-1].replace("$$", "").replace("$", "").strip()
+
+
 def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
     """Handle the extract_exercise Cloud Function call.
 
@@ -193,7 +206,7 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
             )
 
         statement = result.get("statement", "")
-        expected_answer = result.get("expectedAnswer", "")
+        expected_answer = normalize_expected_answer(result.get("expectedAnswer", ""))
         # Filter Claude's suggested competency IDs to those that actually
         # exist in the supplied catalog — guards against hallucinations.
         raw_ids = result.get("competencyIDs", []) or []

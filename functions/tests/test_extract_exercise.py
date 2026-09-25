@@ -218,3 +218,11 @@ def test_rejects_paths_outside_exercises(path):
     with pytest.raises(https_fn.HttpsError) as excinfo:
         mod.extract_exercise_handler(_fake_request({"storagePath": path}))
     assert _error_code(excinfo) == https_fn.FunctionsErrorCode.PERMISSION_DENIED
+
+
+def test_normalize_expected_answer_keeps_final_line_only():
+    mod = _import_module()
+    assert mod.normalize_expected_answer("$4x + 2 = 18\n4x = 16\nx = 4$") == "x = 4"
+    assert mod.normalize_expected_answer("x = 4") == "x = 4"
+    assert mod.normalize_expected_answer("x = 1 \\text{ ou } x = 2") == "x = 1 \\text{ ou } x = 2"
+    assert mod.normalize_expected_answer(None) == ""
