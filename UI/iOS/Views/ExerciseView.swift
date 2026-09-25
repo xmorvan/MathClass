@@ -113,8 +113,16 @@ struct ExerciseView: View {
     private var statementStack: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !exercise.statement.isEmpty {
-                MathTextView(content: exercise.statement, fontSize: 20)
-                    .padding(.horizontal)
+                // The native renderer only styles $…$; fractions, powers and
+                // other commands need KaTeX, or the student reads raw LaTeX.
+                if exercise.statement.contains("\\") {
+                    KaTeXView(content: exercise.statement, mode: .preview, fontSize: 20, minHeight: 90)
+                        .frame(height: 90)
+                        .padding(.horizontal)
+                } else {
+                    MathTextView(content: exercise.statement, fontSize: 20)
+                        .padding(.horizontal)
+                }
             }
 
             if let imageURL = exercise.statementImageURL, !imageURL.isEmpty {

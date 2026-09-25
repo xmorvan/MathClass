@@ -93,6 +93,17 @@ class StudentViewModel: ObservableObject {
             .sink { [weak self] _ in self?.submissionsDidChange() }
             .store(in: &cancellables)
 
+        // The class's assignments are listened to live: a student who has
+        // nothing to do (or has finished) picks up a newly activated
+        // assignment without pressing "Recharger", and one whose assignment
+        // gets deactivated is moved off it.
+        self.assignmentRepo.$assignments
+            .map { $0.filter(\.isActive) }
+            .removeDuplicates { $0.map(\.id) == $1.map(\.id) }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] active in self?.activeAssignmentsDidChange(active) }
+            .store(in: &cancellables)
+
         // Best-effort fetch of the class doc for notation strictness and
         // the owning teacher. The student's claims allow reading their own
         // class.
@@ -353,6 +364,22 @@ class StudentViewModel: ObservableObject {
             return isExerciseCompleted(id)
         }.count
         if allowFreeOrder { rebuildFreeOrderDeck() }
+    }
+
+    private func activeAssignmentsDidChange(_ active: [Assignment]) {
+        let knownIDs = Set(activeAssignments.compactMap(\.id))
+        let hasNewAssignment = active.contains { !knownIDs.contains($0.id ?? "") }
+        activeAssignments = active
+
+        let currentWasDeactivated = selectedAssignment.map { selected in
+            !active.contains { $0.id == selected.id }
+        } ?? false
+        let hasNothingToDo = assignedExercises.isEmpty
+            || completedCount >= assignedExercises.count
+        guard !isLoading, currentWasDeactivated || (hasNewAssignment && hasNothingToDo) else { return }
+
+        selectedAssignment = nil
+        Task { await loadAssignedExercises() }
     }
 
     private func rebuildFreeOrderDeck() {
