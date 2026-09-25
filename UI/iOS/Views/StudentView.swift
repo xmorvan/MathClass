@@ -111,7 +111,11 @@ struct StudentView: View {
     private var progressBar: some View {
         VStack(spacing: 4) {
             HStack {
-                Text("Exercice \(viewModel.currentExerciseIndex + 1) / \(viewModel.assignedExercises.count)")
+                Text(LocalizationManager.shared.format(
+                    "Exercice %@ / %@",
+                    String(min(viewModel.currentExerciseIndex + 1, viewModel.assignedExercises.count)),
+                    String(viewModel.assignedExercises.count)
+                ))
                     .font(.caption)
                     .foregroundColor(.secondary)
 
