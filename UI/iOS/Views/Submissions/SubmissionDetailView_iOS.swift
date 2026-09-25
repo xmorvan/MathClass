@@ -53,7 +53,7 @@ struct SubmissionDetailView_iOS: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 HStack(spacing: 12) {
-                    Label("Essai \(submission.attemptNumber)", systemImage: "number.circle")
+                    Label(LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)), systemImage: "number.circle")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Label(

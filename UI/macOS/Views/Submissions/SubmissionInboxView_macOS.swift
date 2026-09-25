@@ -98,7 +98,7 @@ struct SubmissionInboxView_macOS: View {
                 Text(studentName)
                     .font(.body)
                     .lineLimit(1)
-                Text("\(exerciseTitle) — Essai \(submission.attemptNumber)")
+                Text(exerciseTitle + " — " + LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)

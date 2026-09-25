@@ -89,7 +89,7 @@ struct StatisticsView: View {
 
             Picker("Vue".tr, selection: $selectedTab) {
                 ForEach(StatTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue)
+                    Text(tab.rawValue.tr)
                 }
             }
             .pickerStyle(.segmented)
@@ -433,13 +433,7 @@ struct StatisticsView: View {
     }
 
     private func competencyLabelMap() -> [String: String] {
-        var map: [String: String] = [:]
-        for chapter in viewModel.chapters {
-            for comp in viewModel.chapterRepo.competencies[chapter.id ?? ""] ?? [] {
-                if let id = comp.id { map[id] = comp.label }
-            }
-        }
-        return map
+        viewModel.chapterRepo.competencyLabels
     }
 
     private func buildExerciseCompetencyMap() -> [String: [String]] {
@@ -451,13 +445,7 @@ struct StatisticsView: View {
     }
 
     private func findCompetencyLabel(_ competencyID: String) -> String {
-        for chapter in viewModel.chapters {
-            if let comp = viewModel.chapterRepo.competencies[chapter.id ?? ""]?
-                .first(where: { $0.id == competencyID }) {
-                return comp.label
-            }
-        }
-        return competencyID
+        viewModel.chapterRepo.competencyLabel(for: competencyID)
     }
 
     private func successRateColor(_ rate: Double) -> Color {

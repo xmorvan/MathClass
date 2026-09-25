@@ -108,11 +108,12 @@ enum PDFExporter {
         let pageCount = numberOfPages(for: totalSize.height, pageHeight: pageSize.height)
         for pageIndex in 0..<pageCount {
             context.beginPDFPage(nil)
-            // Draw the entire image translated up by pageIndex pages; the
-            // page media box clips the bottom of each strip.
+            // CoreGraphics' origin is bottom-left: place the image so the
+            // strip for this page (counted from the top) fills the media
+            // box, which clips the rest. Short content sits at the top.
             let drawRect = CGRect(
                 x: 0,
-                y: -CGFloat(pageIndex) * pageSize.height,
+                y: pageSize.height - totalSize.height + CGFloat(pageIndex) * pageSize.height,
                 width: pageSize.width,
                 height: totalSize.height
             )

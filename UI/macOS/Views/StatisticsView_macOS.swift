@@ -110,7 +110,7 @@ struct StatisticsView_macOS: View {
             // Tab picker
             Picker("Vue".tr, selection: $selectedTab) {
                 ForEach(StatTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue)
+                    Text(tab.rawValue.tr)
                 }
             }
             .pickerStyle(.segmented)
@@ -160,7 +160,18 @@ struct StatisticsView_macOS: View {
         )
         do {
             let url = try PDFExporter.exportToPDF(view: report, fileName: title)
-            lastExportURL = url
+            // The export lands in the sandbox's hidden temp folder: let the
+            // teacher choose where to keep it.
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.pdf]
+            panel.nameFieldStringValue = url.lastPathComponent
+            panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            guard panel.runModal() == .OK, let destination = panel.url else { return }
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.copyItem(at: url, to: destination)
+            lastExportURL = destination
             showExportSuccess = true
         } catch {
             exportError = error.localizedDescription
@@ -223,7 +234,7 @@ struct StatCard_macOS: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(title.tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
             Text(value)
@@ -240,5 +251,27 @@ struct StatCard_macOS: View {
         .padding()
         .background(Color.gray.opacity(0.08))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Rate Bar (macOS)
+
+/// Success-rate bar drawn with shapes: unlike `ProgressView` it also
+/// renders in PDF exports (ImageRenderer cannot draw AppKit controls).
+struct RateBar_macOS: View {
+    let rate: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.gray.opacity(0.2))
+                Capsule()
+                    .fill(color)
+                    .frame(width: geometry.size.width * CGFloat(min(max(rate, 0), 1)))
+            }
+        }
+        .frame(height: 6)
     }
 }

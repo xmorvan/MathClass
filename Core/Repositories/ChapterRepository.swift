@@ -17,6 +17,10 @@ class ChapterRepository: ObservableObject {
     @Published private(set) var chapters: [Chapter] = []
     @Published private(set) var competencies: [String: [Competency]] = [:] // chapterID -> competencies
     @Published var error: String?
+    /// Competency labels across every class of the teacher (id -> label).
+    /// Exercises are shared between classes, so their tags can point to
+    /// another class's competencies; this keeps statistics readable.
+    @Published private(set) var competencyLabels: [String: String] = [:]
 
     private let firebase = FirebaseService.shared
     private var chaptersListener: ListenerRegistration?
@@ -69,6 +73,9 @@ class ChapterRepository: ObservableObject {
         let path = competenciesPath(classID: classID, chapterID: chapterID)
         let listener = firebase.addCollectionListener(collection: path) { [weak self] (competencies: [Competency]) in
             self?.competencies[chapterID] = competencies
+            for competency in competencies {
+                if let id = competency.id { self?.competencyLabels[id] = competency.label }
+            }
         }
         competencyListeners[chapterID] = listener
     }
@@ -127,6 +134,27 @@ class ChapterRepository: ObservableObject {
             from: competenciesPath(classID: classID, chapterID: chapterID),
             documentID: id
         )
+    }
+
+    /// Fill `competencyLabels` with the competencies of every given class
+    /// (one-shot). Classes that fail to load are skipped.
+    func loadCompetencyLabels(classIDs: [String]) async {
+        for classID in classIDs {
+            guard let chapters: [Chapter] = try? await firebase.getDocuments(from: chaptersPath(classID: classID)) else { continue }
+            for chapter in chapters {
+                guard let chapterID = chapter.id,
+                      let competencies = try? await getCompetencies(classID: classID, chapterID: chapterID) else { continue }
+                for competency in competencies {
+                    if let id = competency.id { competencyLabels[id] = competency.label }
+                }
+            }
+        }
+    }
+
+    /// Human-readable label for a competency ID from any of the teacher's
+    /// classes; falls back to the ID itself.
+    func competencyLabel(for competencyID: String) -> String {
+        competencyLabels[competencyID] ?? competencyID
     }
 
     /// Get all competencies for a given chapter (one-shot, not real-time).

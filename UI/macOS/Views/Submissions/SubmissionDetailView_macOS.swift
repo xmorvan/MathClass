@@ -51,7 +51,7 @@ struct SubmissionDetailView_macOS: View {
                 Label(exercise?.title ?? "Exercice inconnu", systemImage: "book")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                Label("Essai \(submission.attemptNumber)", systemImage: "number.circle")
+                Label(LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)), systemImage: "number.circle")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Label(

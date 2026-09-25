@@ -14,6 +14,9 @@ struct ClassOverviewView_macOS: View {
     @ObservedObject var viewModel: TeacherViewModel
     let submissions: [Submission]
     let classID: String?
+    /// False when rendered into a PDF: `ImageRenderer` draws nothing
+    /// inside a ScrollView.
+    var scrolls: Bool = true
 
     private let statisticsService = StatisticsService.shared
 
@@ -42,28 +45,34 @@ struct ClassOverviewView_macOS: View {
             exerciseCompetencyMap: exerciseCompetencyMap
         )
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Summary
-                overviewHeader(stats: stats)
-
-                Divider()
-
-                // Weakest competencies
-                weakestCompetenciesSection(stats: stats)
-
-                Divider()
-
-                // Students in difficulty
-                studentsInDifficultySection(stats: stats)
-
-                Divider()
-
-                // All students ranking
-                studentRankingSection()
-            }
-            .padding()
+        if scrolls {
+            ScrollView { overviewContent(stats: stats) }
+        } else {
+            overviewContent(stats: stats)
         }
+    }
+
+    private func overviewContent(stats: StatisticsService.ClassStats) -> some View {
+        VStack(alignment: .leading, spacing: 24) {
+            // Summary
+            overviewHeader(stats: stats)
+
+            Divider()
+
+            // Weakest competencies
+            weakestCompetenciesSection(stats: stats)
+
+            Divider()
+
+            // Students in difficulty
+            studentsInDifficultySection(stats: stats)
+
+            Divider()
+
+            // All students ranking
+            studentRankingSection()
+        }
+        .padding()
     }
 
     // MARK: - Overview Header
@@ -81,31 +90,46 @@ struct ClassOverviewView_macOS: View {
                     .bold()
             }
 
-            HStack(spacing: 20) {
-                StatCard_macOS(
-                    title: "Élèves",
-                    value: "\(stats.totalStudents)"
-                )
-                StatCard_macOS(
-                    title: "Soumissions",
-                    value: "\(stats.totalSubmissions)"
-                )
-                StatCard_macOS(
-                    title: "Taux de réussite",
-                    value: String(format: "%.0f%%", stats.overallSuccessRate * 100),
-                    color: successRateColor(stats.overallSuccessRate)
-                )
-                StatCard_macOS(
-                    title: "Temps moyen",
-                    value: formatDuration(stats.averageTime)
-                )
-                StatCard_macOS(
-                    title: "Élèves en difficulté",
-                    value: "\(stats.studentsInDifficulty.count)",
-                    color: stats.studentsInDifficulty.isEmpty ? .green : .red
-                )
+            // Five cards overflow a letter-size PDF page: wrap them there.
+            let cards = statCards(stats: stats)
+            let perRow = scrolls ? cards.count : 3
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
+                ForEach(Array(stride(from: 0, to: cards.count, by: perRow)), id: \.self) { rowStart in
+                    GridRow {
+                        ForEach(rowStart..<min(rowStart + perRow, cards.count), id: \.self) { index in
+                            cards[index]
+                        }
+                    }
+                }
             }
         }
+    }
+
+    private func statCards(stats: StatisticsService.ClassStats) -> [StatCard_macOS] {
+        [
+            StatCard_macOS(
+                title: "Élèves",
+                value: "\(stats.totalStudents)"
+            ),
+            StatCard_macOS(
+                title: "Soumissions",
+                value: "\(stats.totalSubmissions)"
+            ),
+            StatCard_macOS(
+                title: "Taux de réussite",
+                value: String(format: "%.0f%%", stats.overallSuccessRate * 100),
+                color: successRateColor(stats.overallSuccessRate)
+            ),
+            StatCard_macOS(
+                title: "Temps moyen",
+                value: formatDuration(stats.averageTime)
+            ),
+            StatCard_macOS(
+                title: "Élèves en difficulté",
+                value: "\(stats.studentsInDifficulty.count)",
+                color: stats.studentsInDifficulty.isEmpty ? .green : .red
+            )
+        ]
     }
 
     // MARK: - Weakest Competencies
@@ -130,9 +154,8 @@ struct ClassOverviewView_macOS: View {
 
                         Spacer()
 
-                        ProgressView(value: comp.successRate)
+                        RateBar_macOS(rate: comp.successRate, color: successRateColor(comp.successRate))
                             .frame(width: 150)
-                            .tint(successRateColor(comp.successRate))
 
                         Text(String(format: "%.0f%%", comp.successRate * 100))
                             .font(.caption)
@@ -233,9 +256,8 @@ struct ClassOverviewView_macOS: View {
                             .foregroundColor(.secondary)
 
                         if stats.totalAttempts > 0 {
-                            ProgressView(value: stats.successRate)
+                            RateBar_macOS(rate: stats.successRate, color: successRateColor(stats.successRate))
                                 .frame(width: 80)
-                                .tint(successRateColor(stats.successRate))
 
                             Text(String(format: "%.0f%%", stats.successRate * 100))
                                 .font(.caption)
@@ -258,13 +280,7 @@ struct ClassOverviewView_macOS: View {
     // MARK: - Helpers
 
     private func findCompetencyLabel(_ competencyID: String) -> String {
-        for chapter in viewModel.chapters {
-            if let comp = viewModel.chapterRepo.competencies[chapter.id ?? ""]?
-                .first(where: { $0.id == competencyID }) {
-                return comp.label
-            }
-        }
-        return competencyID
+        viewModel.chapterRepo.competencyLabel(for: competencyID)
     }
 
     private func successRateColor(_ rate: Double) -> Color {

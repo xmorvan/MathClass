@@ -132,7 +132,7 @@ struct StudentStatsListView_macOS: View {
                         .font(.title2)
                         .bold()
                     Spacer()
-                    Text(String(format: "Taux de réussite : %.0f%%", stats.successRate * 100))
+                    Text(LocalizationManager.shared.format("Taux de réussite : %@", String(format: "%.0f%%", stats.successRate * 100)))
                         .font(.headline)
                         .foregroundColor(successRateColor(stats.successRate))
                 }
@@ -187,9 +187,8 @@ struct StudentStatsListView_macOS: View {
                                     .font(.body)
                                     .bold()
                                     .foregroundColor(successRateColor(rate))
-                                ProgressView(value: rate)
+                                RateBar_macOS(rate: rate, color: successRateColor(rate))
                                     .frame(width: 100)
-                                    .tint(successRateColor(rate))
                             }
                         }
                     }
@@ -216,7 +215,7 @@ struct StudentStatsListView_macOS: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(exerciseTitle)
                     .font(.body)
-                Text("Essai \(submission.attemptNumber) — \(submission.timestamp.formatted(date: .abbreviated, time: .shortened))")
+                Text(LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)) + " — " + submission.timestamp.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -250,13 +249,7 @@ struct StudentStatsListView_macOS: View {
     // MARK: - Helpers
 
     private func findCompetencyLabel(_ competencyID: String) -> String {
-        for chapter in viewModel.chapters {
-            if let comp = viewModel.chapterRepo.competencies[chapter.id ?? ""]?
-                .first(where: { $0.id == competencyID }) {
-                return comp.label
-            }
-        }
-        return competencyID
+        viewModel.chapterRepo.competencyLabel(for: competencyID)
     }
 
     private func successRateColor(_ rate: Double) -> Color {

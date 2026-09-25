@@ -210,6 +210,7 @@ class TeacherViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.assignmentRepo.startListeningAcrossClasses(classIDs: classIDs)
                 Task { await self.refreshStudentDirectory(classIDs: classIDs) }
+                Task { await self.chapterRepo.loadCompetencyLabels(classIDs: classIDs) }
             }
             .store(in: &cancellables)
 
