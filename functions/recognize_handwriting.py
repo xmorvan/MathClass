@@ -23,7 +23,7 @@ from firebase_functions import https_fn
 
 import auth_guard
 import claude_client
-from _helpers import extract_json
+from _helpers import extract_json, flatten_on_white
 
 # Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if not firebase_admin._apps:
@@ -144,6 +144,14 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
         }
         media_type = media_type_map.get(ext, "image/png")
 
+        # PencilKit exports black ink on a transparent background, which the
+        # model may see on black: put the drawing on white first.
+        try:
+            flat_bytes, media_type = flatten_on_white(base64.b64decode(image_b64))
+            image_b64 = base64.b64encode(flat_bytes).decode("utf-8")
+        except Exception as flatten_error:  # keep the original image
+            print(f"[recognize_handwriting] flatten skipped: {flatten_error}")
+
         # Call Claude Vision
         message = client.messages.create(
             model=claude_client.model_id(),
@@ -173,6 +181,7 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
         try:
             result = extract_json(message.content[0].text)
         except json.JSONDecodeError:
+            print(f"[recognize_handwriting] unparseable reply: {message.content[0].text[:500]!r}")
             raise https_fn.HttpsError(
                 code=https_fn.FunctionsErrorCode.INTERNAL,
                 message="Impossible de parser la réponse de reconnaissance.",

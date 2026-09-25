@@ -296,7 +296,7 @@ struct AssignmentDetailView_macOS: View {
 
             HStack(spacing: 16) {
                 InfoBadge(
-                    title: "Feedback",
+                    title: "Correction immédiate",
                     value: assignment.mode.showsFeedback ? "Oui" : "Non",
                     color: assignment.mode.showsFeedback ? .green : .orange
                 )
@@ -381,10 +381,10 @@ private struct InfoBadge: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(title)
+            Text(title.tr)
                 .font(.caption2)
                 .foregroundColor(.secondary)
-            Text(value)
+            Text(value.tr)
                 .font(.caption)
                 .bold()
                 .foregroundColor(color)

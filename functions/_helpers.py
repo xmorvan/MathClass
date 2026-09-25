@@ -44,6 +44,17 @@ def extract_json(text: str) -> dict:
     except json.JSONDecodeError:
         pass
 
+    # LaTeX inside JSON strings: "\\frac" is fine, but a single "\\Rightarrow"
+    # or "\\sqrt" is an invalid escape and breaks json.loads. Double every
+    # backslash that doesn't start a valid JSON escape, then retry.
+    repaired = _escape_stray_backslashes(s)
+    if repaired != s:
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            pass
+        s = repaired
+
     start = s.find("{")
     if start < 0:
         raise json.JSONDecodeError("no JSON object found", s, 0)
@@ -70,6 +81,55 @@ def extract_json(text: str) -> dict:
             if depth == 0:
                 return json.loads(s[start:i + 1])
     raise json.JSONDecodeError("unbalanced JSON object", s, start)
+
+
+_VALID_ESCAPES = set('"\\/bfnrtu')
+
+
+def _escape_stray_backslashes(s: str) -> str:
+    out = []
+    i = 0
+    while i < len(s):
+        ch = s[i]
+        if ch == "\\":
+            nxt = s[i + 1] if i + 1 < len(s) else ""
+            if nxt == "\\":
+                out.append("\\\\")
+                i += 2
+                continue
+            # \b, \f, \n, \r, \t followed by a letter are LaTeX commands
+            # (\frac, \times, \beta…), not JSON control escapes.
+            if nxt in _VALID_ESCAPES and not (nxt in "bfnrt" and i + 2 < len(s) and s[i + 2].isalpha()):
+                out.append(ch)
+            else:
+                out.append("\\\\")
+            i += 1
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def flatten_on_white(image_bytes: bytes) -> tuple[bytes, str]:
+    """Composite a transparent drawing onto a white background.
+
+    PencilKit exports black strokes on a transparent background; rendered
+    on black, the handwriting disappears for the model. Returns PNG bytes
+    and the media type; images without transparency are returned as-is.
+    """
+    import io
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        if img.mode not in ("RGBA", "LA", "P"):
+            return image_bytes, "image/" + (img.format or "png").lower()
+        rgba = img.convert("RGBA")
+        background = Image.new("RGB", rgba.size, (255, 255, 255))
+        background.paste(rgba, mask=rgba.getchannel("A"))
+        out = io.BytesIO()
+        background.save(out, format="PNG")
+        return out.getvalue(), "image/png"
 
 
 def make_anthropic_client(api_key: str) -> anthropic.Anthropic:

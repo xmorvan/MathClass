@@ -153,11 +153,12 @@ enum CorrectionServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "La réponse du service de correction est invalide."
+            return "La correction n'a pas abouti. Réessayez dans un instant.".tr
         case .apiError(let message):
-            return "Erreur du service de correction: \(message)"
+            print("CorrectionServiceError.apiError: \(message)")
+            return "La correction n'a pas abouti. Réessayez dans un instant.".tr
         case .noSubmissionID:
-            return "Identifiant de soumission manquant."
+            return "Identifiant de soumission manquant.".tr
         }
     }
 }

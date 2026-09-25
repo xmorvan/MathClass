@@ -35,13 +35,19 @@ enum RecognitionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noImageData:
-            return "Aucune donnée d'image fournie."
+            return "Aucun dessin à lire.".tr
         case .apiError(let message):
-            return "Erreur API de reconnaissance: \(message)"
+            // Server details ("INTERNAL", stack messages) mean nothing to a
+            // student; keep them in the console only.
+            print("RecognitionError.apiError: \(message)")
+            return "La lecture de votre travail n'a pas abouti. Réessayez dans un instant.".tr
         case .invalidResponse:
-            return "La réponse de la reconnaissance est invalide."
+            return "La lecture de votre travail n'a pas abouti. Réessayez dans un instant.".tr
         case .lowConfidence(let score):
-            return String(format: "Confiance faible (%.0f%%). Veuillez réécrire plus lisiblement.", score * 100)
+            return LocalizationManager.shared.format(
+                "Écriture difficile à lire (confiance %@ %%). Réécrivez plus lisiblement.",
+                String(Int((score * 100).rounded()))
+            )
         }
     }
 }

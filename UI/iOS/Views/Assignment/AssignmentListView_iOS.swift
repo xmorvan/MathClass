@@ -221,7 +221,7 @@ struct AssignmentDetailView_iOS: View {
 
             Section("Mode".tr) {
                 HStack {
-                    Text("Feedback".tr)
+                    Text("Correction immédiate".tr)
                     Spacer()
                     Text(assignment.mode.showsFeedback ? "Oui" : "Non")
                         .foregroundColor(assignment.mode.showsFeedback ? .green : .orange)
