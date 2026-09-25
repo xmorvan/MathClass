@@ -107,3 +107,6 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Local emulator secrets
+functions/.secret.local

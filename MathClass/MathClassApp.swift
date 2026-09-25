@@ -21,7 +21,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         settings.cacheSettings = PersistentCacheSettings(
             sizeBytes: NSNumber(value: Int64(FirestoreCacheSizeUnlimited))
         )
-        Firestore.firestore().settings = settings
+        Firestore.firestore().settings = FirebaseEmulator.configureIfEnabled(settings)
 
         return true
     }

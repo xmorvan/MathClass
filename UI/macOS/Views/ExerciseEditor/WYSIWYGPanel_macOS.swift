@@ -25,7 +25,7 @@ struct WYSIWYGPanel_macOS: View {
 
     private var editorPane: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionLabel("Énoncé — LaTeX")
+            sectionLabel("Énoncé — LaTeX".tr)
 
             TextEditor(text: $viewModel.statement)
                 .font(.system(.body, design: .monospaced))
@@ -33,7 +33,7 @@ struct WYSIWYGPanel_macOS: View {
 
             Divider()
 
-            sectionLabel("Réponse attendue")
+            sectionLabel("Réponse attendue".tr)
 
             TextField("ex: x = -3 \\text{ ou } x = 0".tr, text: $viewModel.expectedAnswer)
                 .font(.system(.body, design: .monospaced))
@@ -46,7 +46,7 @@ struct WYSIWYGPanel_macOS: View {
 
     private var previewPane: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionLabel("Aperçu")
+            sectionLabel("Aperçu".tr)
 
             if viewModel.statement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 placeholderView
@@ -61,7 +61,7 @@ struct WYSIWYGPanel_macOS: View {
 
             if !viewModel.expectedAnswer.isEmpty {
                 Divider()
-                sectionLabel("Réponse attendue")
+                sectionLabel("Réponse attendue".tr)
                 KaTeXView(
                     content: "$\(viewModel.expectedAnswer)$",
                     mode: .preview,

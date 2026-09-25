@@ -62,9 +62,9 @@ struct RoleSelectionButton: View {
                 .frame(width: 60)
 
             VStack(alignment: .leading) {
-                Text(title)
+                Text(title.tr)
                     .font(.headline)
-                Text(description)
+                Text(description.tr)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }

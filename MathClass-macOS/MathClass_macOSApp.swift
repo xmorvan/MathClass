@@ -20,7 +20,7 @@ struct MathClass_macOSApp: App {
         settings.cacheSettings = PersistentCacheSettings(
             sizeBytes: NSNumber(value: FirestoreCacheSizeUnlimited)
         )
-        Firestore.firestore().settings = settings
+        Firestore.firestore().settings = FirebaseEmulator.configureIfEnabled(settings)
     }
 
     var body: some Scene {

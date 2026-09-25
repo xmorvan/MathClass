@@ -25,7 +25,7 @@ struct ImageImportPanel_macOS: View {
 
     private var imageSection: some View {
         VStack(spacing: 16) {
-            sectionLabel("Image de l'exercice")
+            sectionLabel("Image de l'exercice".tr)
 
             if let imageData = viewModel.importedImageData,
                let nsImage = NSImage(data: imageData) {
@@ -115,7 +115,7 @@ struct ImageImportPanel_macOS: View {
 
     private var extractedSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionLabel("Énoncé extrait (modifiable)")
+            sectionLabel("Énoncé extrait (modifiable)".tr)
 
             TextEditor(text: $viewModel.statement)
                 .font(.system(.body, design: .monospaced))
@@ -123,7 +123,7 @@ struct ImageImportPanel_macOS: View {
 
             Divider()
 
-            sectionLabel("Aperçu")
+            sectionLabel("Aperçu".tr)
 
             if viewModel.statement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("L'énoncé extrait apparaîtra ici après l'extraction…".tr)
@@ -141,7 +141,7 @@ struct ImageImportPanel_macOS: View {
 
             Divider()
 
-            sectionLabel("Réponse attendue")
+            sectionLabel("Réponse attendue".tr)
 
             TextField("Réponse attendue".tr, text: $viewModel.expectedAnswer)
                 .font(.system(.body, design: .monospaced))

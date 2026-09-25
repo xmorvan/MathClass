@@ -15,6 +15,18 @@ import Foundation
 
 enum Localizations {
     static let fr2en: [String: String] = [
+        // MARK: Added 2026-09 (coverage gaps)
+        "Professeur": "Teacher",
+        "Gérer les classes, créer et assigner des exercices": "Manage classes, create and assign exercises",
+        "Entrer le code classe pour accéder aux exercices": "Enter the class code to access exercises",
+        "Taux de réussite de l'élève comparé à la moyenne de la classe par compétence.": "Student success rate compared with the class average, per competency.",
+        "La réinitialisation efface uniquement les données de démo, pas vos vraies classes.": "Resetting only erases the demo data, not your real classes.",
+        "Données de démo chargées.": "Demo data loaded.",
+        "Niveau": "Level",
+        "Démo réinitialisée.": "Demo reset.",
+        "Élève vs moyenne de la classe": "Student vs class average",
+        "Réinitialiser la démo ?": "Reset the demo?",
+
         // MARK: Common verbs / actions
         "OK": "OK",
         "Annuler": "Cancel",
