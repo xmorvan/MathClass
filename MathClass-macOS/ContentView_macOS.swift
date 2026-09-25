@@ -112,28 +112,3 @@ struct TeacherLoginView_macOS: View {
         }
     }
 }
-
-// MARK: - Teacher Login ViewModel
-
-class TeacherLoginViewModel: ObservableObject {
-    @Published var email = ""
-    @Published var password = ""
-    @Published var showError = false
-    @Published var errorMessage = ""
-    @Published var isLoggedIn = false
-
-    var isValid: Bool {
-        !email.isEmpty && !password.isEmpty && email.contains("@")
-    }
-
-    @MainActor
-    func login() async {
-        do {
-            try await AuthenticationService.shared.signIn(email: email, password: password)
-            self.isLoggedIn = true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            self.showError = true
-        }
-    }
-}

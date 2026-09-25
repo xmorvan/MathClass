@@ -251,7 +251,7 @@ struct StatisticsView: View {
                     }
 
                     HStack(spacing: 12) {
-                        Text("\(stats.totalSubmissions) soumission\(stats.totalSubmissions != 1 ? "s" : "")")
+                        Text(LocalizationManager.shared.format(stats.totalSubmissions == 1 ? "%@ soumission" : "%@ soumissions", String(stats.totalSubmissions)))
                             .font(.caption)
                             .foregroundColor(.secondary)
 
@@ -281,7 +281,7 @@ struct StatisticsView: View {
                                 .font(.caption2)
                                 .foregroundColor(.red)
                             if let worst = worstStep {
-                                Text("(étape \(worst.key + 1) : \(worst.value) élèves)")
+                                Text(LocalizationManager.shared.format("(étape %@ : %@ élèves)", String(worst.key + 1), String(worst.value)))
                                     .font(.caption2)
                                     .foregroundColor(.red.opacity(0.7))
                             }

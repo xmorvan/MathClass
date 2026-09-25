@@ -40,7 +40,7 @@ struct EditStudentView_macOS: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 Picker("Niveau".tr, selection: $level) {
                     ForEach(1...5, id: \.self) { lvl in
-                        Text("Niveau \(lvl)").tag(lvl)
+                        Text(LocalizationManager.shared.format("Niveau %@", String(lvl))).tag(lvl)
                     }
                 }
                 .pickerStyle(.segmented)

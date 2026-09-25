@@ -98,7 +98,7 @@ struct AddExerciseView: View {
                             .buttonStyle(.plain)
                         }
                         Spacer()
-                        Text("Niveau \(difficultyLevel)")
+                        Text(LocalizationManager.shared.format("Niveau %@", String(difficultyLevel)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

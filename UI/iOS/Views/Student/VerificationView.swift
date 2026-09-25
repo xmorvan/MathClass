@@ -214,7 +214,7 @@ struct VerificationView: View {
             ForEach(editableSteps.indices, id: \.self) { index in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top) {
-                        Text("Étape \(index + 1)")
+                        Text(LocalizationManager.shared.format("Étape %@", String(index + 1)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .frame(width: 60, alignment: .leading)

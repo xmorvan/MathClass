@@ -72,7 +72,7 @@ struct ClassOverviewView_macOS: View {
         VStack(alignment: .leading, spacing: 16) {
             if let classID = classID,
                let classroom = viewModel.classes.first(where: { $0.id == classID }) {
-                Text("Vue d'ensemble — \(classroom.name)")
+                Text(LocalizationManager.shared.format("Vue d'ensemble — %@", classroom.name))
                     .font(.title2)
                     .bold()
             } else {

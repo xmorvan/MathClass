@@ -109,6 +109,7 @@
 				iOS/Views/Submissions/SubmissionInboxView_iOS.swift,
 				iOS/Views/TeacherProfileView.swift,
 				iOS/Views/TeacherSignUpView.swift,
+				iOS/Views/TeacherLoginView_iOS.swift,
 				iOS/Views/TeacherView.swift,
 			);
 			target = 19625A812D42B79B00A571E5 /* MathClass-macOS */;

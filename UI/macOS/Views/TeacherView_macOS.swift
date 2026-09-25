@@ -103,7 +103,7 @@ struct TeacherView_macOS: View {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         if let email = authService.currentUser?.email {
-                            Text("Connecté: \(email)")
+                            Text(LocalizationManager.shared.format("Connecté : %@", email))
                             Divider()
                         }
                         Button {

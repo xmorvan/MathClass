@@ -55,7 +55,7 @@ struct ExerciseMetadataPanel_macOS: View {
 
                 Spacer()
 
-                Text("Niveau \(viewModel.difficultyLevel)")
+                Text(LocalizationManager.shared.format("Niveau %@", String(viewModel.difficultyLevel)))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

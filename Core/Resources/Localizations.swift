@@ -16,6 +16,21 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "(étape %@ : %@ élèves)": "(step %@: %@ students)",
+        "Niveau %@": "Level %@",
+        "Étape %@": "Step %@",
+        "%@ soumission": "%@ submission",
+        "%@ soumissions": "%@ submissions",
+        "%@ élève en erreur": "%@ student with errors",
+        "%@ élèves en erreur": "%@ students with errors",
+        "%@ exercice": "%@ exercise",
+        "%@ exercices": "%@ exercises",
+        "E-mail ou mot de passe incorrect.": "Incorrect email or password.",
+        "Adresse e-mail invalide.": "Invalid email address.",
+        "Trop de tentatives. Réessayez dans quelques minutes.": "Too many attempts. Try again in a few minutes.",
+        "Pas de connexion internet.": "No internet connection.",
+        "J'ai déjà un compte : se connecter": "I already have an account: sign in",
+        "Connexion impossible : %@": "Sign-in failed: %@",
         "Vos informations": "About you",
         "Votre enseignant·e vous a remis ce code, au format MX-XXXX.": "Your teacher gave you this code, in the format MX-XXXX.",
         "Code classe introuvable. Vérifiez le code et réessayez.": "Class code not found. Check the code and try again.",

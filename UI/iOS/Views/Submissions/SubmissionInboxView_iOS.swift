@@ -59,7 +59,7 @@ struct SubmissionInboxView_iOS: View {
             }
             .pickerStyle(.menu)
             Spacer()
-            Text("\(filteredSubmissions.count) soumission\(filteredSubmissions.count == 1 ? "" : "s")")
+            Text(LocalizationManager.shared.format(filteredSubmissions.count == 1 ? "%@ soumission" : "%@ soumissions", String(filteredSubmissions.count)))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

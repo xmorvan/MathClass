@@ -189,7 +189,7 @@ struct AssignmentListView_macOS: View {
             }
 
             let exerciseCount = assignmentVM.exercisesForAssignment(assignment.id ?? "").count
-            Text("\(exerciseCount) exercice\(exerciseCount != 1 ? "s" : "")")
+            Text(LocalizationManager.shared.format(exerciseCount == 1 ? "%@ exercice" : "%@ exercices", String(exerciseCount)))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

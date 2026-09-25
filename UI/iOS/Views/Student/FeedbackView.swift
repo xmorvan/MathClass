@@ -186,7 +186,7 @@ struct FeedbackView: View {
                     Image(systemName: isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .foregroundColor(isCorrect ? .green : .red)
 
-                    Text("Étape \(index + 1)")
+                    Text(LocalizationManager.shared.format("Étape %@", String(index + 1)))
                         .font(.body)
 
                     if index < viewModel.recognizedSteps.count {

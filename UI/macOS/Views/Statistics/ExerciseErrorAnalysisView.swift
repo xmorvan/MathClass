@@ -53,7 +53,7 @@ struct ExerciseStatsListView_macOS: View {
                 .font(.headline)
 
             HStack(spacing: 12) {
-                Text("\(stats.totalSubmissions) soumission\(stats.totalSubmissions != 1 ? "s" : "")")
+                Text(LocalizationManager.shared.format(stats.totalSubmissions == 1 ? "%@ soumission" : "%@ soumissions", String(stats.totalSubmissions)))
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -160,13 +160,13 @@ struct ExerciseStatsListView_macOS: View {
             ForEach(sortedSteps, id: \.key) { stepIndex, errorCount in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Étape \(stepIndex + 1)")
+                        Text(LocalizationManager.shared.format("Étape %@", String(stepIndex + 1)))
                             .font(.headline)
                             .foregroundColor(.red)
 
                         Spacer()
 
-                        Text("\(errorCount) élève\(errorCount != 1 ? "s" : "") en erreur")
+                        Text(LocalizationManager.shared.format(errorCount == 1 ? "%@ élève en erreur" : "%@ élèves en erreur", String(errorCount)))
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)

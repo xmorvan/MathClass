@@ -160,7 +160,7 @@ struct SubmissionDetailView_macOS: View {
             HStack(alignment: .top, spacing: 8) {
                 stepIcon(isCorrect: isCorrect)
 
-                Text("Étape \(index + 1)")
+                Text(LocalizationManager.shared.format("Étape %@", String(index + 1)))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .leading)

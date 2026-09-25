@@ -63,7 +63,7 @@ struct TeacherView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         if let email = AuthenticationService.shared.currentUser?.email {
-                            Text("Connecté : \(email)")
+                            Text(LocalizationManager.shared.format("Connecté : %@", email))
                             Divider()
                         }
                         Button {

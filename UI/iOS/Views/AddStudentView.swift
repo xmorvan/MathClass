@@ -39,7 +39,7 @@ struct AddStudentView: View {
                             .buttonStyle(.plain)
                         }
                         Spacer()
-                        Text("Niveau \(level)")
+                        Text(LocalizationManager.shared.format("Niveau %@", String(level)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

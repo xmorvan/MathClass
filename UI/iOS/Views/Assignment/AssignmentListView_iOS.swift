@@ -148,7 +148,7 @@ struct AssignmentListView_iOS: View {
             let exerciseCount = assignment.id.map {
                 assignmentVM.exercisesForAssignment($0).count
             } ?? 0
-            Text("\(exerciseCount) exercice\(exerciseCount != 1 ? "s" : "")")
+            Text(LocalizationManager.shared.format(exerciseCount == 1 ? "%@ exercice" : "%@ exercices", String(exerciseCount)))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

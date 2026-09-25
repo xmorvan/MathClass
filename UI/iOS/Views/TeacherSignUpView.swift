@@ -26,6 +26,8 @@ struct TeacherSignUpView: View {
     }
     
     
+    @State private var showLogin: Bool = false
+
     var body: some View {
         NavigationView {
             Form {
@@ -59,6 +61,12 @@ struct TeacherSignUpView: View {
                 }
 
                 Section { passwordRequirements }
+
+                Section {
+                    Button("J'ai déjà un compte : se connecter".tr) {
+                        showLogin = true
+                    }
+                }
             }
             .navigationTitle("Inscription Professeur".tr)
             .navigationBarTitleDisplayMode(.inline)
@@ -82,6 +90,9 @@ struct TeacherSignUpView: View {
                 Button("OK".tr, role: .cancel) { }
             } message: {
                 Text(viewModel.errorMessage)
+            }
+            .sheet(isPresented: $showLogin) {
+                TeacherLoginView_iOS()
             }
             .onChange(of: viewModel.isAccountCreated) { oldValue, newValue in
                 if newValue {
