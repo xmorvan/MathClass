@@ -14,7 +14,10 @@ def test_extract_json_keeps_latex_commands():
 
 
 def test_extract_json_still_reads_valid_escapes():
-    assert _helpers.extract_json('{"a": "line\\nbreak", "b": "q\\"uote"}') == {"a": "line\nbreak", "b": 'q"uote'}
+    # A JSON escape followed by a non-letter keeps its JSON meaning; followed
+    # by a letter it is read as LaTeX (\\neq, \\ne, \\notin are common).
+    assert _helpers.extract_json('{"a": "line\\n2", "b": "q\\"uote"}') == {"a": "line\n2", "b": 'q"uote'}
+    assert _helpers.extract_json('{"a": "x \\neq 2"}') == {"a": "x \\neq 2"}
 
 
 def test_flatten_on_white_removes_transparency():
@@ -28,3 +31,10 @@ def test_flatten_on_white_removes_transparency():
     assert out.mode == "RGB"
     assert out.getpixel((0, 0)) == (255, 255, 255)
     assert out.getpixel((1, 1)) == (0, 0, 0)
+
+
+def test_extract_json_does_not_turn_times_into_a_tab():
+    # "\t" is a valid JSON escape: without the repair this parses to TAB+"imes".
+    result = _helpers.extract_json('{"steps": ["2 \\times x = 10"], "confidence": 0.9}')
+    assert result["steps"] == ["2 \\times x = 10"]
+    assert "\t" not in result["steps"][0]

@@ -39,21 +39,16 @@ def extract_json(text: str) -> dict:
         if s.endswith("```"):
             s = s[:-3]
         s = s.strip()
+    # LaTeX inside JSON strings. Claude often writes single backslashes:
+    # "\\sqrt" is an invalid escape (json.loads fails) and, worse, "\\times",
+    # "\\frac", "\\beta" are *valid* escapes (tab, form feed, backspace +
+    # letters) that silently corrupt the step ("2 \\times x" -> "2 <TAB>imes x").
+    # Repair before the first parse, not only after a failure.
+    s = _escape_stray_backslashes(s)
     try:
         return json.loads(s)
     except json.JSONDecodeError:
         pass
-
-    # LaTeX inside JSON strings: "\\frac" is fine, but a single "\\Rightarrow"
-    # or "\\sqrt" is an invalid escape and breaks json.loads. Double every
-    # backslash that doesn't start a valid JSON escape, then retry.
-    repaired = _escape_stray_backslashes(s)
-    if repaired != s:
-        try:
-            return json.loads(repaired)
-        except json.JSONDecodeError:
-            pass
-        s = repaired
 
     start = s.find("{")
     if start < 0:

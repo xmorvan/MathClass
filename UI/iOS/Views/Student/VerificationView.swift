@@ -211,7 +211,7 @@ struct VerificationView: View {
 
             // ISSUE-011: Per-step inline KaTeX preview so a student typing
             // a correction sees the rendered math right under the field.
-            ForEach(editableSteps.indices, id: \.self) { index in
+            ForEach(Array(editableSteps.enumerated()), id: \.offset) { index, step in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top) {
                         Text(LocalizationManager.shared.format("Étape %@", String(index + 1)))
@@ -219,23 +219,58 @@ struct VerificationView: View {
                             .foregroundColor(.secondary)
                             .frame(width: 60, alignment: .leading)
 
-                        TextField("LaTeX".tr, text: $editableSteps[index])
+                        TextField("LaTeX".tr, text: stepBinding(index))
                             .font(.system(.body, design: .monospaced))
                             .textFieldStyle(.roundedBorder)
+
+                        // Remove a step the recognition invented or split.
+                        Button {
+                            removeStep(at: index)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Supprimer l'étape".tr)
                     }
 
-                    if !editableSteps[index].trimmingCharacters(in: .whitespaces).isEmpty {
+                    if !step.trimmingCharacters(in: .whitespaces).isEmpty {
                         KaTeXView(
-                            content: "$\(editableSteps[index])$",
+                            content: "$\(step)$",
                             mode: .preview,
                             fontSize: 16,
-                            minHeight: 28
+                            minHeight: 40
                         )
                         .padding(.leading, 60)
                     }
                 }
             }
         }
+    }
+
+    // MARK: - Step editing
+
+    /// Steps actually sent for correction: blank lines are dropped.
+    private var nonEmptySteps: [String] {
+        editableSteps
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Bounds-checked binding: a step can be deleted while its field is
+    /// still on screen.
+    private func stepBinding(_ index: Int) -> Binding<String> {
+        Binding(
+            get: { editableSteps.indices.contains(index) ? editableSteps[index] : "" },
+            set: { newValue in
+                if editableSteps.indices.contains(index) { editableSteps[index] = newValue }
+            }
+        )
+    }
+
+    private func removeStep(at index: Int) {
+        guard editableSteps.indices.contains(index) else { return }
+        editableSteps.remove(at: index)
     }
 
     // MARK: - Action Buttons
@@ -255,7 +290,7 @@ struct VerificationView: View {
 
             Button {
                 Task {
-                    await viewModel.confirmAndSubmit(confirmedSteps: editableSteps)
+                    await viewModel.confirmAndSubmit(confirmedSteps: nonEmptySteps)
                 }
             } label: {
                 Label("Soumettre".tr, systemImage: "paperplane.fill")
@@ -264,7 +299,7 @@ struct VerificationView: View {
                     .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(viewModel.phase == .submitting || editableSteps.isEmpty)
+            .disabled(viewModel.phase == .submitting || nonEmptySteps.isEmpty)
         }
         .padding()
     }
