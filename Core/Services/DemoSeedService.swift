@@ -2,12 +2,15 @@
 //  DemoSeedService.swift
 //  MathClass
 //
-//  Idempotent demo content writer. Uses deterministic Firestore document
-//  IDs so it can be re-run safely (writes are upserts) and "Reset Demo"
-//  can target only the demo namespace without touching teacher-created
-//  data. Designed for the salesperson scenario: open the app cold,
-//  populate sample classes/students/exercises/submissions, walk a
-//  prospect through the full teacher↔student loop.
+//  Demo content for a prospect's trial: one class with students, groups,
+//  six exercises and an active assignment, so a student iPad can join
+//  with the class code and start solving right away.
+//
+//  Every demo document is scoped to the teacher (IDs derived from their
+//  uid, a class code of its own), so any number of prospects can load
+//  the demo side by side. Writes are upserts: seeding twice is safe.
+//  "Reset" deletes only that teacher's demo class (server-side cascade)
+//  and demo exercises.
 //
 
 import Foundation
@@ -20,89 +23,84 @@ final class DemoSeedService {
 
     private let firebase = FirebaseService.shared
 
-    /// Fixed identifiers — all demo writes land at known paths so we can
-    /// scope deletion / reset.
-    enum DemoIDs {
-        static let classID = "demo-class-3eA"
-        static let teacherID = "demo-teacher"
+    /// Identifiers of one teacher's demo documents. Paths under the demo
+    /// class (students, groups, chapter) are already unique per class and
+    /// keep fixed IDs.
+    struct DemoIDs {
+        let teacherID: String
+
+        var classID: String { "demo-class-\(teacherID)" }
+        var assignmentID: String { "demo-asg-\(teacherID)" }
+        var exercisePrefix: String { "demo-ex-\(teacherID)-" }
+
         static let testStudentID = "00000000-0000-0000-0000-000000000001"
         static let chapterID = "demo-chapter-algebra"
         static let competency1 = "demo-comp-eq-1deg"
         static let competency2 = "demo-comp-eq-2deg"
-        static let exercisePrefix = "demo-ex-"
         static let groupAID = "demo-group-a"
         static let groupBID = "demo-group-b"
+        static let exerciseCount = 6
     }
 
     private init() {}
 
-    /// Run the seeder. Safe to call multiple times — every write is an
-    /// idempotent upsert keyed off `DemoIDs`.
+    /// Run the seeder for `teacherID`. Safe to call multiple times.
     func seed(teacherID: String) async throws {
-        try await seedClass(teacherID: teacherID)
-        try await seedChapterAndCompetencies()
-        try await seedStudents()
-        try await seedGroups()
-        try await seedExercises(teacherID: teacherID)
+        let ids = DemoIDs(teacherID: teacherID)
+        try await seedClass(ids)
+        try await seedChapterAndCompetencies(ids)
+        try await seedStudents(ids)
+        try await seedGroups(ids)
+        try await seedExercises(ids)
+        try await seedAssignment(ids)
     }
 
-    /// Reset: delete only documents under demo IDs. Teacher-created classes
-    /// and students remain untouched.
-    func reset() async throws {
-        // Students under the demo class
-        let studentsPath = "classes/\(DemoIDs.classID)/students"
-        let students: [Student] = (try? await firebase.getDocuments(from: studentsPath)) ?? []
-        for s in students {
-            if let id = s.id {
-                try? await firebase.deleteDocument(from: studentsPath, documentID: id)
-            }
+    /// Delete this teacher's demo class (with its students' work) and demo
+    /// exercises. Their own classes are untouched.
+    func reset(teacherID: String) async throws {
+        let ids = DemoIDs(teacherID: teacherID)
+        let existing: ClassRoom? = try? await firebase.getDocument(ids.classID, from: "classes")
+        if existing != nil {
+            try await DataDeletionService.shared.deleteClass(id: ids.classID)
         }
-        // Groups
-        let groupsPath = "classes/\(DemoIDs.classID)/groups"
-        let groups: [StudentGroup] = (try? await firebase.getDocuments(from: groupsPath)) ?? []
-        for g in groups {
-            if let id = g.id {
-                try? await firebase.deleteDocument(from: groupsPath, documentID: id)
-            }
+        for index in 1...DemoIDs.exerciseCount {
+            try? await firebase.deleteDocument(from: "exercises", documentID: "\(ids.exercisePrefix)\(index)")
         }
-        // Chapter + competencies
-        let chaptersPath = "classes/\(DemoIDs.classID)/chapters"
-        try? await firebase.deleteDocument(from: chaptersPath, documentID: DemoIDs.chapterID)
-        // Demo exercises (only those with our prefix)
-        let exercises: [Exercise] = (try? await firebase.getDocuments(from: "exercises")) ?? []
-        for e in exercises where (e.id ?? "").hasPrefix(DemoIDs.exercisePrefix) {
-            if let id = e.id {
-                try? await firebase.deleteDocument(from: "exercises", documentID: id)
-            }
-        }
-        // The class itself last so subcollections vanish in order.
-        try? await firebase.deleteDocument(from: "classes", documentID: DemoIDs.classID)
     }
 
     // MARK: - Seeders
 
-    private func seedClass(teacherID: String) async throws {
+    private func seedClass(_ ids: DemoIDs) async throws {
+        // Keep the class code across re-seeds so students already joined
+        // stay valid; otherwise ask the server for a fresh unique code.
+        let existing: ClassRoom? = try? await firebase.getDocument(ids.classID, from: "classes")
+        let classCode: String
+        if let existingCode = existing?.classCode {
+            classCode = existingCode
+        } else {
+            classCode = try await ClassCodeService.shared.generateUniqueCode()
+        }
         let cls = ClassRoom(
-            id: DemoIDs.classID,
-            name: "Démo — 3ème A",
-            classCode: "MX-DEMO",
-            teacherID: teacherID,
-            createdAt: Date(),
+            id: ids.classID,
+            name: "Démo, 3e A",
+            classCode: classCode,
+            teacherID: ids.teacherID,
+            createdAt: existing?.createdAt ?? Date(),
             notationStrict: true
         )
-        _ = try await firebase.createDocument(cls, in: "classes", documentID: DemoIDs.classID)
+        _ = try await firebase.createDocument(cls, in: "classes", documentID: ids.classID)
     }
 
-    private func seedChapterAndCompetencies() async throws {
+    private func seedChapterAndCompetencies(_ ids: DemoIDs) async throws {
         let chapter = Chapter(
             id: DemoIDs.chapterID,
-            name: "Algèbre — équations",
+            name: "Algèbre : équations",
             order: 0,
-            classID: DemoIDs.classID
+            classID: ids.classID
         )
         _ = try await firebase.createDocument(
             chapter,
-            in: "classes/\(DemoIDs.classID)/chapters",
+            in: "classes/\(ids.classID)/chapters",
             documentID: DemoIDs.chapterID
         )
 
@@ -118,67 +116,67 @@ final class DemoSeedService {
         )
         _ = try await firebase.createDocument(
             comp1,
-            in: "classes/\(DemoIDs.classID)/chapters/\(DemoIDs.chapterID)/competencies",
+            in: "classes/\(ids.classID)/chapters/\(DemoIDs.chapterID)/competencies",
             documentID: DemoIDs.competency1
         )
         _ = try await firebase.createDocument(
             comp2,
-            in: "classes/\(DemoIDs.classID)/chapters/\(DemoIDs.chapterID)/competencies",
+            in: "classes/\(ids.classID)/chapters/\(DemoIDs.chapterID)/competencies",
             documentID: DemoIDs.competency2
         )
     }
 
-    private func seedStudents() async throws {
+    private func seedStudents(_ ids: DemoIDs) async throws {
         // 10 demo students: spread across levels 1–5, with a couple linked
         // and one that maps to the documented test-student UUID.
         let students: [Student] = [
-            Student(id: DemoIDs.testStudentID, firstName: "Alice", lastName: "Démo", classID: DemoIDs.classID, level: 4),
-            Student(id: "demo-stu-2", firstName: "Bilel", lastName: "Aouad", classID: DemoIDs.classID, level: 3),
-            Student(id: "demo-stu-3", firstName: "Camille", lastName: "Berger", classID: DemoIDs.classID, level: 2),
-            Student(id: "demo-stu-4", firstName: "Daniel", lastName: "Costa", classID: DemoIDs.classID, level: 5),
-            Student(id: "demo-stu-5", firstName: "Emma", lastName: "Diallo", classID: DemoIDs.classID, level: 1),
-            Student(id: "demo-stu-6", firstName: "Farid", lastName: "El Amrani", classID: DemoIDs.classID, level: 3),
-            Student(id: "demo-stu-7", firstName: "Gloria", lastName: "Fernandes", classID: DemoIDs.classID, level: 4),
-            Student(id: "demo-stu-8", firstName: "Hugo", lastName: "Garcia", classID: DemoIDs.classID, level: 2),
-            Student(id: "demo-stu-9", firstName: "Inès", lastName: "Hamida", classID: DemoIDs.classID, level: 3),
-            Student(id: "demo-stu-10", firstName: "Jules", lastName: "Iverson", classID: DemoIDs.classID, level: 5)
+            Student(id: DemoIDs.testStudentID, firstName: "Alice", lastName: "Démo", classID: ids.classID, level: 4),
+            Student(id: "demo-stu-2", firstName: "Bilel", lastName: "Aouad", classID: ids.classID, level: 3),
+            Student(id: "demo-stu-3", firstName: "Camille", lastName: "Berger", classID: ids.classID, level: 2),
+            Student(id: "demo-stu-4", firstName: "Daniel", lastName: "Costa", classID: ids.classID, level: 5),
+            Student(id: "demo-stu-5", firstName: "Emma", lastName: "Diallo", classID: ids.classID, level: 1),
+            Student(id: "demo-stu-6", firstName: "Farid", lastName: "El Amrani", classID: ids.classID, level: 3),
+            Student(id: "demo-stu-7", firstName: "Gloria", lastName: "Fernandes", classID: ids.classID, level: 4),
+            Student(id: "demo-stu-8", firstName: "Hugo", lastName: "Garcia", classID: ids.classID, level: 2),
+            Student(id: "demo-stu-9", firstName: "Inès", lastName: "Hamida", classID: ids.classID, level: 3),
+            Student(id: "demo-stu-10", firstName: "Jules", lastName: "Iverson", classID: ids.classID, level: 5)
         ]
         for s in students {
             guard let id = s.id else { continue }
             _ = try await firebase.createDocument(
                 s,
-                in: "classes/\(DemoIDs.classID)/students",
+                in: "classes/\(ids.classID)/students",
                 documentID: id
             )
         }
     }
 
-    private func seedGroups() async throws {
+    private func seedGroups(_ ids: DemoIDs) async throws {
         let groupA = StudentGroup(
             id: DemoIDs.groupAID,
             name: "Renforcement",
-            classID: DemoIDs.classID,
+            classID: ids.classID,
             studentIDs: ["demo-stu-3", "demo-stu-5", "demo-stu-8"]
         )
         let groupB = StudentGroup(
             id: DemoIDs.groupBID,
             name: "Avancés",
-            classID: DemoIDs.classID,
+            classID: ids.classID,
             studentIDs: ["demo-stu-4", "demo-stu-10"]
         )
         _ = try await firebase.createDocument(
             groupA,
-            in: "classes/\(DemoIDs.classID)/groups",
+            in: "classes/\(ids.classID)/groups",
             documentID: DemoIDs.groupAID
         )
         _ = try await firebase.createDocument(
             groupB,
-            in: "classes/\(DemoIDs.classID)/groups",
+            in: "classes/\(ids.classID)/groups",
             documentID: DemoIDs.groupBID
         )
     }
 
-    private func seedExercises(teacherID: String) async throws {
+    private func seedExercises(_ ids: DemoIDs) async throws {
         struct Seed { let title: String; let statement: String; let answer: String; let level: Int; let comp: String }
         let seeds: [Seed] = [
             .init(title: "Résoudre 2x = 8", statement: "Résoudre $2x = 8$", answer: "x = 4", level: 1, comp: DemoIDs.competency1),
@@ -189,7 +187,7 @@ final class DemoSeedService {
             .init(title: "Résoudre 2x² - 5x + 2 = 0", statement: "Résoudre $2x^2 - 5x + 2 = 0$", answer: "x = 2 \\text{ ou } x = 0.5", level: 5, comp: DemoIDs.competency2)
         ]
         for (i, seed) in seeds.enumerated() {
-            let id = "\(DemoIDs.exercisePrefix)\(i + 1)"
+            let id = "\(ids.exercisePrefix)\(i + 1)"
             let exercise = Exercise(
                 id: id,
                 title: seed.title,
@@ -200,12 +198,38 @@ final class DemoSeedService {
                 competencyIDs: [seed.comp],
                 difficultyLevel: seed.level,
                 creationMethod: .wysiwyg,
-                teacherID: teacherID
+                teacherID: ids.teacherID
             )
             _ = try await firebase.createDocument(
                 exercise,
                 in: "exercises",
                 documentID: id
+            )
+        }
+    }
+
+    /// An active assignment with all demo exercises, so a student who joins
+    /// with the class code has something to solve immediately.
+    private func seedAssignment(_ ids: DemoIDs) async throws {
+        let assignment = Assignment(
+            id: ids.assignmentID,
+            classID: ids.classID,
+            mode: .differentiation,
+            isActive: true
+        )
+        _ = try await firebase.createDocument(assignment, in: "assignments", documentID: ids.assignmentID)
+        for index in 1...DemoIDs.exerciseCount {
+            let exerciseID = "\(ids.exercisePrefix)\(index)"
+            let assignmentExercise = AssignmentExercise(
+                id: exerciseID,
+                assignmentID: ids.assignmentID,
+                exerciseID: exerciseID,
+                order: index - 1
+            )
+            _ = try await firebase.createDocument(
+                assignmentExercise,
+                in: "assignments/\(ids.assignmentID)/exercises",
+                documentID: exerciseID
             )
         }
     }

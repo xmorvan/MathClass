@@ -247,8 +247,9 @@ class TeacherViewModel: ObservableObject {
         try await classRepo.updateClass(classRoom)
     }
 
+    /// Deletes the class and everything in it (server-side cascade).
     func deleteClass(id: String) async throws {
-        try await classRepo.deleteClass(id: id)
+        try await DataDeletionService.shared.deleteClass(id: id)
     }
 
     // MARK: - Student Management

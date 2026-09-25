@@ -13,6 +13,7 @@ struct TeacherProfileView: View {
     @StateObject private var viewModel = TeacherProfileViewModel()
     @ObservedObject private var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
+    @State private var showDeleteConfirmation: Bool = false
 
     var body: some View {
         NavigationView {
@@ -67,6 +68,46 @@ struct TeacherProfileView: View {
                         Text("Préférence linguistique".tr)
                     }
 
+                    Section {
+                        Button {
+                            Task { await viewModel.loadDemo() }
+                        } label: {
+                            Label("Charger les données de démo".tr, systemImage: "tray.and.arrow.down")
+                        }
+                        .disabled(viewModel.isWorkingOnDemo)
+
+                        Button(role: .destructive) {
+                            Task { await viewModel.resetDemo() }
+                        } label: {
+                            Label("Réinitialiser la démo".tr, systemImage: "arrow.counterclockwise.circle")
+                        }
+                        .disabled(viewModel.isWorkingOnDemo)
+
+                        if let demoMessage = viewModel.demoMessage {
+                            Label(demoMessage.tr, systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        }
+                    } header: {
+                        Text("Données de démo".tr)
+                    } footer: {
+                        Text("La démo crée une classe fictive avec dix élèves, six exercices et un devoir actif. Pour essayer côté élève, saisissez le code de cette classe sur un iPad. La réinitialisation efface uniquement les données de démo.".tr)
+                    }
+
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            if viewModel.isDeletingAccount {
+                                ProgressView()
+                            } else {
+                                Text("Supprimer mon compte".tr)
+                            }
+                        }
+                        .disabled(viewModel.isDeletingAccount)
+                    } footer: {
+                        Text("Supprime définitivement votre compte, vos classes, le travail de vos élèves et vos exercices.".tr)
+                    }
+
                     if let error = viewModel.error {
                         Section {
                             Text(error)
@@ -103,6 +144,18 @@ struct TeacherProfileView: View {
             }
             .task {
                 await viewModel.load()
+            }
+            .confirmationDialog(
+                "Supprimer votre compte ?".tr,
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Supprimer définitivement".tr, role: .destructive) {
+                    Task { await viewModel.deleteAccount() }
+                }
+                Button("Annuler".tr, role: .cancel) {}
+            } message: {
+                Text("Cette action est irréversible.".tr)
             }
         }
     }

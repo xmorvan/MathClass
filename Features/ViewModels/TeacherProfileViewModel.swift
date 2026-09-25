@@ -19,6 +19,7 @@ class TeacherProfileViewModel: ObservableObject {
     @Published var isLoading: Bool = true
     @Published var error: String?
     @Published var saveSuccess: Bool = false
+    @Published var isDeletingAccount: Bool = false
 
     // Reuse the shared TeacherRepository so this view sees the same listener
     // state as the rest of the app — instantiating our own meant edits made
@@ -77,5 +78,56 @@ class TeacherProfileViewModel: ObservableObject {
         }
 
         isSaving = false
+    }
+
+    // MARK: - Demo Data
+
+    @Published var isWorkingOnDemo: Bool = false
+    @Published var demoMessage: String?
+
+    /// Load the demo class (students, exercises, active assignment).
+    func loadDemo() async {
+        guard let teacherID else { return }
+        isWorkingOnDemo = true
+        error = nil
+        demoMessage = nil
+        do {
+            try await DemoSeedService.shared.seed(teacherID: teacherID)
+            demoMessage = "Classe de démo prête."
+        } catch {
+            self.error = "Démo : \(error.localizedDescription)"
+        }
+        isWorkingOnDemo = false
+    }
+
+    /// Delete the demo class and demo exercises only.
+    func resetDemo() async {
+        guard let teacherID else { return }
+        isWorkingOnDemo = true
+        error = nil
+        demoMessage = nil
+        do {
+            try await DemoSeedService.shared.reset(teacherID: teacherID)
+            demoMessage = "Données de démo supprimées."
+        } catch {
+            self.error = "Réinitialisation de la démo : \(error.localizedDescription)"
+        }
+        isWorkingOnDemo = false
+    }
+
+    // MARK: - Delete Account
+
+    /// Deletes the account and all its data (classes, students' work,
+    /// exercises), then signs out. Required by App Store guideline 5.1.1(v).
+    func deleteAccount() async {
+        isDeletingAccount = true
+        error = nil
+        do {
+            try await DataDeletionService.shared.deleteAccount()
+            try? AuthenticationService.shared.signOut()
+        } catch {
+            self.error = "Impossible de supprimer le compte. Vérifiez la connexion et réessayez."
+        }
+        isDeletingAccount = false
     }
 }
