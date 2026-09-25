@@ -1,9 +1,10 @@
 {
   "name": "mathclass-rules-tests",
   "private": true,
-  "description": "Security-rules tests for firestore.rules and storage.rules, run against the Firebase emulators.",
+  "description": "Security-rules tests and an end-to-end smoke test, run against the Firebase emulators.",
   "scripts": {
-    "test": "firebase emulators:exec --only firestore,storage --project demo-mathclass --config ../firebase.json \"node --test\""
+    "test": "firebase emulators:exec --only firestore,storage --project demo-mathclass --config ../firebase.json \"node --test\"",
+    "e2e": "test -f ../functions/.env.local || echo CLAUDE_PROVIDER=fake > ../functions/.env.local; firebase emulators:exec --only auth,firestore,storage,functions --project demo-mathclass --config ../firebase.json \"node --test e2e.smoke.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
