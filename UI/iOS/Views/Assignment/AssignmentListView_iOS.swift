@@ -55,6 +55,7 @@ struct AssignmentListView_iOS: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     assignmentVM.resetCreation()
+                    assignmentVM.selectedClassID = viewModel.selectedClassID
                     showingCreateSheet = true
                 } label: {
                     Image(systemName: "plus")
@@ -88,6 +89,7 @@ struct AssignmentListView_iOS: View {
                 .multilineTextAlignment(.center)
             Button("Créer un devoir".tr) {
                 assignmentVM.resetCreation()
+                assignmentVM.selectedClassID = viewModel.selectedClassID
                 showingCreateSheet = true
             }
             .buttonStyle(.borderedProminent)
@@ -300,6 +302,8 @@ struct CreateAssignmentView_iOS: View {
                 .onChange(of: assignmentVM.selectedClassID) { _, _ in
                     assignmentVM.loadStudentsForSelectedClass()
                 }
+                // The class is preselected from the list's class picker.
+                .onAppear { assignmentVM.loadStudentsForSelectedClass() }
             }
 
             Section("Mode".tr) {

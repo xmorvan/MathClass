@@ -111,6 +111,7 @@ struct AssignmentListView_macOS: View {
 
             Button {
                 assignmentVM.resetCreation()
+                assignmentVM.selectedClassID = selectedClassID
                 showingCreateSheet = true
             } label: {
                 Label("Nouveau devoir".tr, systemImage: "plus")
@@ -135,6 +136,7 @@ struct AssignmentListView_macOS: View {
                 .multilineTextAlignment(.center)
             Button("Créer un devoir".tr) {
                 assignmentVM.resetCreation()
+                assignmentVM.selectedClassID = selectedClassID
                 showingCreateSheet = true
             }
             .buttonStyle(.bordered)
