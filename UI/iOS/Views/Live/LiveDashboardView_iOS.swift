@@ -53,12 +53,19 @@ struct LiveDashboardView_iOS: View {
             }
         }
         .padding()
-        .onAppear {
-            if let classID = activeClassID {
-                viewModel.startListeningToPeriods(classID: classID)
-                if let pid = activePeriod?.id {
-                    viewModel.startListeningToSessions(periodID: pid)
-                }
+        // Runs on appear, when the class list first arrives, and when the
+        // teacher switches class. `selectClass` loads that class's roster:
+        // `studentsInClass` only sees the selected class's students, so
+        // without it the dashboard showed "no students" unless the class
+        // had been opened in the Classes screen first.
+        .task(id: activeClassID) {
+            guard let classID = activeClassID else { return }
+            viewModel.selectClass(classID)
+            viewModel.startListeningToPeriods(classID: classID)
+        }
+        .onChange(of: activePeriod?.id) { _, periodID in
+            if let periodID {
+                viewModel.startListeningToSessions(periodID: periodID)
             }
         }
         .onDisappear {

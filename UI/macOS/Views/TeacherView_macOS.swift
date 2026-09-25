@@ -9,7 +9,7 @@ import SwiftUI
 import AppKit
 
 /// Teacher dashboard for macOS.
-/// Sidebar: Classes, Exercices, Devoirs, Statistiques.
+/// Sidebar: Classes, Exercices, Devoirs, Soumissions, En direct, Statistiques.
 struct TeacherView_macOS: View {
     @StateObject private var authService = AuthenticationService.shared
     @StateObject private var viewModel = TeacherViewModel()
@@ -32,6 +32,9 @@ struct TeacherView_macOS: View {
                     }
                     NavigationLink(value: 5) {
                         Label("Soumissions".tr, systemImage: "tray.and.arrow.down")
+                    }
+                    NavigationLink(value: 6) {
+                        Label("En direct".tr, systemImage: "dot.radiowaves.left.and.right")
                     }
                     NavigationLink(value: 4) {
                         Label("Statistiques".tr, systemImage: "chart.bar")
@@ -90,6 +93,8 @@ struct TeacherView_macOS: View {
                     StatisticsView_macOS(viewModel: viewModel)
                 case 5:
                     SubmissionInboxView_macOS(viewModel: viewModel)
+                case 6:
+                    LiveDashboardView_macOS(viewModel: viewModel)
                 default:
                     Text("Sélectionnez une section".tr)
                 }
