@@ -29,10 +29,6 @@ struct AssignmentListView_macOS: View {
             VStack(alignment: .leading, spacing: 0) {
                 assignmentListHeader
 
-                ClassPickerBar(viewModel: viewModel)
-                    .padding(.horizontal)
-                    .padding(.vertical, 6)
-
                 Divider()
 
                 if viewModel.assignments.isEmpty {
@@ -86,6 +82,11 @@ struct AssignmentListView_macOS: View {
         .onChange(of: selectedClassID) { _, newID in
             if let classID = newID {
                 viewModel.assignmentRepo.startListening(classID: classID)
+            }
+        }
+        .onChange(of: viewModel.classes.count) { _, _ in
+            if selectedClassID == nil, let first = viewModel.classes.first {
+                selectedClassID = first.id
             }
         }
     }

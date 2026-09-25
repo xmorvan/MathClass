@@ -55,13 +55,13 @@ struct CreateAssignmentView_macOS: View {
 
     private var creationHeader: some View {
         HStack(spacing: 24) {
-            stepIndicator("1. Configurer", step: .configure)
+            stepIndicator("1. " + "Configurer".tr, step: .configure)
             Image(systemName: "chevron.right")
                 .foregroundColor(.secondary)
-            stepIndicator("2. Exercices", step: .selectExercises)
+            stepIndicator("2. " + "Exercices".tr, step: .selectExercises)
             Image(systemName: "chevron.right")
                 .foregroundColor(.secondary)
-            stepIndicator("3. Vérifier", step: .review)
+            stepIndicator("3. " + "Vérifier".tr, step: .review)
             Spacer()
         }
         .padding()
@@ -240,7 +240,9 @@ struct CreateAssignmentView_macOS: View {
                                         } label: {
                                             let count = selected.targetStudentIDs?.count ?? 0
                                             Label(
-                                                count > 0 ? "\(count) élève\(count > 1 ? "s" : "")" : "Tous",
+                                                count > 0
+                                                    ? LocalizationManager.shared.format(count > 1 ? "%@ élèves" : "%@ élève", String(count))
+                                                    : "Tous".tr,
                                                 systemImage: "person.2"
                                             )
                                             .font(.caption)
@@ -328,7 +330,7 @@ struct CreateAssignmentView_macOS: View {
 
                 // Exercises
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Exercices (\(assignmentVM.selectedExercises.count))")
+                    Text(LocalizationManager.shared.format("Exercices (%@)", String(assignmentVM.selectedExercises.count)))
                         .font(.headline)
 
                     ForEach(assignmentVM.selectedExercises) { selected in

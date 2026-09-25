@@ -16,6 +16,12 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Aucun exercice pour vous ici": "No exercise for you here",
+        "Choisissez un autre devoir avec le bouton Devoirs.": "Pick another assignment with the Assignments button.",
+        "Configurer": "Configure",
+        "%@ élève": "%@ student",
+        "%@ élèves": "%@ students",
+        "Exercices (%@)": "Exercises (%@)",
         "Créée le %@": "Created %@",
         "Élèves (%@)": "Students (%@)",
         "Chapitres (%@)": "Chapters (%@)",

@@ -139,9 +139,18 @@ class StudentViewModel: ObservableObject {
         // If an assignment is already selected, reload its exercises
         if let selected = selectedAssignment {
             await loadExercises(for: selected)
-        } else if let first = active.first {
-            // Auto-select the first active assignment
-            await loadExercises(for: first)
+        } else if !active.isEmpty {
+            // Auto-select the most recent active assignment that has work
+            // for this student: an assignment whose exercises all target
+            // other students would otherwise hide the rest behind an
+            // empty screen.
+            for assignment in active {
+                await loadExercises(for: assignment)
+                if !assignedExercises.isEmpty { break }
+            }
+            if assignedExercises.isEmpty, let first = active.first {
+                await loadExercises(for: first)
+            }
         } else {
             // No active assignments
             self.assignedExercises = []

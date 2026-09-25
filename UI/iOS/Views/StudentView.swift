@@ -91,6 +91,7 @@ struct StudentView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
+            .accessibilityLabel("Recharger".tr)
 
             // Logout
             Button {
@@ -100,6 +101,7 @@ struct StudentView: View {
                     .foregroundColor(.red)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Déconnexion".tr)
         }
         .padding()
         .background(Color(.systemBackground))
@@ -231,10 +233,15 @@ struct StudentView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
 
-            Text("Aucun devoir actif".tr)
+            // Other assignments are active but this one holds nothing for
+            // the student (every exercise targets someone else).
+            let hasOtherAssignments = viewModel.activeAssignments.count > 1
+            Text(hasOtherAssignments ? "Aucun exercice pour vous ici".tr : "Aucun devoir actif".tr)
                 .font(.title2)
 
-            Text("Votre professeur n'a pas encore\nassigné de devoir à votre classe.".tr)
+            Text(hasOtherAssignments
+                 ? "Choisissez un autre devoir avec le bouton Devoirs.".tr
+                 : "Votre professeur n'a pas encore\nassigné de devoir à votre classe.".tr)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
