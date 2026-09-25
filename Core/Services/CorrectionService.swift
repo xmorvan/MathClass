@@ -61,7 +61,9 @@ final class CorrectionService {
             "expectedAnswer": expectedAnswer,
             "statement": statement,
             "submissionID": submissionID,
-            "attemptNumber": attemptNumber,
+            // Int32: the Functions SDK wraps a 64-bit Int as an Int64Value
+            // object, which the Python callable receives as a dict.
+            "attemptNumber": Int32(attemptNumber),
             "notationStrict": notationStrict
         ]
 

@@ -422,6 +422,21 @@ def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
     }
 
 
+def _as_int(value):
+    """Read an integer sent by a callable client. The Apple Functions SDK
+    sends a Swift `Int` as {"@type": ".../google.protobuf.Int64Value",
+    "value": "1"}; accept that form as well as plain numbers."""
+    if isinstance(value, dict) and "value" in value:
+        value = value["value"]
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)) and float(value).is_integer():
+        return int(value)
+    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+        return int(value.strip())
+    return None
+
+
 def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
     """Handle the correct_submission Cloud Function call.
 
@@ -453,7 +468,7 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
 
     student_steps = req.data.get("studentSteps", [])
     submission_id = req.data.get("submissionID")
-    attempt_number = req.data.get("attemptNumber")
+    attempt_number = _as_int(req.data.get("attemptNumber"))
 
     if not isinstance(student_steps, list):
         raise https_fn.HttpsError(

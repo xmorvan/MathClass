@@ -26,6 +26,8 @@ DEFAULT_MODELS = {
     # Vertex AI names this model without the date suffix.
     "vertex": "claude-haiku-4-5",
     "anthropic": "claude-haiku-4-5-20251001",
+    # Canned answers for UI testing in the Functions emulator only.
+    "fake": "fake",
 }
 
 
@@ -45,6 +47,14 @@ def model_id() -> str:
 
 def create_client():
     """Return a client exposing `messages.create` for the configured provider."""
+    if provider() == "fake":
+        if os.environ.get("FUNCTIONS_EMULATOR") != "true":
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.INTERNAL,
+                message="CLAUDE_PROVIDER=fake n'est permis que dans l'émulateur.",
+            )
+        from fake_claude import FakeClaude
+        return FakeClaude()
     if provider() == "anthropic":
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:

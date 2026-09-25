@@ -43,8 +43,22 @@ class DataService: ObservableObject {
     /// Upload data to Cloud Storage and return the download path.
     func uploadData(_ data: Data, path: String) async throws -> String {
         let ref = storage.reference().child(path)
-        _ = try await ref.putDataAsync(data)
+        // storage.rules only accept `image/*` uploads; without an explicit
+        // content type the SDK sends application/octet-stream and every
+        // drawing / exercise photo upload is rejected.
+        let metadata = StorageMetadata()
+        metadata.contentType = Self.contentType(forPath: path)
+        _ = try await ref.putDataAsync(data, metadata: metadata)
         return path
+    }
+
+    private static func contentType(forPath path: String) -> String {
+        switch (path as NSString).pathExtension.lowercased() {
+        case "jpg", "jpeg": return "image/jpeg"
+        case "heic": return "image/heic"
+        case "gif": return "image/gif"
+        default: return "image/png"
+        }
     }
 
     /// Download data from Cloud Storage.

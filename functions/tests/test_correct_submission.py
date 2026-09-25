@@ -395,3 +395,11 @@ def test_handler_grades_against_stored_answer_not_client_value(monkeypatch):
     prompt = fake_client.messages.create.call_args_list[0].kwargs["messages"][0]["content"]
     assert "x = 4" in prompt
     assert "FORGED" not in prompt
+
+
+def test_as_int_accepts_apple_sdk_int64_wrapper():
+    assert cs._as_int({"@type": "type.googleapis.com/google.protobuf.Int64Value", "value": "2"}) == 2
+    assert cs._as_int(1) == 1
+    assert cs._as_int(1.0) == 1
+    assert cs._as_int(True) is None
+    assert cs._as_int("x") is None

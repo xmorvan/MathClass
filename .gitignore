@@ -112,3 +112,4 @@ node_modules/
 
 # Local emulator secrets
 functions/.secret.local
+functions/.env.local
