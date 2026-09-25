@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 // Per CLAUDE.md, ViewModels must not import SwiftUI. The legacy
 // `submitSolution` method (which talked to FirebaseStorage directly) is
 // gone — the live submission flow now goes through SubmissionViewModel +
@@ -29,6 +30,12 @@ class StudentViewModel: ObservableObject {
 
     /// Progress: number of exercises completed in the current assignment.
     @Published var completedCount: Int = 0
+
+    private var cancellables: Set<AnyCancellable> = []
+    /// True between choosing an assignment and receiving its first
+    /// submissions snapshot: only then do we jump to the first unfinished
+    /// exercise (never while the student reads feedback).
+    private var needsInitialPositioning: Bool = false
 
     /// Whether the active assignment lets the student pick any exercise
     /// rather than walking them in order. Mirrors `Assignment.isFreeOrder`
@@ -77,6 +84,14 @@ class StudentViewModel: ObservableObject {
         self.exerciseRepo = exerciseRepo ?? dataService.exerciseRepository
         self.submissionRepo = submissionRepo ?? dataService.submissionRepository
         self.classRepo = classRepo ?? dataService.classRepository
+
+        // Submissions arrive asynchronously after `startListening`; recompute
+        // progress each time (it used to be computed once, before the first
+        // snapshot, so a relaunched student saw "0 done" and redid exercises).
+        self.submissionRepo.$submissions
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.submissionsDidChange() }
+            .store(in: &cancellables)
 
         // Best-effort fetch of the class doc for notation strictness and
         // the owning teacher. The student's claims allow reading their own
@@ -161,6 +176,7 @@ class StudentViewModel: ObservableObject {
             }
 
             // Start listening for this student's submissions in this assignment
+            needsInitialPositioning = true
             submissionRepo.startListening(studentID: studentID, assignmentID: assignmentID)
 
             // Compute progress and set current exercise. In free-order mode
@@ -309,6 +325,20 @@ class StudentViewModel: ObservableObject {
             // All done
             currentExercise = nil
         }
+    }
+
+    private func submissionsDidChange() {
+        guard !assignedExercises.isEmpty else { return }
+        if needsInitialPositioning {
+            needsInitialPositioning = false
+            updateProgress()
+            return
+        }
+        completedCount = assignedExercises.filter { exercise in
+            guard let id = exercise.id else { return false }
+            return isExerciseCompleted(id)
+        }.count
+        if allowFreeOrder { rebuildFreeOrderDeck() }
     }
 
     private func rebuildFreeOrderDeck() {
