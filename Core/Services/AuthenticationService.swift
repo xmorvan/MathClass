@@ -141,10 +141,21 @@ final class AuthenticationService: ObservableObject {
     /// Async because we await the Firestore fetch from MainActor and don't
     /// need a closure-based completion path anymore.
     private func fetchUserRole(userId: String) async {
+        // Never leave a teacher on the loading screen: past 15 s without an
+        // answer, show the retry screen.
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard let self, self.userRole == nil, !self.roleLookupFailed,
+                  let user = self.currentUser, !user.isAnonymous, user.uid == userId else { return }
+            print("AuthenticationService.fetchUserRole timed out")
+            self.roleLookupFailed = true
+        }
         do {
             let teacher: Teacher = try await firebase.getDocument(userId, from: "users")
             if let role = UserRole(rawValue: teacher.role) {
                 self.userRole = role
+            } else {
+                roleLookupFailed = true
             }
         } catch {
             // Doc-not-found is the common case for a freshly-created

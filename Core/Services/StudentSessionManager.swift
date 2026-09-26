@@ -218,6 +218,14 @@ final class StudentSessionManager: ObservableObject {
 
         // Stay in `.loading` while the Firestore round-trip resolves so the
         // UI doesn't flash a "signed out" screen on cold start (ISSUE-007).
+        // A poor connection could leave it pending for minutes: past 15 s
+        // show the role screen (the saved session is kept for next launch).
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard let self, self.sessionState == .loading else { return }
+            print("StudentSessionManager: session restore timed out")
+            self.sessionState = .signedOut
+        }
         Task { [weak self] in
             guard let self else { return }
             do {
