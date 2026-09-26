@@ -203,6 +203,15 @@ class SubmissionViewModel: ObservableObject {
         phase = .submitting
         recognizedSteps = confirmedSteps
 
+        // The attempt number was computed when the exercise opened, possibly
+        // before the student's submissions had loaded: a 2nd try was then
+        // recorded (and graded) as a 1st. Recheck against what is known now.
+        if ungradedSubmission == nil, let exerciseID = exercise.id,
+           studentViewModel.existingSubmissions(for: exerciseID)
+               .contains(where: { $0.attemptNumber >= 1 && $0.finalResult != nil }) {
+            currentAttempt = 2
+        }
+
         do {
             // Create submission in Firestore, unless the last try with these
             // exact steps already created one that never got graded.

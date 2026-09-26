@@ -49,7 +49,10 @@ def _ensure_sympy():
         sympy = _sympy
         parse_latex = _parse_latex
         SYMPY_AVAILABLE = True
-    except Exception:
+    except Exception as exc:
+        # Loud on purpose: without SymPy every answer is judged by Claude
+        # alone, which has accepted wrong final answers.
+        print(f"[sympy] UNAVAILABLE, grading falls back to Claude only: {exc}")
         SYMPY_AVAILABLE = False
 
 

@@ -503,3 +503,10 @@ def test_wrong_final_answer_fails_even_if_claude_pairs_it_with_itself(monkeypatc
     assert result["stepResults"] == [False]
     assert result["firstErrorIndex"] == 0
     assert result["allCorrect"] is False
+
+
+def test_requirements_pin_the_antlr_runtime_sympy_needs():
+    """parse_latex only works with antlr 4.11; a range let 4.13 in prod."""
+    import pathlib
+    reqs = (pathlib.Path(__file__).parent.parent / "requirements.txt").read_text()
+    assert "antlr4-python3-runtime==4.11.0" in reqs

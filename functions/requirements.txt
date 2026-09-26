@@ -1,10 +1,11 @@
 anthropic[vertex]>=0.40.0
 firebase-functions>=0.4.0
 firebase-admin>=6.5.0
-sympy>=1.13.0
-# Required by sympy.parsing.latex.parse_latex — without it, SYMPY_AVAILABLE
-# in correct_submission.py falls back to False and every step pays for an
-# extra Claude round-trip. sympy 1.13 needs antlr 4.11–4.13.
-antlr4-python3-runtime>=4.11,<4.14
+sympy==1.14.0
+# Required by sympy.parsing.latex.parse_latex, which accepts ONLY the antlr
+# runtime 4.11 (its parser was generated with 4.11). A looser range let pip
+# install 4.13 in production: SymPy was silently unavailable and every
+# answer was judged by Claude alone. Keep this pinned exactly.
+antlr4-python3-runtime==4.11.0
 google-cloud-storage>=2.18.0,<3.0.0
 pillow>=10.0.0

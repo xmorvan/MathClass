@@ -317,7 +317,11 @@ class StudentViewModel: ObservableObject {
         guard !attempts.isEmpty else { return false }
         // If any attempt has a definitive result, use that
         if attempts.contains(where: { $0.finalResult?.isSuccess == true }) { return true }
-        if attempts.contains(where: { $0.finalResult == .failed && $0.attemptNumber >= 2 }) { return true }
+        // A failed attempt ends the exercise when no other try is allowed:
+        // after the 2nd attempt, or at once in evaluation mode (it used to
+        // be offered again, and the student could resubmit a test).
+        let allowsRetry: Bool = currentMode?.allows2ndChance ?? true
+        if attempts.contains(where: { $0.finalResult == .failed && ($0.attemptNumber >= 2 || !allowsRetry) }) { return true }
         // If no correction result at all, treat having a submission as completed
         // (the correction pipeline will update the result later)
         if attempts.allSatisfy({ $0.finalResult == nil }) { return true }
