@@ -616,3 +616,12 @@ def test_units_with_exponents_and_bare_expected_values():
     assert cs._prepare("9\\pi \\text{ cm}^2") == "9\\pi"
     assert cs.sympy_check_equivalence("2 \\pi \\times 3 = 6\\pi", "9\\pi \\text{ cm}^2") is False
     assert cs.sympy_check_equivalence("\\pi \\times 3^2 = 9\\pi", "9\\pi \\text{ cm}^2") is True
+
+
+def test_every_requirement_is_pinned():
+    """Production must run the versions the tests ran with."""
+    import pathlib
+    lines = (pathlib.Path(__file__).parent.parent / "requirements.txt").read_text().splitlines()
+    requirements = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
+    assert requirements
+    assert all("==" in line for line in requirements), requirements

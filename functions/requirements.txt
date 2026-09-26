@@ -1,11 +1,13 @@
-anthropic[vertex]>=0.40.0
-firebase-functions>=0.4.0
-firebase-admin>=6.5.0
+# Every version is pinned: production installs exactly what the tests ran
+# with (an unpinned anthropic 1.x dropped `temperature` and broke grading).
+anthropic[vertex]==0.97.0
+firebase-functions==0.5.0
+firebase-admin==7.4.0
 sympy==1.14.0
 # Required by sympy.parsing.latex.parse_latex, which accepts ONLY the antlr
 # runtime 4.11 (its parser was generated with 4.11). A looser range let pip
 # install 4.13 in production: SymPy was silently unavailable and every
 # answer was judged by Claude alone. Keep this pinned exactly.
 antlr4-python3-runtime==4.11.0
-google-cloud-storage>=2.18.0,<3.0.0
-pillow>=10.0.0
+google-cloud-storage==3.10.1
+pillow==12.3.0
