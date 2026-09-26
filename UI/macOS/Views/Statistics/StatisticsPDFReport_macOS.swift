@@ -105,7 +105,7 @@ struct StatisticsPDFReport_macOS: View {
                     submissions: submissions
                 )
                 tableRow([
-                    exercise.title,
+                    exercise.displayTitle,
                     "\(stats.totalSubmissions)",
                     percent(stats.successRate),
                     duration(stats.averageTime)

@@ -48,7 +48,7 @@ class ExerciseWindowManager: ObservableObject {
             .environmentObject(self)
 
         let controller = ExerciseWindowController.create(
-            title: "Modifier: \(exercise.title)",
+            title: "Modifier: \(exercise.displayTitle)",
             content: content,
             onClose: { [weak self] in
                 self?.windowDidClose(id: "edit")

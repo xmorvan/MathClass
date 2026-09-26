@@ -54,7 +54,7 @@ struct FeedbackView: View {
                 .font(.title2)
                 .bold()
             Spacer()
-            Text(viewModel.exercise.title)
+            Text(viewModel.exercise.displayTitle)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

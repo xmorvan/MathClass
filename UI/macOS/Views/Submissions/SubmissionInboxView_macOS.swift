@@ -90,7 +90,7 @@ struct SubmissionInboxView_macOS: View {
     private func submissionRow(_ submission: Submission) -> some View {
         let studentName = viewModel.studentDirectory[submission.studentID]?.fullName
             ?? "Élève \(submission.studentID.prefix(6))"
-        let exerciseTitle = viewModel.exercises.first { $0.id == submission.exerciseID }?.title
+        let exerciseTitle = viewModel.exercises.first { $0.id == submission.exerciseID }?.displayTitle
             ?? "Exercice inconnu"
 
         return HStack(spacing: 12) {

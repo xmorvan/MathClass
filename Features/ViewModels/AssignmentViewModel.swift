@@ -17,6 +17,8 @@ class AssignmentViewModel: ObservableObject {
 
     @Published var selectedClassID: String?
     @Published var selectedMode: AssignmentMode = .differentiation
+    /// Optional name typed by the teacher.
+    @Published var assignmentName: String = ""
     @Published var selectedExercises: [SelectedExercise] = []
     @Published var isCreating: Bool = false
     @Published var error: String?
@@ -193,6 +195,7 @@ class AssignmentViewModel: ObservableObject {
             try await teacherViewModel.createAssignment(
                 classID: classID,
                 mode: selectedMode,
+                name: assignmentName,
                 exercises: exercises
             )
 
@@ -209,6 +212,7 @@ class AssignmentViewModel: ObservableObject {
     func resetCreation() {
         selectedExercises = []
         selectedMode = .differentiation
+        assignmentName = ""
         filterChapterID = nil
         searchText = ""
     }

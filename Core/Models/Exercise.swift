@@ -33,6 +33,10 @@ struct Exercise: Identifiable, Codable, Hashable {
     /// When this exercise was created
     var createdAt: Date
 
+
+    /// Title without LaTeX markup ("Résoudre $4x + 2 = 18$" → "Résoudre
+    /// 4x + 2 = 18"), for lists and headers.
+    var displayTitle: String { title.latexPlainPreview }
     init(
         id: String? = nil,
         title: String,

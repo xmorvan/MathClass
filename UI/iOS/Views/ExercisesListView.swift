@@ -130,7 +130,7 @@ struct ExerciseRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(exercise.title)
+                Text(exercise.displayTitle)
                     .font(.headline)
                 Spacer()
                 difficultyBadge

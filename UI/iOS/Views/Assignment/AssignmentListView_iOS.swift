@@ -129,7 +129,7 @@ struct AssignmentListView_iOS: View {
             HStack {
                 Image(systemName: assignment.mode.iconName)
                     .foregroundColor(assignment.mode.color)
-                Text(assignment.mode.displayName)
+                Text(assignment.displayTitle)
                     .font(.headline)
                 Spacer()
                 if assignment.isActive {
@@ -195,7 +195,7 @@ struct AssignmentDetailView_iOS: View {
                 HStack {
                     Text("Mode".tr)
                     Spacer()
-                    Label(assignment.mode.displayName, systemImage: assignment.mode.iconName)
+                    Label(assignment.displayTitle, systemImage: assignment.mode.iconName)
                         .foregroundColor(assignment.mode.color)
                 }
 
@@ -254,7 +254,7 @@ struct AssignmentDetailView_iOS: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             if let exercise = assignmentVM.exercise(byID: ae.exerciseID) {
-                                Text(exercise.title)
+                                Text(exercise.displayTitle)
                             } else {
                                 Text("Exercice introuvable".tr)
                                     .foregroundColor(.red)
@@ -306,6 +306,10 @@ struct CreateAssignmentView_iOS: View {
                 .onAppear { assignmentVM.loadStudentsForSelectedClass() }
             }
 
+            Section("Nom".tr) {
+                TextField("Nom du devoir (facultatif)".tr, text: $assignmentVM.assignmentName)
+            }
+
             Section("Mode".tr) {
                 Picker("Mode".tr, selection: $assignmentVM.selectedMode) {
                     ForEach(AssignmentMode.allCases, id: \.self) { mode in
@@ -320,7 +324,7 @@ struct CreateAssignmentView_iOS: View {
                     let isSelected = assignmentVM.selectedExercises.contains { $0.exerciseID == exercise.id }
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(exercise.title)
+                            Text(exercise.displayTitle)
                             HStack(spacing: 2) {
                                 ForEach(1...5, id: \.self) { level in
                                     Image(systemName: level <= exercise.difficultyLevel ? "star.fill" : "star")

@@ -155,7 +155,7 @@ struct ExerciseListView_macOS: View {
             VStack {
                 List(viewModel.exercises, selection: $selectedExerciseID) { exercise in
                     HStack {
-                        Text(exercise.title)
+                        Text(exercise.displayTitle)
                         Spacer()
                         Text(String(repeating: "⭐", count: exercise.difficultyLevel))
                     }
@@ -187,7 +187,7 @@ struct ExerciseListView_macOS: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Text(exercise.title)
+                            Text(exercise.displayTitle)
                                 .font(.title2)
                                 .bold()
                             Spacer()

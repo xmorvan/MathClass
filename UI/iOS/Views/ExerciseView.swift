@@ -28,6 +28,7 @@ struct ExerciseView: View {
     @State private var canvasView = PKCanvasView()
     @State private var hasDrawing = false
     @State private var isErasing: Bool = false
+    @State private var showingStatementPhoto: Bool = false
     /// Bumped on every stroke change; drives the live recognition.
     @State private var drawingVersion: Int = 0
     /// What MyScript reads, line by line, while the student writes.
@@ -77,7 +78,7 @@ struct ExerciseView: View {
 
     private var exerciseHeader: some View {
         HStack {
-            Text(exercise.title)
+            Text(exercise.displayTitle)
                 .font(.title2)
                 .bold()
             Spacer()
@@ -132,8 +133,34 @@ struct ExerciseView: View {
             }
 
             if let imageURL = exercise.statementImageURL, !imageURL.isEmpty {
-                AsyncImageFromStorage(path: imageURL)
+                if exercise.statement.isEmpty {
+                    AsyncImageFromStorage(path: imageURL)
+                        .padding(.horizontal)
+                } else {
+                    // The statement was extracted from this photo: keep the
+                    // writing space and show the photo on request.
+                    Button {
+                        showingStatementPhoto = true
+                    } label: {
+                        Label("Voir la photo de l'énoncé".tr, systemImage: "photo")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
                     .padding(.horizontal)
+                    .sheet(isPresented: $showingStatementPhoto) {
+                        NavigationStack {
+                            ScrollView {
+                                AsyncImageFromStorage(path: imageURL)
+                                    .padding()
+                            }
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    Button("Fermer".tr) { showingStatementPhoto = false }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         .padding(.vertical, 12)

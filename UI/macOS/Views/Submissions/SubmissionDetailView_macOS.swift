@@ -51,7 +51,7 @@ struct SubmissionDetailView_macOS: View {
                 }
             }
             HStack(spacing: 12) {
-                Label(exercise?.title ?? "Exercice inconnu", systemImage: "book")
+                Label(exercise?.displayTitle ?? "Exercice inconnu", systemImage: "book")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Label(LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)), systemImage: "number.circle")

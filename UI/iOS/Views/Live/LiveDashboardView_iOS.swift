@@ -136,7 +136,7 @@ struct LiveDashboardView_iOS: View {
 
     private func latestExerciseTitle(for student: Student) -> String? {
         guard let sub = latestSubmission(for: student) else { return nil }
-        return viewModel.exercises.first(where: { $0.id == sub.exerciseID })?.title
+        return viewModel.exercises.first(where: { $0.id == sub.exerciseID })?.displayTitle
     }
 
     private var activeSession: Session? {
@@ -225,7 +225,7 @@ private struct StudentTile_iOS: View {
                 if statusKey == "Terminé" && !pushableExercises.isEmpty {
                     Menu {
                         ForEach(pushableExercises) { exercise in
-                            Button(exercise.title) {
+                            Button(exercise.displayTitle) {
                                 if let id = exercise.id {
                                     onPushExercise(id)
                                 }

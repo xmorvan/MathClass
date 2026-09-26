@@ -30,7 +30,7 @@ struct SubmissionInboxView_iOS: View {
         let needle = searchText.lowercased()
         return byClass.filter { sub in
             let student = viewModel.studentDirectory[sub.studentID]
-            let exerciseTitle = viewModel.exercises.first { $0.id == sub.exerciseID }?.title ?? ""
+            let exerciseTitle = viewModel.exercises.first { $0.id == sub.exerciseID }?.displayTitle ?? ""
             return student?.fullName.lowercased().contains(needle) == true
                 || exerciseTitle.lowercased().contains(needle)
         }
@@ -104,7 +104,7 @@ struct SubmissionInboxView_iOS: View {
     private func submissionRow(_ submission: Submission) -> some View {
         let studentName = viewModel.studentDirectory[submission.studentID]?.fullName
             ?? "Élève \(submission.studentID.prefix(6))"
-        let exerciseTitle = viewModel.exercises.first { $0.id == submission.exerciseID }?.title
+        let exerciseTitle = viewModel.exercises.first { $0.id == submission.exerciseID }?.displayTitle
             ?? "Exercice inconnu"
 
         return HStack(spacing: 12) {

@@ -175,7 +175,7 @@ struct AssignmentListView_macOS: View {
             HStack {
                 Image(systemName: assignment.mode.iconName)
                     .foregroundColor(assignment.mode.color)
-                Text(assignment.mode.displayName)
+                Text(assignment.displayTitle)
                     .font(.headline)
                 Spacer()
                 if assignment.isActive {
@@ -240,7 +240,7 @@ struct AssignmentDetailView_macOS: View {
                             Image(systemName: assignment.mode.iconName)
                                 .font(.title2)
                                 .foregroundColor(assignment.mode.color)
-                            Text(assignment.mode.displayName)
+                            Text(assignment.displayTitle)
                                 .font(.title2)
                                 .bold()
                         }
@@ -338,7 +338,7 @@ struct AssignmentDetailView_macOS: View {
 
                         if let exercise = assignmentVM.exercise(byID: ae.exerciseID) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(exercise.title)
+                                Text(exercise.displayTitle)
                                     .font(.body)
                                 HStack(spacing: 2) {
                                     ForEach(1...5, id: \.self) { level in

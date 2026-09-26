@@ -93,6 +93,10 @@ struct CreateAssignmentView_macOS: View {
                 .pickerStyle(.menu)
             }
 
+            Section("Nom".tr) {
+                TextField("Nom du devoir (facultatif)".tr, text: $assignmentVM.assignmentName)
+            }
+
             Section("Mode".tr) {
                 Picker("Mode du devoir".tr, selection: $assignmentVM.selectedMode) {
                     ForEach(AssignmentMode.allCases, id: \.self) { mode in
@@ -162,7 +166,7 @@ struct CreateAssignmentView_macOS: View {
                     ForEach(assignmentVM.filteredExercises) { exercise in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(exercise.title)
+                                Text(exercise.displayTitle)
                                     .font(.body)
                                 HStack(spacing: 2) {
                                     ForEach(1...5, id: \.self) { level in
@@ -314,6 +318,16 @@ struct CreateAssignmentView_macOS: View {
                 }
 
                 Divider()
+
+                if !assignmentVM.assignmentName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Nom".tr)
+                            .font(.headline)
+                        Text(assignmentVM.assignmentName)
+                    }
+
+                    Divider()
+                }
 
                 // Mode
                 VStack(alignment: .leading, spacing: 4) {

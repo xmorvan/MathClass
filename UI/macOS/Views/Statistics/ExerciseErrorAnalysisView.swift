@@ -49,7 +49,7 @@ struct ExerciseStatsListView_macOS: View {
 
     private func exerciseRow(exercise: Exercise, stats: StatisticsService.ExerciseStats) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(exercise.title)
+            Text(exercise.displayTitle)
                 .font(.headline)
 
             HStack(spacing: 12) {
@@ -90,7 +90,7 @@ struct ExerciseStatsListView_macOS: View {
                 // Header
                 HStack {
                     VStack(alignment: .leading) {
-                        Text(exercise.title)
+                        Text(exercise.displayTitle)
                             .font(.title2)
                             .bold()
                         HStack(spacing: 2) {

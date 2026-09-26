@@ -66,7 +66,7 @@ struct StudentView: View {
                     .bold()
 
                 if let assignment = viewModel.selectedAssignment {
-                    Text(assignment.mode.displayName)
+                    Text(assignment.titleWithMode)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -272,7 +272,7 @@ struct StudentView: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(assignment.mode.displayName)
+                            Text(assignment.titleWithMode)
                                 .font(.headline)
                             Text(assignment.createdAt.timeElapsed())
                                 .font(.caption)

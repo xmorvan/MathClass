@@ -444,9 +444,15 @@ class TeacherViewModel: ObservableObject {
     func createAssignment(
         classID: String,
         mode: AssignmentMode,
+        name: String? = nil,
         exercises: [(exerciseID: String, order: Int, targetStudentIDs: [String]?, groupName: String?)]
     ) async throws {
-        let assignment = Assignment(classID: classID, mode: mode)
+        let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let assignment = Assignment(
+            classID: classID,
+            mode: mode,
+            name: (trimmedName?.isEmpty ?? true) ? nil : trimmedName
+        )
         let assignmentID = try await assignmentRepo.createAssignment(assignment)
 
         for ex in exercises {

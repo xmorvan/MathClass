@@ -52,7 +52,7 @@ struct SubmissionDetailView_iOS: View {
                 }
             }
             VStack(alignment: .leading, spacing: 4) {
-                Label(exercise?.title ?? "Exercice inconnu", systemImage: "book")
+                Label(exercise?.displayTitle ?? "Exercice inconnu", systemImage: "book")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 HStack(spacing: 12) {

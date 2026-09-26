@@ -242,7 +242,7 @@ struct StatisticsView: View {
                 )
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text(exercise.title)
+                        Text(exercise.displayTitle)
                             .font(.headline)
                         Spacer()
                         HStack(spacing: 2) {

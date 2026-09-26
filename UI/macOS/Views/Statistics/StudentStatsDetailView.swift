@@ -209,7 +209,7 @@ struct StudentStatsListView_macOS: View {
     }
 
     private func submissionRow(submission: Submission) -> some View {
-        let exerciseTitle = viewModel.exercises.first { $0.id == submission.exerciseID }?.title ?? "Exercice inconnu"
+        let exerciseTitle = viewModel.exercises.first { $0.id == submission.exerciseID }?.displayTitle ?? "Exercice inconnu"
 
         return HStack {
             VStack(alignment: .leading, spacing: 2) {

@@ -29,6 +29,8 @@ struct Assignment: Identifiable, Codable, Hashable {
     /// Optional in the JSON for backward compat with documents that
     /// pre-date this field — defaults to `false` (linear).
     var allowFreeOrder: Bool?
+    /// Optional name given by the teacher ("Équations — révision").
+    var name: String?
 
     init(
         id: String? = nil,
@@ -36,7 +38,8 @@ struct Assignment: Identifiable, Codable, Hashable {
         mode: AssignmentMode,
         isActive: Bool = true,
         createdAt: Date = Date(),
-        allowFreeOrder: Bool? = nil
+        allowFreeOrder: Bool? = nil,
+        name: String? = nil
     ) {
         self.id = id
         self.classID = classID
@@ -44,6 +47,19 @@ struct Assignment: Identifiable, Codable, Hashable {
         self.isActive = isActive
         self.createdAt = createdAt
         self.allowFreeOrder = allowFreeOrder
+        self.name = name
+    }
+
+    /// "Name · Mode" when named, the mode alone otherwise (students need
+    /// the mode: it says whether they get feedback).
+    var titleWithMode: String {
+        displayTitle == mode.displayName ? mode.displayName : "\(displayTitle) · \(mode.displayName)"
+    }
+
+    /// The teacher's name for the assignment, or its mode when unnamed.
+    var displayTitle: String {
+        guard let name, !name.trimmingCharacters(in: .whitespaces).isEmpty else { return mode.displayName }
+        return name
     }
 
     /// Resolved free-order flag (defaults to false for legacy docs).
