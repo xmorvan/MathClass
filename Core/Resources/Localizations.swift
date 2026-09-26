@@ -16,6 +16,7 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Écrivez une étape par ligne : ce que l'app lit s'affiche ici, en face de votre écriture.": "Write one step per line: what the app reads shows up here, next to your writing.",
         "Ce que l'app lit": "What the app reads",
         "Ligne %@": "Line %@",
         "Modifier au clavier": "Edit with keyboard",

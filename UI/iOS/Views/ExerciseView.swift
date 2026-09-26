@@ -186,7 +186,7 @@ struct ExerciseView: View {
                     drawingVersion: $drawingVersion
                 )
                 .frame(minHeight: 300)
-                .background(Color.white)
+                .background(RuledPaper())
                 .cornerRadius(4)
 
                 if inkRecognizer.isAvailable {
@@ -218,6 +218,12 @@ struct ExerciseView: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.top, 6)
+            if liveLines.isEmpty {
+                Text("Écrivez une étape par ligne : ce que l'app lit s'affiche ici, en face de votre écriture.".tr)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 10)
+            }
             GeometryReader { _ in
                 ZStack(alignment: .topLeading) {
                     ForEach(Array(liveLines.enumerated()), id: \.offset) { _, line in
@@ -337,7 +343,9 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
     func makeUIView(context: Context) -> PKCanvasView {
         canvasView.drawingPolicy = .anyInput
         canvasView.tool = Self.tool(erasing: isErasing)
-        canvasView.backgroundColor = .white
+        // Transparent so the ruled paper behind shows through.
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
         canvasView.delegate = context.coordinator
         let pencilInteraction = UIPencilInteraction()
         pencilInteraction.delegate = context.coordinator
@@ -382,5 +390,27 @@ private struct StatementHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+// MARK: - Ruled paper
+
+/// Faint writing lines, one step per line: students write more legibly and
+/// the live reading separates the lines more reliably.
+private struct RuledPaper: View {
+    var spacing: CGFloat = 90
+
+    var body: some View {
+        Canvas { context, size in
+            var y: CGFloat = spacing
+            while y < size.height {
+                var line = Path()
+                line.move(to: CGPoint(x: 0, y: y))
+                line.addLine(to: CGPoint(x: size.width, y: y))
+                context.stroke(line, with: .color(Color.blue.opacity(0.12)), lineWidth: 1)
+                y += spacing
+            }
+        }
+        .background(Color.white)
     }
 }

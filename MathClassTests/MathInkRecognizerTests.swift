@@ -91,6 +91,11 @@ final class MathInkRecognizerTests: XCTestCase {
         XCTAssertEqual(MathInkRecognizer.tidy("\\frac { 1 2 } { 3 }"), "\\frac { 12 } { 3 }")
     }
 
+    func testSplitsMultiLineResults() {
+        XCTAssertEqual(MathInkRecognizer.splitRows("\\begin{aligned} 2 x &= 8 \\\\ x &= 4 \\end{aligned}"), ["2 x = 8", "x = 4"])
+        XCTAssertEqual(MathInkRecognizer.splitRows("x = 4"), ["x = 4"])
+    }
+
     func testKeepsAFractionOnOneLine() async throws {
         let recognizer = MathInkRecognizer.shared
         try XCTSkipUnless(recognizer.isAvailable, recognizer.unavailableReason ?? "")

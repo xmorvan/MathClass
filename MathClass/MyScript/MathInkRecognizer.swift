@@ -59,10 +59,17 @@ final class MathInkRecognizer {
         let lines = Self.splitIntoLines(drawing.strokes, gap: lineGap)
         return await withCheckedContinuation { continuation in
             queue.async {
-                let results: [RecognizedInkLine] = lines.compactMap { strokes in
-                    guard let latex = self.recognize(strokes: strokes) else { return nil }
+                let results: [RecognizedInkLine] = lines.flatMap { strokes -> [RecognizedInkLine] in
+                    guard let latex = self.recognize(strokes: strokes) else { return [] }
                     let bounds = strokes.reduce(CGRect.null) { $0.union($1.renderBounds) }
-                    return RecognizedInkLine(latex: latex, minY: bounds.minY, maxY: bounds.maxY)
+                    // Lines written too close together come back as one
+                    // multi-line block: share the height between them.
+                    let parts = Self.splitRows(latex)
+                    let rowHeight = bounds.height / CGFloat(max(parts.count, 1))
+                    return parts.enumerated().map { index, part in
+                        let top = bounds.minY + CGFloat(index) * rowHeight
+                        return RecognizedInkLine(latex: part, minY: top, maxY: top + rowHeight)
+                    }
                 }
                 continuation.resume(returning: results)
             }
@@ -114,6 +121,17 @@ final class MathInkRecognizer {
         latex
             .replacingOccurrences(of: #"(?<=[0-9])\s+(?=[0-9.,])|(?<=[.,])\s+(?=[0-9])"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Rows of a multi-line result ("a \\\\ b" rows, aligned environments).
+    static func splitRows(_ latex: String) -> [String] {
+        let stripped = latex.replacingOccurrences(
+            of: #"\\(begin|end)\{[a-z]*\*?\}"#, with: "", options: .regularExpression
+        )
+        return stripped
+            .components(separatedBy: "\\\\")
+            .map { $0.replacingOccurrences(of: "&", with: "").trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     // MARK: - Lines
