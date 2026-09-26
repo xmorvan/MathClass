@@ -941,22 +941,28 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                 first_error_index: int | None = None
 
                 paired_count = min(len(pairs), len(student_steps))
-                for i in range(paired_count):
-                    pair = pairs[i]
-                    student_expr = pair.get("studentExpr", "")
-                    reference_expr = pair.get("referenceExpr", "")
-                    description = pair.get("description", "")
-
-                    sympy_result = sympy_check_equivalence(student_expr, reference_expr)
-
-                    if sympy_result is not None:
-                        is_correct = sympy_result
-                    else:
-                        is_correct = claude_check_equivalence(
-                            client, student_expr, reference_expr, description
+                # SymPy first; the pairs it cannot decide go to Claude all
+                # at once rather than one after the other.
+                verdicts: list = [
+                    sympy_check_equivalence(pair.get("studentExpr", ""), pair.get("referenceExpr", ""))
+                    for pair in pairs[:paired_count]
+                ]
+                undecided = [i for i, verdict in enumerate(verdicts) if verdict is None]
+                if undecided:
+                    with ThreadPoolExecutor(max_workers=min(len(undecided), 8)) as pool:
+                        answers = pool.map(
+                            lambda i: claude_check_equivalence(
+                                client,
+                                pairs[i].get("studentExpr", ""),
+                                pairs[i].get("referenceExpr", ""),
+                                pairs[i].get("description", ""),
+                            ),
+                            undecided,
                         )
-
-                    step_results.append(is_correct)
+                        for i, answer in zip(undecided, answers):
+                            verdicts[i] = answer
+                for i, is_correct in enumerate(verdicts):
+                    step_results.append(bool(is_correct))
                     if not is_correct and first_error_index is None:
                         first_error_index = i
 
@@ -1012,20 +1018,23 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         # NOTATION_KEYS) — the iOS client maps it through Localizations.swift
         # to a localized banner. Skipped entirely when notationStrict is
         # false to save Anthropic credits.
+        # The notation note and the per-step error categorization (only
+        # for failed work) are independent: ask Claude for both at once.
         notation_note_key: str | None = None
-        if notation_strict and student_steps:
-            notation_note_key = _detect_notation_issue(
-                client, student_steps, statement
-            )
-
-        # Per-step error categorization (sign / arithmetic / notation /
-        # conceptual). Only run for failed steps so we don't pay for it
-        # when everything is correct.
         error_tags: list | None = None
-        if not all_correct and pairs:
-            error_tags = _classify_errors(
-                client, student_steps, step_results
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            notation_future = (
+                pool.submit(_detect_notation_issue, client, student_steps, statement)
+                if notation_strict and student_steps else None
             )
+            tags_future = (
+                pool.submit(_classify_errors, client, student_steps, step_results)
+                if not all_correct and pairs else None
+            )
+            if notation_future is not None:
+                notation_note_key = notation_future.result()
+            if tags_future is not None:
+                error_tags = tags_future.result()
 
         # ISSUE-004: previously a persist failure was logged and swallowed,
         # so the teacher's inbox would never see a submission whose write
