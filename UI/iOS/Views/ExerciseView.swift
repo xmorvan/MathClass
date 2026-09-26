@@ -213,7 +213,12 @@ struct ExerciseView: View {
                     drawingVersion: $drawingVersion
                 )
                 .frame(minHeight: 300)
-                .background(RuledPaper())
+                // Faint writing lines, one step per line: students write
+                // more legibly and the live reading separates lines more
+                // reliably. Drawn over the canvas without catching touches
+                // (views placed behind or inside PencilKit hid the ink or
+                // the lines).
+                .overlay(RuledLines().allowsHitTesting(false))
                 .cornerRadius(4)
 
                 if inkRecognizer.isAvailable {
@@ -228,6 +233,10 @@ struct ExerciseView: View {
         // stroke cancels the pending reading.
         .task(id: drawingVersion) {
             guard inkRecognizer.isAvailable else { return }
+            if MathInkRecognizer.withoutSpecks(canvasView.drawing.strokes).isEmpty {
+                liveLines = []
+                return
+            }
             try? await Task.sleep(nanoseconds: 250_000_000)
             guard !Task.isCancelled else { return }
             let lines = await inkRecognizer.recognizeLines(in: canvasView.drawing)
@@ -370,9 +379,7 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
     func makeUIView(context: Context) -> PKCanvasView {
         canvasView.drawingPolicy = .anyInput
         canvasView.tool = Self.tool(erasing: isErasing)
-        // Transparent so the ruled paper behind shows through.
-        canvasView.backgroundColor = .clear
-        canvasView.isOpaque = false
+        canvasView.backgroundColor = .white
         canvasView.delegate = context.coordinator
         let pencilInteraction = UIPencilInteraction()
         pencilInteraction.delegate = context.coordinator
@@ -405,7 +412,7 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
         }
 
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            hasDrawing.wrappedValue = !canvasView.drawing.bounds.isEmpty
+            hasDrawing.wrappedValue = !MathInkRecognizer.withoutSpecks(canvasView.drawing.strokes).isEmpty
             drawingVersion.wrappedValue += 1
         }
     }
@@ -422,9 +429,8 @@ private struct StatementHeightKey: PreferenceKey {
 
 // MARK: - Ruled paper
 
-/// Faint writing lines, one step per line: students write more legibly and
-/// the live reading separates the lines more reliably.
-private struct RuledPaper: View {
+/// Horizontal writing lines, every `spacing` points.
+private struct RuledLines: View {
     var spacing: CGFloat = 90
 
     var body: some View {
@@ -434,10 +440,9 @@ private struct RuledPaper: View {
                 var line = Path()
                 line.move(to: CGPoint(x: 0, y: y))
                 line.addLine(to: CGPoint(x: size.width, y: y))
-                context.stroke(line, with: .color(Color.blue.opacity(0.12)), lineWidth: 1)
+                context.stroke(line, with: .color(Color.blue.opacity(0.14)), lineWidth: 1)
                 y += spacing
             }
         }
-        .background(Color.white)
     }
 }

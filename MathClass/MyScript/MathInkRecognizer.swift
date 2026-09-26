@@ -136,10 +136,23 @@ final class MathInkRecognizer {
 
     // MARK: - Lines
 
+    /// Erasing can leave tiny invisible fragments behind. A short stroke is
+    /// kept only next to real ink (a decimal point, a dot); alone it is
+    /// dropped, or MyScript reads it as a digit.
+    static func withoutSpecks(_ strokes: [PKStroke]) -> [PKStroke] {
+        let valid = strokes.filter { !$0.renderBounds.isNull }
+        let size: (PKStroke) -> CGFloat = { max($0.renderBounds.width, $0.renderBounds.height) }
+        let real = valid.filter { size($0) >= 14 }
+        return valid.filter { stroke in
+            if size(stroke) >= 14 { return true }
+            let area = stroke.renderBounds.insetBy(dx: -30, dy: -30)
+            return real.contains { $0.renderBounds.intersects(area) }
+        }
+    }
+
     /// Groups strokes whose vertical extents are closer than `gap`.
     static func splitIntoLines(_ strokes: [PKStroke], gap: CGFloat) -> [[PKStroke]] {
-        let sorted = strokes
-            .filter { !$0.renderBounds.isNull && !$0.renderBounds.isEmpty }
+        let sorted = Self.withoutSpecks(strokes)
             .sorted { $0.renderBounds.minY < $1.renderBounds.minY }
         var lines: [(maxY: CGFloat, strokes: [PKStroke])] = []
         for stroke in sorted {
