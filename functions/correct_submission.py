@@ -11,6 +11,7 @@ Correction process:
 """
 
 import json
+import math
 import os
 import re
 import time
@@ -98,7 +99,13 @@ Si le travail de l'élève est vide ou incompréhensible :
 """
 
 # System prompt for Claude fallback verification (when SymPy can't decide)
-FALLBACK_PROMPT = """Tu es un vérificateur mathématique. Compare ces deux expressions et détermine si elles sont mathématiquement équivalentes.
+FALLBACK_PROMPT = """Tu es un correcteur de mathématiques. Une étape écrite par un élève est comparée à l'étape attendue.
+
+L'étape de l'élève est JUSTE si elle est mathématiquement vraie et mène au même résultat que l'étape attendue. Ne la pénalise PAS pour :
+- une unité absente (« 2500 » au lieu de « 2500 m ») ;
+- une autre notation (« S = {{2 ; 3}} » pour « x = 2 ou x = 3 », « : » pour la division, virgule décimale) ;
+- moins de détails (l'élève écrit le résultat d'une opération que la référence détaille, ou omet le « ⟹ »).
+Elle est FAUSSE si elle contient une erreur de calcul, de signe ou de raisonnement, ou si son résultat diffère.
 
 Expression de l'élève : {student_expr}
 Expression de référence : {reference_expr}
@@ -132,6 +139,50 @@ _SOLUTION_SEPARATORS = re.compile(
 )
 
 
+def _normalize_french(latex: str) -> str:
+    """French school notation to what the LaTeX parser understands: decimal
+    commas ("2,5", "2{,}5") become points and ":" between operands is a
+    division ("36 : 4")."""
+    latex = re.sub(r"(?<=\d)(?:\{,\}|,)(?=\d)", ".", latex)
+    return re.sub(r"(?<=[\w)}\]])\s*:\s*(?=[\w(\\{])", r" \\div ", latex)
+
+
+_IMPLIES = re.compile(r"\\(?:implies|Rightarrow|Longrightarrow|iff|Leftrightarrow)")
+_TEXT = re.compile(r"\\(?:text|mathrm)\{\s*([^{}]*?)\s*\}")
+
+
+def _prepare(latex: str) -> str:
+    """What SymPy should read in a line: the last statement after an
+    implication, without units or words (kept: "ou"/"et" between
+    solutions), in French notation normalised."""
+    latex = _IMPLIES.split(latex)[-1]
+    latex = _TEXT.sub(
+        lambda m: f"\\text{{ {m.group(1)} }}" if m.group(1).lower() in ("ou", "or", "et", "and") else " ",
+        latex,
+    )
+    return _normalize_french(latex).strip()
+
+
+def _sides(latex: str):
+    """Parsed sides of "a = b = c", or None if one cannot be read."""
+    sides = [_parse_or_none(side) for side in latex.split("=")]
+    if any(not isinstance(side, sympy.Expr) for side in sides):
+        return None
+    return sides
+
+
+def _chain_breaks(latex: str) -> bool:
+    """True when two neighbouring sides without unknowns differ
+    ("6^2 + 8^2 = 110"): a calculation mistake inside the line."""
+    sides = _sides(latex)
+    if not sides:
+        return False
+    for a, b in zip(sides, sides[1:]):
+        if not a.free_symbols and not b.free_symbols and _expressions_equal(a, b) is False:
+            return True
+    return False
+
+
 def _equation_solutions(latex: str):
     """Solution set of a one-unknown equation, or of alternatives such as
     "x = 3 ou x = -3", as (lower-cased unknown name, frozenset of exact
@@ -139,10 +190,9 @@ def _equation_solutions(latex: str):
 
     Decimals become exact rationals so "x = 0.5" matches "x = \\frac{1}{2}".
     """
+    latex = _prepare(latex)
     if latex.count("=") == 0:
         return None
-    # French decimal comma: "1,5" and "1{,}5" mean 1.5, not two solutions.
-    latex = re.sub(r"(?<=\d)(?:\{,\}|,)(?=\d)", ".", latex)
     parts = [part for part in _SOLUTION_SEPARATORS.split(latex) if part.strip()]
     if len(parts) > 1 and all(part.count("=") == 1 for part in parts):
         name = None
@@ -156,13 +206,15 @@ def _equation_solutions(latex: str):
             name = equation.lhs.name.lower()
             values.add(sympy.nsimplify(equation.rhs, rational=True))
         return name, frozenset(values)
-    if len(parts) > 1 or latex.count("=") != 1:
+    if len(parts) > 1:
         return None
 
-    equation = parse_latex(latex)
-    if not isinstance(equation, sympy.Equality):
+    # "c^2 = 6^2 + 8^2 = 100" is the equation c^2 = 100 (the chain itself
+    # is checked by _chain_breaks).
+    sides = _sides(latex)
+    if not sides:
         return None
-    difference = sympy.nsimplify(equation.lhs - equation.rhs, rational=True)
+    difference = sympy.nsimplify(sides[0] - sides[-1], rational=True)
     unknowns = difference.free_symbols
     if len(unknowns) != 1:
         return None
@@ -174,7 +226,17 @@ def _equation_solutions(latex: str):
 
 
 def _equations_equivalent(student_latex: str, reference_latex: str) -> bool | None:
-    """Equations are equivalent when they have the same solutions."""
+    """Equations are equivalent when they have the same solutions. A line
+    of arithmetic ("2.5 \\times 1000 = 2500") matches a reference line
+    with the same result."""
+    if _chain_breaks(_prepare(student_latex)):
+        return False
+    student_sides = _sides(_prepare(student_latex))
+    reference_sides = _sides(_prepare(reference_latex)) if "=" in _prepare(reference_latex) else None
+    if student_sides and not any(side.free_symbols for side in student_sides):
+        if reference_sides and not any(side.free_symbols for side in reference_sides):
+            return True if _expressions_equal(student_sides[-1], reference_sides[-1]) else None
+        return None
     student = _equation_solutions(student_latex)
     reference = _equation_solutions(reference_latex)
     if student is None or reference is None or student[0] != reference[0]:
@@ -195,6 +257,8 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
     if not SYMPY_AVAILABLE:
         return None
 
+    student_latex = _prepare(student_latex)
+    reference_latex = _prepare(reference_latex)
     try:
         if "=" in student_latex or "=" in reference_latex:
             return _equations_equivalent(student_latex, reference_latex)
@@ -254,13 +318,14 @@ def _parse_or_none(latex: str):
 
 
 def _is_isolated(latex: str) -> bool:
-    """True for a finished answer such as "x = 4" or "x = 3 ou x = -3"."""
+    """True for a finished answer such as "x = 4", "x = \\frac{8}{2} = 4"
+    or "x = 3 ou x = -3"."""
     parts = [part for part in _SOLUTION_SEPARATORS.split(latex) if part.strip()]
     for part in parts:
-        equation = _parse_or_none(part)
-        if not isinstance(equation, sympy.Equality):
+        sides = _sides(part)
+        if not sides or len(sides) < 2:
             return False
-        if not isinstance(equation.lhs, sympy.Symbol) or equation.rhs.free_symbols:
+        if not isinstance(sides[0], sympy.Symbol) or sides[-1].free_symbols:
             return False
     return bool(parts)
 
@@ -290,6 +355,8 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
     _ensure_sympy()
     if not SYMPY_AVAILABLE or not steps or not expected_answer.strip():
         return None
+    expected_answer = _prepare(expected_answer)
+    steps = [_prepare(step) for step in steps]
     try:
         if "=" in expected_answer:
             expected = _equation_solutions(expected_answer)
@@ -297,6 +364,9 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
                 return None
             results: list[bool] = []
             for step in steps:
+                if _chain_breaks(step):
+                    results.append(False)
+                    continue
                 solutions = _equation_solutions(step)
                 if solutions is None:
                     return None
@@ -306,12 +376,12 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
             return results
 
         target = _parse_or_none(expected_answer)
-        if target is None or isinstance(target, sympy.logic.boolalg.Boolean):
+        if not isinstance(target, sympy.Expr):
             return None
         results = []
         for step in steps:
             sides = [_parse_or_none(side) for side in step.split("=")]
-            if any(side is None or isinstance(side, sympy.logic.boolalg.Boolean) for side in sides):
+            if any(not isinstance(side, sympy.Expr) for side in sides):
                 return None
             # A line whose sides differ ("3 \\times 12 = 37") is a certain
             # mistake, whatever the exercise.
@@ -339,6 +409,36 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
     except Exception as exc:
         print(f"[sympy] fast grading failed: {exc}")
         return None
+
+
+_SCIENTIFIC = re.compile(r"^-?(\d+(?:\.\d+)?)\s*\\(?:times|cdot)\s*10\^\{?-?\d+\}?$")
+_FRACTION = re.compile(r"^-?\\[dt]?frac\{\s*(\d+)\s*\}\{\s*(\d+)\s*\}$")
+
+
+def final_form_is_wrong(statement: str, last_step: str) -> bool:
+    """True when the statement asks for a form the final answer does not
+    have, although its value may be right: factorise, simplify a fraction,
+    scientific notation, expand. Value checks cannot see this ("x^2 - 3^2"
+    equals the expected factorised form)."""
+    _ensure_sympy()
+    if not SYMPY_AVAILABLE:
+        return False
+    task = statement.lower()
+    answer = _prepare(last_step).split("=")[-1].strip()
+    if not answer:
+        return False
+    if "notation scientifique" in task:
+        match = _SCIENTIFIC.match(answer)
+        return not (match and 1 <= float(match.group(1)) < 10)
+    if "factoris" in task:
+        parsed = _parse_or_none(answer)
+        return isinstance(parsed, sympy.Add)
+    if "simplifi" in task or "irréductible" in task:
+        match = _FRACTION.match(answer)
+        return bool(match) and math.gcd(int(match.group(1)), int(match.group(2))) != 1
+    if "développ" in task or "developp" in task:
+        return "(" in answer.replace("\\left(", "(")
+    return False
 
 
 def claude_check_equivalence(
@@ -825,6 +925,15 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                             first_error_index = len(step_results) - 1
 
                 all_correct = all(step_results)
+
+        # The value can be right while the requested form is not
+        # ("\\frac{9}{12}" when asked to simplify).
+        if step_results and step_results[-1] and final_form_is_wrong(statement, student_steps[-1]):
+            print(f"[correct_submission] final answer not in the requested form: {student_steps[-1][:60]!r}")
+            step_results[-1] = False
+            if first_error_index is None:
+                first_error_index = len(step_results) - 1
+            all_correct = False
 
         # Persist the correction result on the submission doc using the
         # Admin SDK so it bypasses firestore.rules (the rule on submissions

@@ -572,3 +572,22 @@ def test_handler_skips_claude_when_sympy_decides(monkeypatch):
     assert result["stepResults"] == [True, True, True]
     assert result["allCorrect"] is True
     fake_client.messages.create.assert_not_called()
+
+
+@pytest.mark.parametrize("statement, last_step, wrong", [
+    ("Factoriser $x^2 - 9$", "(x - 3)(x + 3)", False),
+    ("Factoriser $x^2 - 9$", "x^2 - 9 = x^2 - 3^2", True),
+    ("Simplifier $\\frac{18}{24}$", "\\frac{18}{24} = \\frac{3}{4}", False),
+    ("Simplifier $\\frac{18}{24}$", "\\frac{18}{24} = \\frac{9}{12}", True),
+    ("Écrire en notation scientifique", "4,5 \\times 10^{-4}", False),
+    ("Écrire en notation scientifique", "45 \\times 10^{-5}", True),
+    ("Développer $3(x + 4)$", "3x + 12", False),
+    ("Développer $3(x + 4)$", "3(x + 4)", True),
+    ("Résoudre $2x = 8$", "x = 4", False),
+])
+def test_final_form(statement, last_step, wrong):
+    pytest.importorskip("sympy")
+    cs._ensure_sympy()
+    if not cs.SYMPY_AVAILABLE:
+        pytest.skip("SymPy LaTeX parser unavailable")
+    assert cs.final_form_is_wrong(statement, last_step) is wrong

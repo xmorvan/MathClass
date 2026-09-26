@@ -118,3 +118,6 @@ functions/.env.local
 # recognition assets are downloaded (scripts/fetch-myscript-assets.sh).
 MathClass/MyScript/MyCertificate.c
 MathClass/MyScript/MyScriptAssets.bundle/
+
+# Output of functions/tests/grading_benchmark.py
+grading_benchmark.json
