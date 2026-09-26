@@ -14,6 +14,9 @@ struct VerificationView: View {
     @ObservedObject var viewModel: SubmissionViewModel
     @ObservedObject private var network = NetworkMonitor.shared
     @State private var editableSteps: [String] = []
+    /// Steps whose raw LaTeX field is open. Students read the rendered
+    /// formula; the source is only shown on request.
+    @State private var editingSteps: Set<Int> = []
 
     var onCancel: () -> Void
 
@@ -132,20 +135,6 @@ struct VerificationView: View {
                     stepsListView
                 }
 
-                // Preview
-                if !editableSteps.isEmpty {
-                    Text("Aperçu".tr)
-                        .font(.headline)
-                        .padding(.top, 8)
-
-                    let combined = editableSteps.enumerated().map { (i, step) in
-                        "Étape \(i + 1): $\(step)$"
-                    }.joined(separator: "\n")
-
-                    KaTeXView(content: combined, mode: .preview, fontSize: 18, minHeight: 60)
-                        .background(Color.gray.opacity(0.05))
-                        .cornerRadius(8)
-                }
             }
             .padding()
         }
@@ -205,23 +194,35 @@ struct VerificationView: View {
                 }
             }
 
-            Text("Vérifiez que ces étapes correspondent à votre travail. Modifiez si besoin.".tr)
+            Text("Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, supprimez-la ou retournez au dessin pour la réécrire.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            // ISSUE-011: Per-step inline KaTeX preview so a student typing
-            // a correction sees the rendered math right under the field.
+            // Each line is shown as a rendered formula; the LaTeX source
+            // only opens on request (students are not expected to read it).
             ForEach(Array(editableSteps.enumerated()), id: \.offset) { index, step in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .top) {
-                        Text(LocalizationManager.shared.format("Étape %@", String(index + 1)))
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Text(LocalizationManager.shared.format("Ligne %@", String(index + 1)))
                             .font(.caption)
                             .foregroundColor(.secondary)
-                            .frame(width: 60, alignment: .leading)
+                            .frame(width: 56, alignment: .leading)
 
-                        TextField("LaTeX".tr, text: stepBinding(index))
-                            .font(.system(.body, design: .monospaced))
-                            .textFieldStyle(.roundedBorder)
+                        KaTeXView(
+                            content: step.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "$\(step)$",
+                            mode: .preview,
+                            fontSize: 22,
+                            minHeight: 48
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
+
+                        Button {
+                            if editingSteps.contains(index) { editingSteps.remove(index) } else { editingSteps.insert(index) }
+                        } label: {
+                            Image(systemName: "keyboard")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Modifier au clavier".tr)
 
                         // Remove a step the recognition invented or split.
                         Button {
@@ -234,16 +235,14 @@ struct VerificationView: View {
                         .accessibilityLabel("Supprimer l'étape".tr)
                     }
 
-                    if !step.trimmingCharacters(in: .whitespaces).isEmpty {
-                        KaTeXView(
-                            content: "$\(step)$",
-                            mode: .preview,
-                            fontSize: 16,
-                            minHeight: 40
-                        )
-                        .padding(.leading, 60)
+                    if editingSteps.contains(index) {
+                        TextField("LaTeX".tr, text: stepBinding(index))
+                            .font(.system(.body, design: .monospaced))
+                            .textFieldStyle(.roundedBorder)
+                            .padding(.leading, 68)
                     }
                 }
+                .padding(.vertical, 4)
             }
         }
     }
@@ -271,6 +270,7 @@ struct VerificationView: View {
     private func removeStep(at index: Int) {
         guard editableSteps.indices.contains(index) else { return }
         editableSteps.remove(at: index)
+        editingSteps = []  // indices shifted
     }
 
     // MARK: - Action Buttons

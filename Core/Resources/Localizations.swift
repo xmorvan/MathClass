@@ -16,6 +16,9 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Ligne %@": "Line %@",
+        "Modifier au clavier": "Edit with keyboard",
+        "Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, supprimez-la ou retournez au dessin pour la réécrire.": "Check that each line matches what you wrote. If not, delete it or go back to the drawing to rewrite it.",
         "Outil": "Tool",
         "Stylo": "Pen",
         "Gomme": "Eraser",
