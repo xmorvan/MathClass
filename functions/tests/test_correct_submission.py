@@ -534,7 +534,7 @@ def _need_sympy():
     ("x = 4", ["2x = 8"], [False]),  # right, but x is not isolated
     ("x = 3 \\text{ ou } x = -3", ["x^2 = 9", "x = 3 \\text{ ou } x = -3"], [True, True]),
     ("x^2 + 2x + 1", ["(x+1)(x+1) = x^2 + x + x + 1", "x^2 + 2x + 1"], [True, True]),
-    ("x^2 + 2x + 1", ["x^2 + 2x + 2"], [False]),
+    ("36", ["3 \\times 12 = 37"], [False]),             # arithmetic slip
 ])
 def test_sympy_grades_steps_alone(expected, steps, results):
     _need_sympy()
@@ -545,6 +545,10 @@ def test_sympy_grades_steps_alone(expected, steps, results):
     ("(x+1)^2", ["x^2 + 2x + 1"]),          # same value, form asked is unknown
     ("x = 4", ["on isole x donc x vaut 4"]),  # prose
     ("x + y = 2", ["x = 2 - y"]),             # two unknowns
+    ("x^2 + 2x + 1", ["x^2 + 2x + 2"]),       # a different expression
+    ("41", ["3 \\times 12 = 36", "36 + 5 = 41"]),       # word problem steps
+    ("41 \\text{ billes}", ["3 \\times 12 = 36"]),     # answer with words
+    ("x = 12", ["41 - 5 = 36", "36 : 3 = 12"]),        # arithmetic, no unknown
 ])
 def test_sympy_leaves_undecidable_work_to_claude(expected, steps):
     _need_sympy()

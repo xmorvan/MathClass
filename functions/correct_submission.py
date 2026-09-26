@@ -313,10 +313,20 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
             sides = [_parse_or_none(side) for side in step.split("=")]
             if any(side is None or isinstance(side, sympy.logic.boolalg.Boolean) for side in sides):
                 return None
+            # A line whose sides differ ("3 \\times 12 = 37") is a certain
+            # mistake, whatever the exercise.
+            if any(_expressions_equal(a, b) is False for a, b in zip(sides, sides[1:])):
+                results.append(False)
+                continue
             verdicts = [_expressions_equal(side, target) for side in sides]
-            if any(verdict is None for verdict in verdicts):
-                return None
-            results.append(all(verdicts))
+            if all(verdict is True for verdict in verdicts):
+                results.append(True)
+                continue
+            # A true line worth something else is a correct intermediate
+            # result in a word problem ("3 \\times 12 = 36" on the way to
+            # 41) but a wrong answer when asked to expand: only the
+            # statement tells, so Claude decides.
+            return None
         if results[-1]:
             last = _parse_or_none(steps[-1].split("=")[-1])
             # Same value but another form (e.g. left expanded when asked to
