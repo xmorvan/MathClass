@@ -242,6 +242,95 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
         return None
 
 
+# ---------------------------------------------------------------------------
+# SymPy-first grading: no AI when every step can be checked exactly
+# ---------------------------------------------------------------------------
+
+def _parse_or_none(latex: str):
+    try:
+        return parse_latex(latex)
+    except Exception:
+        return None
+
+
+def _is_isolated(latex: str) -> bool:
+    """True for a finished answer such as "x = 4" or "x = 3 ou x = -3"."""
+    parts = [part for part in _SOLUTION_SEPARATORS.split(latex) if part.strip()]
+    for part in parts:
+        equation = _parse_or_none(part)
+        if not isinstance(equation, sympy.Equality):
+            return False
+        if not isinstance(equation.lhs, sympy.Symbol) or equation.rhs.free_symbols:
+            return False
+    return bool(parts)
+
+
+def _expressions_equal(a, b) -> bool | None:
+    try:
+        difference = _run_with_timeout(sympy.simplify, sympy.nsimplify(a - b, rational=True))
+    except Exception:
+        return None
+    if difference == 0:
+        return True
+    if difference.is_number:
+        return False
+    return None
+
+
+def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | None:
+    """Grade every step with SymPy alone, or return None when any step (or
+    the expected answer) is outside what SymPy can decide.
+
+    Equation exercises: a step is right when it has the same solutions as the
+    expected answer, and the last step must state the answer (x isolated).
+    Expression exercises (develop, reduce, factor…): a step is right when
+    every side of it equals the expected expression, and the last step must
+    have the expected form, not just the same value.
+    """
+    _ensure_sympy()
+    if not SYMPY_AVAILABLE or not steps or not expected_answer.strip():
+        return None
+    try:
+        if "=" in expected_answer:
+            expected = _equation_solutions(expected_answer)
+            if expected is None:
+                return None
+            results: list[bool] = []
+            for step in steps:
+                solutions = _equation_solutions(step)
+                if solutions is None:
+                    return None
+                results.append(solutions[0] == expected[0] and solutions[1] == expected[1])
+            if results[-1] and _is_isolated(expected_answer) and not _is_isolated(steps[-1]):
+                results[-1] = False
+            return results
+
+        target = _parse_or_none(expected_answer)
+        if target is None or isinstance(target, sympy.logic.boolalg.Boolean):
+            return None
+        results = []
+        for step in steps:
+            sides = [_parse_or_none(side) for side in step.split("=")]
+            if any(side is None or isinstance(side, sympy.logic.boolalg.Boolean) for side in sides):
+                return None
+            verdicts = [_expressions_equal(side, target) for side in sides]
+            if any(verdict is None for verdict in verdicts):
+                return None
+            results.append(all(verdicts))
+        if results[-1]:
+            last = _parse_or_none(steps[-1].split("=")[-1])
+            # Same value but another form (e.g. left expanded when asked to
+            # factor): SymPy cannot tell which form the exercise asks for.
+            if last is None or sympy.srepr(last) != sympy.srepr(target):
+                return None
+        return results
+    except FutureTimeoutError:
+        return None
+    except Exception as exc:
+        print(f"[sympy] fast grading failed: {exc}")
+        return None
+
+
 def claude_check_equivalence(
     client,
     student_expr: str,
@@ -611,109 +700,121 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
     # default, see claude_client.py).
     client = claude_client.create_client()
 
+    # Exact grading first: when SymPy can check every step against the
+    # teacher's answer, no AI call is needed (under a second instead of
+    # several Claude round-trips).
+    fast_results = sympy_grade_steps(expected_answer, student_steps)
+
     try:
+        if fast_results is not None:
+            pairs = []
+            step_results = fast_results
+            first_error_index = next((i for i, ok in enumerate(step_results) if not ok), None)
+            all_correct = all(step_results)
+            print(f"[correct_submission] graded by SymPy alone: {step_results}")
+        else:
 
-        # Phase 1: Use Claude to structure step pairs
-        formatted_steps = "\n".join(
-            [f"Étape {i + 1}: {step}" for i, step in enumerate(student_steps)]
-        )
-
-        # Cache the static prefix of the structuring prompt — the only
-        # per-call dynamic parts are the statement, expected answer, and
-        # the student's steps. Sending the rules block as a cache-eligible
-        # system message cuts ~80 % of the input tokens on warm cache.
-        structuring_user = (
-            f"Exercice :\n{statement}\n\n"
-            f"Réponse attendue : {expected_answer}\n\n"
-            f"Travail de l'élève (étapes LaTeX) :\n{formatted_steps}"
-        )
-
-        message = client.messages.create(
-            model=claude_client.model_id(),
-            max_tokens=2048,
-            system=[
-                {
-                    "type": "text",
-                    "text": STRUCTURING_SYSTEM,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ],
-            messages=[{"role": "user", "content": structuring_user}],
-        )
-
-        try:
-            structured = extract_json(message.content[0].text)
-        except json.JSONDecodeError:
-            raise https_fn.HttpsError(
-                code=https_fn.FunctionsErrorCode.INTERNAL,
-                message="Impossible de parser la structuration des étapes.",
+            # Phase 1: Use Claude to structure step pairs
+            formatted_steps = "\n".join(
+                [f"Étape {i + 1}: {step}" for i, step in enumerate(student_steps)]
             )
 
-        pairs = structured.get("pairs", [])
+            # Cache the static prefix of the structuring prompt — the only
+            # per-call dynamic parts are the statement, expected answer, and
+            # the student's steps. Sending the rules block as a cache-eligible
+            # system message cuts ~80 % of the input tokens on warm cache.
+            structuring_user = (
+                f"Exercice :\n{statement}\n\n"
+                f"Réponse attendue : {expected_answer}\n\n"
+                f"Travail de l'élève (étapes LaTeX) :\n{formatted_steps}"
+            )
 
-        if not pairs:
-            # Claude couldn't structure the steps — all marked as incorrect
-            step_results = [False] * len(student_steps)
-            first_error_index = 0
-            all_correct = False
-        else:
-            # Phase 2: Verify each step pair.
-            # ISSUE-006: Claude can return fewer pairs than studentSteps. Pair
-            # by index up to the shorter list and treat any unpaired tail as
-            # "could not verify" → False (counts as wrong, conservative). This
-            # keeps len(stepResults) == len(studentSteps), which the iOS
-            # client relies on when rendering per-step marks.
-            step_results: list[bool] = []
-            first_error_index: int | None = None
+            message = client.messages.create(
+                model=claude_client.model_id(),
+                max_tokens=2048,
+                system=[
+                    {
+                        "type": "text",
+                        "text": STRUCTURING_SYSTEM,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                messages=[{"role": "user", "content": structuring_user}],
+            )
 
-            paired_count = min(len(pairs), len(student_steps))
-            for i in range(paired_count):
-                pair = pairs[i]
-                student_expr = pair.get("studentExpr", "")
-                reference_expr = pair.get("referenceExpr", "")
-                description = pair.get("description", "")
-
-                sympy_result = sympy_check_equivalence(student_expr, reference_expr)
-
-                if sympy_result is not None:
-                    is_correct = sympy_result
-                else:
-                    is_correct = claude_check_equivalence(
-                        client, student_expr, reference_expr, description
-                    )
-
-                step_results.append(is_correct)
-                if not is_correct and first_error_index is None:
-                    first_error_index = i
-
-            # Pad any unpaired tail as wrong + log so the mismatch is visible.
-            if paired_count < len(student_steps):
-                missing = len(student_steps) - paired_count
-                print(
-                    f"[correct_submission] Phase-1 pair shortfall: "
-                    f"{paired_count} pairs vs {len(student_steps)} student steps "
-                    f"(padding {missing} as incorrect)"
+            try:
+                structured = extract_json(message.content[0].text)
+            except json.JSONDecodeError:
+                raise https_fn.HttpsError(
+                    code=https_fn.FunctionsErrorCode.INTERNAL,
+                    message="Impossible de parser la structuration des étapes.",
                 )
-                for i in range(paired_count, len(student_steps)):
-                    step_results.append(False)
-                    if first_error_index is None:
+
+            pairs = structured.get("pairs", [])
+
+            if not pairs:
+                # Claude couldn't structure the steps — all marked as incorrect
+                step_results = [False] * len(student_steps)
+                first_error_index = 0
+                all_correct = False
+            else:
+                # Phase 2: Verify each step pair.
+                # ISSUE-006: Claude can return fewer pairs than studentSteps. Pair
+                # by index up to the shorter list and treat any unpaired tail as
+                # "could not verify" → False (counts as wrong, conservative). This
+                # keeps len(stepResults) == len(studentSteps), which the iOS
+                # client relies on when rendering per-step marks.
+                step_results: list[bool] = []
+                first_error_index: int | None = None
+
+                paired_count = min(len(pairs), len(student_steps))
+                for i in range(paired_count):
+                    pair = pairs[i]
+                    student_expr = pair.get("studentExpr", "")
+                    reference_expr = pair.get("referenceExpr", "")
+                    description = pair.get("description", "")
+
+                    sympy_result = sympy_check_equivalence(student_expr, reference_expr)
+
+                    if sympy_result is not None:
+                        is_correct = sympy_result
+                    else:
+                        is_correct = claude_check_equivalence(
+                            client, student_expr, reference_expr, description
+                        )
+
+                    step_results.append(is_correct)
+                    if not is_correct and first_error_index is None:
                         first_error_index = i
 
-            # The reference steps come from Claude, which can pair a wrong
-            # final answer with itself. When SymPy can compare the last step
-            # with the teacher's expected answer, its verdict wins.
-            if step_results and step_results[-1]:
-                final_matches = sympy_check_equivalence(student_steps[-1], expected_answer)
-                if final_matches is False:
+                # Pad any unpaired tail as wrong + log so the mismatch is visible.
+                if paired_count < len(student_steps):
+                    missing = len(student_steps) - paired_count
                     print(
-                        f"[correct_submission] final step {student_steps[-1][:60]!r} "
-                        f"does not match expected {expected_answer[:60]!r}"
+                        f"[correct_submission] Phase-1 pair shortfall: "
+                        f"{paired_count} pairs vs {len(student_steps)} student steps "
+                        f"(padding {missing} as incorrect)"
                     )
-                    step_results[-1] = False
-                    if first_error_index is None:
-                        first_error_index = len(step_results) - 1
+                    for i in range(paired_count, len(student_steps)):
+                        step_results.append(False)
+                        if first_error_index is None:
+                            first_error_index = i
 
-            all_correct = all(step_results)
+                # The reference steps come from Claude, which can pair a wrong
+                # final answer with itself. When SymPy can compare the last step
+                # with the teacher's expected answer, its verdict wins.
+                if step_results and step_results[-1]:
+                    final_matches = sympy_check_equivalence(student_steps[-1], expected_answer)
+                    if final_matches is False:
+                        print(
+                            f"[correct_submission] final step {student_steps[-1][:60]!r} "
+                            f"does not match expected {expected_answer[:60]!r}"
+                        )
+                        step_results[-1] = False
+                        if first_error_index is None:
+                            first_error_index = len(step_results) - 1
+
+                all_correct = all(step_results)
 
         # Persist the correction result on the submission doc using the
         # Admin SDK so it bypasses firestore.rules (the rule on submissions

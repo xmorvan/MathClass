@@ -154,6 +154,7 @@ def test_handler_pads_short_pair_list_with_false(monkeypatch):
         },
     ])
     monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+    monkeypatch.setattr(cs, "sympy_grade_steps", lambda *_: None)  # exercise the Claude path
     monkeypatch.setattr(
         cs,
         "sympy_check_equivalence",
@@ -404,6 +405,7 @@ def test_handler_grades_against_stored_answer_not_client_value(monkeypatch):
         {"studentExpr": "x = 4", "referenceExpr": "x = 4", "description": ""},
     ])
     monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+    monkeypatch.setattr(cs, "sympy_grade_steps", lambda *_: None)  # exercise the Claude path
     monkeypatch.setattr(cs, "sympy_check_equivalence", lambda a, b: True)
 
     cs.correct_submission_handler(_fake_request({
@@ -440,6 +442,7 @@ def test_teacher_call_grades_the_stored_steps(monkeypatch):
         {"studentExpr": "x = 4", "referenceExpr": "x = 4", "description": ""},
     ])
     monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+    monkeypatch.setattr(cs, "sympy_grade_steps", lambda *_: None)  # exercise the Claude path
     monkeypatch.setattr(cs, "sympy_check_equivalence", lambda a, b: True)
 
     result = cs.correct_submission_handler(make_request(
@@ -510,3 +513,58 @@ def test_requirements_pin_the_antlr_runtime_sympy_needs():
     import pathlib
     reqs = (pathlib.Path(__file__).parent.parent / "requirements.txt").read_text()
     assert "antlr4-python3-runtime==4.11.0" in reqs
+
+
+# ---------------------------------------------------------------------------
+# SymPy-first grading (no AI call when SymPy can decide every step)
+# ---------------------------------------------------------------------------
+
+
+def _need_sympy():
+    pytest.importorskip("sympy")
+    cs._ensure_sympy()
+    if not cs.SYMPY_AVAILABLE:
+        pytest.skip("SymPy LaTeX parser unavailable")
+
+
+@pytest.mark.parametrize("expected, steps, results", [
+    ("x = 4", ["2x + 6 = 14", "2x = 8", "x = 4"], [True, True, True]),
+    ("x = 4", ["2x + 6 = 14", "2x = 10", "x = 5"], [True, False, False]),
+    ("x = 4", ["x = 7"], [False]),
+    ("x = 4", ["2x = 8"], [False]),  # right, but x is not isolated
+    ("x = 3 \\text{ ou } x = -3", ["x^2 = 9", "x = 3 \\text{ ou } x = -3"], [True, True]),
+    ("x^2 + 2x + 1", ["(x+1)(x+1) = x^2 + x + x + 1", "x^2 + 2x + 1"], [True, True]),
+    ("x^2 + 2x + 1", ["x^2 + 2x + 2"], [False]),
+])
+def test_sympy_grades_steps_alone(expected, steps, results):
+    _need_sympy()
+    assert cs.sympy_grade_steps(expected, steps) == results
+
+
+@pytest.mark.parametrize("expected, steps", [
+    ("(x+1)^2", ["x^2 + 2x + 1"]),          # same value, form asked is unknown
+    ("x = 4", ["on isole x donc x vaut 4"]),  # prose
+    ("x + y = 2", ["x = 2 - y"]),             # two unknowns
+])
+def test_sympy_leaves_undecidable_work_to_claude(expected, steps):
+    _need_sympy()
+    assert cs.sympy_grade_steps(expected, steps) is None
+
+
+def test_handler_skips_claude_when_sympy_decides(monkeypatch):
+    _need_sympy()
+    fake_client = MagicMock()
+    monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: fake_client)
+
+    result = cs.correct_submission_handler(_fake_request({
+        "studentSteps": ["2x + 6 = 14", "2x = 8", "x = 4"],
+        "expectedAnswer": "x = 4",
+        "statement": "Résoudre $2(x + 3) = 14$",
+        "submissionID": "sub",
+        "attemptNumber": 1,
+        "notationStrict": False,
+    }))
+
+    assert result["stepResults"] == [True, True, True]
+    assert result["allCorrect"] is True
+    fake_client.messages.create.assert_not_called()
