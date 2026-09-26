@@ -249,6 +249,18 @@ class AssignmentRepository: ObservableObject {
     /// (c) `targetGroupID` is one of the student's groups. Without (c),
     /// any exercise assigned via group targeting silently disappeared on
     /// the legacy code path (ISSUE-014).
+    /// Calls `onChange` whenever the exercises of an assignment change
+    /// (e.g. the teacher sends one more to a student during the lesson).
+    /// Returns the function that stops listening.
+    func listenToExerciseChanges(assignmentID: String, onChange: @escaping () -> Void) -> () -> Void {
+        var isFirstSnapshot = true
+        let registration = firebase.addCollectionListener(collection: exercisesPath(assignmentID: assignmentID)) { (_: [AssignmentExercise]) in
+            if isFirstSnapshot { isFirstSnapshot = false; return }
+            onChange()
+        }
+        return { registration.remove() }
+    }
+
     func getExercisesForStudent(
         assignmentID: String,
         studentID: String,

@@ -331,24 +331,29 @@ class TeacherViewModel: ObservableObject {
         }
     }
 
-    /// Send one more exercise to a student during the lesson. It is added to
-    /// the class's active assignment — the one the student is working on
-    /// when there is one — targeted at that student only, after the existing
-    /// exercises. (The student app reads assignments; pushing into a
-    /// Period/Session, as before, wrote data no student ever saw.)
+    /// Send one more exercise to a student during the lesson. It is added,
+    /// targeted at that student only, to the assignment the student app
+    /// opens: the most recent active one holding work for them (it used to
+    /// go where the student last submitted, which the app may not show).
     func pushExercise(_ exerciseID: String, to studentID: String, classID: String) async throws {
         let active = assignmentRepo.assignments
             .filter { $0.classID == classID && $0.isActive }
             .sorted { $0.createdAt > $1.createdAt }
-        let working = submissionRepo.submissions
-            .filter { $0.studentID == studentID && $0.classID == classID }
-            .sorted { $0.timestamp > $1.timestamp }
-            .compactMap { submission in active.first { $0.id == submission.assignmentID } }
-            .first
-        guard let assignment = working ?? active.first, let assignmentID = assignment.id else {
+        var target: (assignmentID: String, existing: [AssignmentExercise])?
+        for assignment in active {
+            guard let assignmentID = assignment.id else { continue }
+            let forStudent = try await assignmentRepo.getExercisesForStudent(assignmentID: assignmentID, studentID: studentID)
+            if !forStudent.isEmpty {
+                target = (assignmentID, try await assignmentRepo.getAssignmentExercises(assignmentID: assignmentID))
+                break
+            }
+        }
+        if target == nil, let assignmentID = active.first?.id {
+            target = (assignmentID, try await assignmentRepo.getAssignmentExercises(assignmentID: assignmentID))
+        }
+        guard let (assignmentID, existing) = target else {
             throw PushExerciseError.noActiveAssignment
         }
-        let existing = try await assignmentRepo.getAssignmentExercises(assignmentID: assignmentID)
         let extra = AssignmentExercise(
             assignmentID: assignmentID,
             exerciseID: exerciseID,

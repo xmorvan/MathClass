@@ -32,6 +32,9 @@ class StudentViewModel: ObservableObject {
     @Published var completedCount: Int = 0
 
     private var cancellables: Set<AnyCancellable> = []
+    /// Live watch of the open assignment's exercises.
+    private var stopExercisesListener: (() -> Void)?
+    private var exercisesListenerAssignmentID: String?
     /// True between choosing an assignment and receiving its first
     /// submissions snapshot: only then do we jump to the first unfinished
     /// exercise (never while the student reads feedback).
@@ -130,6 +133,9 @@ class StudentViewModel: ObservableObject {
     }
 
     func stopListening() {
+        stopExercisesListener?()
+        stopExercisesListener = nil
+        exercisesListenerAssignmentID = nil
         assignmentRepo.stopListening()
         submissionRepo.stopListening()
     }
@@ -193,6 +199,19 @@ class StudentViewModel: ObservableObject {
             let orderedIDs = assignmentExercises.sorted { $0.order < $1.order }.map { $0.exerciseID }
             self.assignedExercises = orderedIDs.compactMap { id in
                 exercises.first { $0.id == id }
+            }
+
+            // New exercises (sent by the teacher during the lesson) appear
+            // without a reload.
+            if exercisesListenerAssignmentID != assignmentID {
+                stopExercisesListener?()
+                exercisesListenerAssignmentID = assignmentID
+                stopExercisesListener = assignmentRepo.listenToExerciseChanges(assignmentID: assignmentID) { [weak self] in
+                    Task { @MainActor [weak self] in
+                        guard let self, self.selectedAssignment?.id == assignmentID else { return }
+                        await self.loadExercises(for: assignment)
+                    }
+                }
             }
 
             // Start listening for this student's submissions in this assignment
