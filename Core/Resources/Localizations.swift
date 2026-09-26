@@ -16,6 +16,10 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Outil": "Tool",
+        "Stylo": "Pen",
+        "Gomme": "Eraser",
+        "Annuler le trait": "Undo stroke",
         "Cet exercice est utilisé dans %@ devoir(s) : les élèves ne le verront plus et ses copies perdront leur énoncé.": "This exercise is used in %@ assignment(s): students will no longer see it and its submissions will lose their statement.",
         "Désactiver": "Deactivate",
         "Activer": "Activate",

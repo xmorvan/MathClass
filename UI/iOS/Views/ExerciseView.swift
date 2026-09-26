@@ -27,6 +27,7 @@ struct ExerciseView: View {
 
     @State private var canvasView = PKCanvasView()
     @State private var hasDrawing = false
+    @State private var isErasing: Bool = false
     @State private var statementHeight: CGFloat = 0
     @State private var startTime: Date?
     @State private var showingFlowSheet = false
@@ -143,9 +144,25 @@ struct ExerciseView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
+                // Pen / eraser: an Apple Pencil double-tap also switches.
+                Picker("Outil".tr, selection: $isErasing) {
+                    Label("Stylo".tr, systemImage: "pencil.tip").tag(false)
+                    Label("Gomme".tr, systemImage: "eraser").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
+                Button {
+                    canvasView.undoManager?.undo()
+                    hasDrawing = !canvasView.drawing.bounds.isEmpty
+                } label: {
+                    Label("Annuler le trait".tr, systemImage: "arrow.uturn.backward")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
                 Button {
                     canvasView.drawing = PKDrawing()
                     hasDrawing = false
+                    isErasing = false
                 } label: {
                     Label("Effacer".tr, systemImage: "trash")
                         .font(.caption)
@@ -156,7 +173,7 @@ struct ExerciseView: View {
             .padding(.horizontal)
             .padding(.top, 4)
 
-            CanvasRepresentableiOS(canvasView: $canvasView, hasDrawing: $hasDrawing)
+            CanvasRepresentableiOS(canvasView: $canvasView, hasDrawing: $hasDrawing, isErasing: $isErasing)
                 .frame(minHeight: 300)
                 .background(Color.white)
                 .cornerRadius(4)
@@ -250,26 +267,43 @@ struct ExerciseView: View {
 struct CanvasRepresentableiOS: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     @Binding var hasDrawing: Bool
+    @Binding var isErasing: Bool
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(hasDrawing: $hasDrawing)
+        Coordinator(hasDrawing: $hasDrawing, isErasing: $isErasing)
     }
 
     func makeUIView(context: Context) -> PKCanvasView {
         canvasView.drawingPolicy = .anyInput
-        canvasView.tool = PKInkingTool(.pen, color: .black, width: 5)
+        canvasView.tool = Self.tool(erasing: isErasing)
         canvasView.backgroundColor = .white
         canvasView.delegate = context.coordinator
+        let pencilInteraction = UIPencilInteraction()
+        pencilInteraction.delegate = context.coordinator
+        canvasView.addInteraction(pencilInteraction)
         return canvasView
     }
 
-    func updateUIView(_ uiView: PKCanvasView, context: Context) {}
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {
+        uiView.tool = Self.tool(erasing: isErasing)
+    }
 
-    class Coordinator: NSObject, PKCanvasViewDelegate {
+    static func tool(erasing: Bool) -> PKTool {
+        erasing ? PKEraserTool(.vector) : PKInkingTool(.pen, color: .black, width: 5)
+    }
+
+    class Coordinator: NSObject, PKCanvasViewDelegate, UIPencilInteractionDelegate {
         var hasDrawing: Binding<Bool>
+        var isErasing: Binding<Bool>
 
-        init(hasDrawing: Binding<Bool>) {
+        init(hasDrawing: Binding<Bool>, isErasing: Binding<Bool>) {
             self.hasDrawing = hasDrawing
+            self.isErasing = isErasing
+        }
+
+        /// Apple Pencil double-tap switches between pen and eraser.
+        func pencilInteractionDidTap(_ interaction: UIPencilInteraction) {
+            isErasing.wrappedValue.toggle()
         }
 
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
