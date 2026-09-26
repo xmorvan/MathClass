@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Functions tests:** `cd functions && venv/bin/python -m pytest tests`
 - **Swift tests:** scheme `MathClass`, `xcodebuild test -scheme MathClass -destination 'platform=iOS Simulator,name=<iPad on iOS ≥ 18.1>'` (target `MathClassTests`)
 - Requires `GoogleService-Info.plist` in the project root (not in source control)
+- **MyScript (iPad handwriting → LaTeX, on device):** needs `MathClass/MyScript/MyCertificate.c` (the app certificate for bundle id `xavier-morvan.MathClass`, from license.myscript.com > Applications > MathClass; not in source control) and the recognition assets from `scripts/fetch-myscript-assets.sh`. Without them the app falls back to cloud recognition (`recognize_handwriting`). SDK: Swift package `libiink` 4.5.1 (iPad target only).
 - Anthropic API key is stored as a Firebase secret. Before first deploy: `firebase functions:secrets:set ANTHROPIC_API_KEY`
 
 ## Architecture
@@ -71,7 +72,7 @@ Functions in `functions/main.py` (every one checks the caller via `functions/aut
 The app is bilingual French/English. FR is the source-of-truth for keys: views call `Text("Foo")` with the French copy as the literal, and `String.tr` looks up the English translation in `Core/Resources/Localizations.swift`. The teacher profile has a language picker; the choice is persisted in `UserDefaults` and the SwiftUI tree rebuilds via `.id(language)` so every visible string flips immediately. `LocalizationManager.shared` is the single source of truth.
 
 ### Data Flow (student solving an exercise)
-Student draws → PencilKit PNG exported → `recognize_handwriting` → student verifies LaTeX → `correct_submission` → per-step feedback in `FeedbackView`
+Student draws → MyScript reads each written line live on the iPad (`MathClass/MyScript/MathInkRecognizer.swift`, shown beside the canvas) → student checks the lines → PNG uploaded for the teacher → `correct_submission` (SymPy first, Claude only when SymPy cannot decide) → per-step feedback in `FeedbackView`. Without MyScript, the PNG goes through `recognize_handwriting` (Claude Vision) instead.
 
 ### Firestore Structure
 ```

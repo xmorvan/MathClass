@@ -28,6 +28,11 @@ struct ExerciseView: View {
     @State private var canvasView = PKCanvasView()
     @State private var hasDrawing = false
     @State private var isErasing: Bool = false
+    /// Bumped on every stroke change; drives the live recognition.
+    @State private var drawingVersion: Int = 0
+    /// What MyScript reads, line by line, while the student writes.
+    @State private var liveLines: [RecognizedInkLine] = []
+    private let inkRecognizer = MathInkRecognizer.shared
     @State private var statementHeight: CGFloat = 0
     @State private var startTime: Date?
     @State private var showingFlowSheet = false
@@ -173,13 +178,61 @@ struct ExerciseView: View {
             .padding(.horizontal)
             .padding(.top, 4)
 
-            CanvasRepresentableiOS(canvasView: $canvasView, hasDrawing: $hasDrawing, isErasing: $isErasing)
+            HStack(spacing: 0) {
+                CanvasRepresentableiOS(
+                    canvasView: $canvasView,
+                    hasDrawing: $hasDrawing,
+                    isErasing: $isErasing,
+                    drawingVersion: $drawingVersion
+                )
                 .frame(minHeight: 300)
                 .background(Color.white)
                 .cornerRadius(4)
-                .padding(.horizontal, 8)
-                .padding(.bottom, 4)
+
+                if inkRecognizer.isAvailable {
+                    liveReadingColumn
+                        .frame(width: 280)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 4)
         }
+        // Read the ink a moment after the student stops writing; a new
+        // stroke cancels the pending reading.
+        .task(id: drawingVersion) {
+            guard inkRecognizer.isAvailable else { return }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            let lines = await inkRecognizer.recognizeLines(in: canvasView.drawing)
+            guard !Task.isCancelled else { return }
+            liveLines = lines
+        }
+    }
+
+    /// Each line as the app reads it, rendered as maths and placed at the
+    /// height of the ink, so the student can rewrite what was misread.
+    private var liveReadingColumn: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Ce que l'app lit".tr)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.top, 6)
+            GeometryReader { _ in
+                ZStack(alignment: .topLeading) {
+                    ForEach(Array(liveLines.enumerated()), id: \.offset) { _, line in
+                        KaTeXView(content: "$\(line.latex)$", mode: .preview, fontSize: 20, minHeight: 36)
+                            .frame(height: max(36, line.maxY - line.minY))
+                            .offset(y: max(0, line.minY - 24))
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .clipped()
+            }
+        }
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(4)
+        .padding(.leading, 8)
     }
 
     // MARK: - Action Buttons
@@ -240,7 +293,14 @@ struct ExerciseView: View {
         guard let imageData = renderCanvasPNG(canvasView: canvasView) else { return }
 
         showingFlowSheet = true
-        Task { await submissionVM.verify(imageData: imageData, duration: duration) }
+        let drawing = canvasView.drawing
+        Task {
+            // Lines read on the iPad make the cloud recognition unnecessary.
+            let onDeviceSteps = inkRecognizer.isAvailable
+                ? await inkRecognizer.recognizeLines(in: drawing).map(\.latex)
+                : []
+            await submissionVM.verify(imageData: imageData, duration: duration, onDeviceSteps: onDeviceSteps)
+        }
     }
 
     /// Render the PencilKit drawing to a PNG sized for upload + recognition.
@@ -268,9 +328,10 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     @Binding var hasDrawing: Bool
     @Binding var isErasing: Bool
+    @Binding var drawingVersion: Int
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(hasDrawing: $hasDrawing, isErasing: $isErasing)
+        Coordinator(hasDrawing: $hasDrawing, isErasing: $isErasing, drawingVersion: $drawingVersion)
     }
 
     func makeUIView(context: Context) -> PKCanvasView {
@@ -295,10 +356,12 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
     class Coordinator: NSObject, PKCanvasViewDelegate, UIPencilInteractionDelegate {
         var hasDrawing: Binding<Bool>
         var isErasing: Binding<Bool>
+        var drawingVersion: Binding<Int>
 
-        init(hasDrawing: Binding<Bool>, isErasing: Binding<Bool>) {
+        init(hasDrawing: Binding<Bool>, isErasing: Binding<Bool>, drawingVersion: Binding<Int>) {
             self.hasDrawing = hasDrawing
             self.isErasing = isErasing
+            self.drawingVersion = drawingVersion
         }
 
         /// Apple Pencil double-tap switches between pen and eraser.
@@ -308,6 +371,7 @@ struct CanvasRepresentableiOS: UIViewRepresentable {
 
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
             hasDrawing.wrappedValue = !canvasView.drawing.bounds.isEmpty
+            drawingVersion.wrappedValue += 1
         }
     }
 }

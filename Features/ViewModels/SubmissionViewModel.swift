@@ -113,8 +113,11 @@ class SubmissionViewModel: ObservableObject {
 
     // MARK: - Step 1: Verify (Recognize Handwriting)
 
-    /// Send the canvas PNG to recognition and receive LaTeX steps.
-    func verify(imageData: Data, duration: TimeInterval) async {
+    /// Send the canvas PNG to recognition and receive LaTeX steps. When the
+    /// iPad already read the lines (MyScript, on device), those are used and
+    /// the slower cloud recognition is skipped; the PNG is still uploaded
+    /// for the teacher.
+    func verify(imageData: Data, duration: TimeInterval, onDeviceSteps: [String] = []) async {
         phase = .recognizing
         timeSpent = duration
 
@@ -129,6 +132,12 @@ class SubmissionViewModel: ObservableObject {
             let imagePath = "submissions/\(classID)/\(studentID)/\(exerciseID)_attempt\(currentAttempt).png"
             _ = try await DataService.shared.uploadData(imageData, path: imagePath)
             self.pngURL = imagePath
+
+            if !onDeviceSteps.isEmpty {
+                self.recognizedSteps = onDeviceSteps
+                self.phase = .verifying
+                return
+            }
 
             // Call RecognitionService via Cloud Function
             let result = try await recognitionService.recognizeFromStorage(path: imagePath)

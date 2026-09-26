@@ -61,7 +61,10 @@ def recognize_handwriting(req: https_fn.CallableRequest) -> dict:
     return recognize_handwriting_handler(req)
 
 
-@https_fn.on_call(secrets=[ANTHROPIC_KEY])
+# One full vCPU: with the default fraction of a CPU, loading SymPy and its
+# LaTeX parser on a fresh instance took ~17 s before the first answer
+# (under 2 s on a laptop).
+@https_fn.on_call(secrets=[ANTHROPIC_KEY], memory=options.MemoryOption.GB_1, cpu=1)
 def correct_submission(req: https_fn.CallableRequest) -> dict:
     """Correct a student's submission using hybrid Claude + SymPy pipeline."""
     from correct_submission import correct_submission_handler

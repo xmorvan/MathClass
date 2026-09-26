@@ -113,3 +113,8 @@ node_modules/
 # Local emulator secrets
 functions/.secret.local
 functions/.env.local
+
+# MyScript: the developer certificate is tied to the account, and the
+# recognition assets are downloaded (scripts/fetch-myscript-assets.sh).
+MathClass/MyScript/MyCertificate.c
+MathClass/MyScript/MyScriptAssets.bundle/
