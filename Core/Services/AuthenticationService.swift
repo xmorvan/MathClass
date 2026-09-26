@@ -152,10 +152,16 @@ final class AuthenticationService: ObservableObject {
         }
         do {
             let teacher: Teacher = try await firebase.getDocument(userId, from: "users")
-            if let role = UserRole(rawValue: teacher.role) {
-                self.userRole = role
+            if UserRole(rawValue: teacher.role) == .teacher {
+                self.userRole = .teacher
             } else {
-                roleLookupFailed = true
+                // Only teachers have e-mail accounts now (students sign in
+                // anonymously). A leftover e-mail account with another role,
+                // e.g. a student account from an old build still held in
+                // the Keychain, matches no screen and left the app on
+                // "Chargement..." forever: sign it out.
+                print("AuthenticationService: signing out non-teacher e-mail account")
+                try? auth.signOut()
             }
         } catch {
             // Doc-not-found is the common case for a freshly-created
