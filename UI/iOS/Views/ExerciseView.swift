@@ -213,12 +213,6 @@ struct ExerciseView: View {
                     drawingVersion: $drawingVersion
                 )
                 .frame(minHeight: 300)
-                // Faint writing lines, one step per line: students write
-                // more legibly and the live reading separates lines more
-                // reliably. Drawn over the canvas without catching touches
-                // (views placed behind or inside PencilKit hid the ink or
-                // the lines).
-                .overlay(RuledLines().allowsHitTesting(false))
                 .cornerRadius(4)
 
                 if inkRecognizer.isAvailable {
@@ -424,25 +418,5 @@ private struct StatementHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
-    }
-}
-
-// MARK: - Ruled paper
-
-/// Horizontal writing lines, every `spacing` points.
-private struct RuledLines: View {
-    var spacing: CGFloat = 90
-
-    var body: some View {
-        Canvas { context, size in
-            var y: CGFloat = spacing
-            while y < size.height {
-                var line = Path()
-                line.move(to: CGPoint(x: 0, y: y))
-                line.addLine(to: CGPoint(x: size.width, y: y))
-                context.stroke(line, with: .color(Color.blue.opacity(0.14)), lineWidth: 1)
-                y += spacing
-            }
-        }
     }
 }
