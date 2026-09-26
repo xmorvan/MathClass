@@ -29,6 +29,14 @@ struct ExerciseView: View {
     @State private var hasDrawing = false
     @State private var isErasing: Bool = false
     @State private var showingStatementPhoto: Bool = false
+    /// Sentence answer for word problems, typed rather than handwritten
+    /// (the live reading only reads maths).
+    @State private var typedAnswer: String = ""
+
+    /// Word problems ask a question ("Combien… ?") and expect a sentence.
+    private var asksForSentence: Bool {
+        exercise.statement.contains("?")
+    }
     /// Bumped on every stroke change; drives the live recognition.
     @State private var drawingVersion: Int = 0
     /// What MyScript reads, line by line, while the student writes.
@@ -275,7 +283,13 @@ struct ExerciseView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 16) {
-            Spacer()
+            if asksForSentence {
+                TextField("Réponse en une phrase (ex. : Paul a 41 billes)".tr, text: $typedAnswer)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.done)
+            } else {
+                Spacer()
+            }
 
             Button(action: startVerification) {
                 Label("Vérifier".tr, systemImage: "checkmark.seal.fill")
@@ -335,7 +349,12 @@ struct ExerciseView: View {
             let onDeviceSteps = inkRecognizer.isAvailable
                 ? await inkRecognizer.recognizeLines(in: drawing).map(\.latex)
                 : []
-            await submissionVM.verify(imageData: imageData, duration: duration, onDeviceSteps: onDeviceSteps)
+            await submissionVM.verify(
+                imageData: imageData,
+                duration: duration,
+                onDeviceSteps: onDeviceSteps,
+                typedAnswer: asksForSentence ? typedAnswer : ""
+            )
         }
     }
 

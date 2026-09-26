@@ -148,7 +148,8 @@ def _normalize_french(latex: str) -> str:
 
 
 _IMPLIES = re.compile(r"\\(?:implies|Rightarrow|Longrightarrow|iff|Leftrightarrow)")
-_TEXT = re.compile(r"\\(?:text|mathrm)\{\s*([^{}]*?)\s*\}")
+# A word or unit, with the exponent of a unit ("\\text{ cm}^2").
+_TEXT = re.compile(r"\\(?:text|mathrm)\{\s*([^{}]*?)\s*\}(?:\^\{?\d\}?)?")
 
 
 def _prepare(latex: str) -> str:
@@ -232,13 +233,53 @@ def _equations_equivalent(student_latex: str, reference_latex: str) -> bool | No
     if _chain_breaks(_prepare(student_latex)):
         return False
     student_sides = _sides(_prepare(student_latex))
+    # A line true for every value ("\\frac{(x-2)(x+2)}{x-2} = x + 2") is a
+    # correct simplification step, whatever the reference says.
+    if student_sides and len(student_sides) >= 2 and any(side.free_symbols for side in student_sides):
+        if all(_expressions_equal(a, b) is True for a, b in zip(student_sides, student_sides[1:])):
+            return True
     reference_sides = _sides(_prepare(reference_latex)) if "=" in _prepare(reference_latex) else None
     if student_sides and not any(side.free_symbols for side in student_sides):
         if reference_sides and not any(side.free_symbols for side in reference_sides):
             return True if _expressions_equal(student_sides[-1], reference_sides[-1]) else None
+        # Against a bare expected value ("9\\pi"), the line's result must
+        # be that value.
+        if "=" not in _prepare(reference_latex):
+            target = _parse_or_none(_prepare(reference_latex))
+            if isinstance(target, sympy.Expr) and not target.free_symbols:
+                return _expressions_equal(student_sides[-1], target)
         return None
     student = _equation_solutions(student_latex)
     reference = _equation_solutions(reference_latex)
+    if student is None or reference is None or student[0] != reference[0]:
+        return None
+    return student[1] == reference[1]
+
+
+_INEQUALITY = re.compile(r"<|>|\\le|\\ge|\\leq|\\geq|\\leqslant|\\geqslant")
+
+
+def _inequality_solutions(latex: str):
+    """(unknown name, solution set) of a one-unknown inequality, or None."""
+    relation = _parse_or_none(_prepare(latex))
+    if not isinstance(relation, sympy.core.relational.Relational) or isinstance(relation, sympy.Equality):
+        return None
+    unknowns = relation.free_symbols
+    if len(unknowns) != 1:
+        return None
+    unknown = next(iter(unknowns))
+    try:
+        solutions = _run_with_timeout(
+            sympy.solveset, sympy.nsimplify(relation, rational=True), unknown, sympy.S.Reals
+        )
+    except Exception:
+        return None
+    return unknown.name.lower(), solutions
+
+
+def _inequalities_equivalent(student_latex: str, reference_latex: str) -> bool | None:
+    student = _inequality_solutions(student_latex)
+    reference = _inequality_solutions(reference_latex)
     if student is None or reference is None or student[0] != reference[0]:
         return None
     return student[1] == reference[1]
@@ -260,6 +301,8 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
     student_latex = _prepare(student_latex)
     reference_latex = _prepare(reference_latex)
     try:
+        if _INEQUALITY.search(student_latex) and _INEQUALITY.search(reference_latex):
+            return _inequalities_equivalent(student_latex, reference_latex)
         if "=" in student_latex or "=" in reference_latex:
             return _equations_equivalent(student_latex, reference_latex)
 
@@ -312,9 +355,14 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
 
 def _parse_or_none(latex: str):
     try:
-        return parse_latex(latex)
+        parsed = parse_latex(latex)
     except Exception:
         return None
+    # The LaTeX parser reads \\pi as a variable named "pi".
+    pi = sympy.Symbol("pi")
+    if hasattr(parsed, "free_symbols") and pi in parsed.free_symbols:
+        parsed = parsed.subs(pi, sympy.pi)
+    return parsed
 
 
 def _is_isolated(latex: str) -> bool:
@@ -358,6 +406,17 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
     expected_answer = _prepare(expected_answer)
     steps = [_prepare(step) for step in steps]
     try:
+        if _INEQUALITY.search(expected_answer):
+            expected = _inequality_solutions(expected_answer)
+            if expected is None:
+                return None
+            results = []
+            for step in steps:
+                solutions = _inequality_solutions(step)
+                if solutions is None:
+                    return None
+                results.append(solutions == expected)
+            return results
         if "=" in expected_answer:
             expected = _equation_solutions(expected_answer)
             if expected is None:
@@ -461,6 +520,7 @@ def claude_check_equivalence(
     message = client.messages.create(
         model=claude_client.model_id(),
         max_tokens=256,
+        temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
 
@@ -523,6 +583,7 @@ def _detect_notation_issue(
         message = client.messages.create(
             model=claude_client.model_id(),
             max_tokens=64,
+            temperature=0,
             system=[
                 {
                     "type": "text",
@@ -575,6 +636,7 @@ def _classify_errors(
         message = client.messages.create(
             model=claude_client.model_id(),
             max_tokens=256,
+            temperature=0,
             messages=[{"role": "user", "content": prompt}],
         )
         try:
@@ -842,6 +904,7 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             message = client.messages.create(
                 model=claude_client.model_id(),
                 max_tokens=2048,
+                temperature=0,
                 system=[
                     {
                         "type": "text",

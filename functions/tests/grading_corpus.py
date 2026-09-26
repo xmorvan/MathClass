@@ -53,6 +53,12 @@ CASES = [
     _c("billes-faux", "primaire",
        "Paul a 3 paquets de 12 billes et en reçoit encore 5. Combien de billes a-t-il ?",
        "41", [r"3 \times 12 = 37", r"37 + 5 = 42"], False, 0),
+    _c("billes-phrase-ok", "primaire",
+       "Paul a 3 paquets de 12 billes et en reçoit encore 5. Combien de billes a-t-il ?",
+       "41", [r"3 \times 12 = 36", r"36 + 5 = 41", r"\text{Paul a 41 billes}"], True),
+    _c("billes-phrase-fausse", "primaire",
+       "Paul a 3 paquets de 12 billes et en reçoit encore 5. Combien de billes a-t-il ?",
+       "41", [r"3 \times 12 = 36", r"36 + 5 = 41", r"\text{Paul a 36 billes}"], False, 2),
 
     # ── Fractions, décimaux, pourcentages ───────────────────────────────
     _c("fractions-ok", "7e-8e", r"Calculer $\frac{1}{2} + \frac{1}{3}$", r"\frac{5}{6}",

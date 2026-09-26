@@ -113,11 +113,22 @@ class SubmissionViewModel: ObservableObject {
 
     // MARK: - Step 1: Verify (Recognize Handwriting)
 
+    /// A sentence typed by the student ("Paul a 41 billes") as a LaTeX text
+    /// step, rendered as plain text and read by the correction.
+    static func textStep(_ sentence: String) -> [String] {
+        let cleaned = sentence
+            .components(separatedBy: CharacterSet(charactersIn: "{}\\$%#&_^~"))
+            .joined()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? [] : ["\\text{\(cleaned)}"]
+    }
+
     /// Send the canvas PNG to recognition and receive LaTeX steps. When the
     /// iPad already read the lines (MyScript, on device), those are used and
     /// the slower cloud recognition is skipped; the PNG is still uploaded
     /// for the teacher.
-    func verify(imageData: Data, duration: TimeInterval, onDeviceSteps: [String] = []) async {
+    func verify(imageData: Data, duration: TimeInterval, onDeviceSteps: [String] = [], typedAnswer: String = "") async {
+        let answerStep = Self.textStep(typedAnswer)
         phase = .recognizing
         timeSpent = duration
 
@@ -134,17 +145,18 @@ class SubmissionViewModel: ObservableObject {
             self.pngURL = imagePath
 
             if !onDeviceSteps.isEmpty {
-                self.recognizedSteps = onDeviceSteps
+                self.recognizedSteps = onDeviceSteps + answerStep
                 self.phase = .verifying
                 return
             }
 
             // Call RecognitionService via Cloud Function
             let result = try await recognitionService.recognizeFromStorage(path: imagePath)
-            self.recognizedSteps = result.latexSteps
+            self.recognizedSteps = result.latexSteps + answerStep
             self.phase = .verifying
         } catch let recognitionError as RecognitionError {
             handleRecognitionFailure(recognitionError)
+            if !answerStep.isEmpty { self.recognizedSteps += answerStep }
         } catch {
             self.error = LocalizationManager.shared.format("Erreur lors de l'envoi : %@", error.localizedDescription)
             self.showError = true

@@ -591,3 +591,28 @@ def test_final_form(statement, last_step, wrong):
     if not cs.SYMPY_AVAILABLE:
         pytest.skip("SymPy LaTeX parser unavailable")
     assert cs.final_form_is_wrong(statement, last_step) is wrong
+
+
+@pytest.mark.parametrize("student, reference, expected", [
+    ("2x < 10", "x < 5", True),
+    ("-2x < 6", "x > -3", True),
+    ("x < -3", "x > -3", False),
+    ("x \\le 5", "2x \\leq 10", True),
+    ("\\frac{(x-2)(x+2)}{x-2} = x + 2", "\\lim_{x \\to 2} (x + 2)", True),
+])
+def test_sympy_inequalities_and_identities(student, reference, expected):
+    pytest.importorskip("sympy")
+    cs._ensure_sympy()
+    if not cs.SYMPY_AVAILABLE:
+        pytest.skip("SymPy LaTeX parser unavailable")
+    assert cs.sympy_check_equivalence(student, reference) is expected
+
+
+def test_units_with_exponents_and_bare_expected_values():
+    pytest.importorskip("sympy")
+    cs._ensure_sympy()
+    if not cs.SYMPY_AVAILABLE:
+        pytest.skip("SymPy LaTeX parser unavailable")
+    assert cs._prepare("9\\pi \\text{ cm}^2") == "9\\pi"
+    assert cs.sympy_check_equivalence("2 \\pi \\times 3 = 6\\pi", "9\\pi \\text{ cm}^2") is False
+    assert cs.sympy_check_equivalence("\\pi \\times 3^2 = 9\\pi", "9\\pi \\text{ cm}^2") is True
