@@ -625,3 +625,72 @@ def test_every_requirement_is_pinned():
     requirements = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
     assert requirements
     assert all("==" in line for line in requirements), requirements
+
+
+# ---------------------------------------------------------------------------
+# Speed: warm-up call, notation note asked while grading
+# ---------------------------------------------------------------------------
+
+
+def test_warmup_call_loads_parser_without_grading(monkeypatch):
+    warmed = []
+    monkeypatch.setattr(cs, "_warm_up", lambda: warmed.append(True))
+    monkeypatch.setattr(cs, "_authorize", lambda *_: pytest.fail("a warm-up grades nothing"))
+
+    assert cs.correct_submission_handler(_fake_request({"warmup": True})) == {"warm": True}
+    assert warmed == [True]
+
+
+def test_warmup_call_needs_a_signed_in_caller(monkeypatch):
+    monkeypatch.setattr(cs, "_warm_up", lambda: pytest.fail("not for signed-out callers"))
+    with pytest.raises(Exception):
+        cs.correct_submission_handler(make_request({"warmup": True}, auth=None))
+
+
+def test_notation_note_runs_alongside_sympy_grading(monkeypatch):
+    """The SymPy path used to wait for the grading, then ask for the
+    notation note: both now overlap."""
+    import threading
+
+    notation_started = threading.Event()
+
+    def slow_grading(*_):
+        assert notation_started.wait(2), "notation note not asked before grading ended"
+        return [True, True]
+
+    def notation(*_):
+        notation_started.set()
+        return "missing_variable"
+
+    monkeypatch.setattr(cs.anthropic, "Anthropic", lambda **_: MagicMock())
+    monkeypatch.setattr(cs, "sympy_grade_steps", slow_grading)
+    monkeypatch.setattr(cs, "_detect_notation_issue", notation)
+
+    result = cs.correct_submission_handler(_fake_request({
+        "studentSteps": ["4x = 16", "x = 4"],
+        "expectedAnswer": "x = 4",
+        "statement": "Résoudre 4x + 2 = 18.",
+        "submissionID": "sub_fast",
+        "attemptNumber": 1,
+        "notationStrict": True,
+    }))
+    assert result["allCorrect"] is True
+    assert result["notationNoteKey"] == "missing_variable"
+
+
+def test_continuation_line_is_graded_with_the_line_above():
+    """"= 6 + i - 1" alone is a true equality; it must be read as the
+    step that follows "6 - 2i + 3i - i^2"."""
+    assert cs._join_continuations(["(2 + i)(3 - i) = 6 - 2i + 3i - i^2", "= 6 + i - 1 = 5 + i"]) == [
+        "(2 + i)(3 - i) = 6 - 2i + 3i - i^2",
+        "6 - 2i + 3i - i^2 = 6 + i - 1 = 5 + i",
+    ]
+
+
+def test_written_decimals_are_exact():
+    assert cs.sympy_check_equivalence("1 - 0,3", "0,7") is True
+
+
+def test_probability_name_and_integration_constant_are_not_calculations():
+    assert cs.sympy_check_equivalence(r"P(X = 2) = \binom{3}{2} \times 0,5^3", r"\frac{3}{8}") is True
+    assert cs.sympy_check_equivalence(r"F(x) = x^3 + \ln(x) + C", r"F(x) = x^3 + \ln x") is True

@@ -99,6 +99,27 @@ final class CorrectionService {
         }
     }
 
+    /// When the last warm-up call was sent.
+    private var lastWarmUp: Date = .distantPast
+
+    /// Wake a correction instance while the student is still writing: a
+    /// cold start (instance start, SymPy and LaTeX parser loading) added
+    /// 8–25 s to the first correction. At most one call every 5 minutes;
+    /// failures are ignored.
+    func warmUp() {
+        guard Date().timeIntervalSince(lastWarmUp) > 300 else { return }
+        lastWarmUp = Date()
+        let callable = functions.httpsCallable("correct_submission")
+        callable.timeoutInterval = functionTimeout
+        Task {
+            do {
+                _ = try await callable.call(["warmup": true])
+            } catch {
+                print("Correction warm-up failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
     /// Teacher-side grading of a submission whose correction never ran
     /// (e.g. an evaluation left while the iPad was closed). The server
     /// grades the steps stored on the submission and persists the result;

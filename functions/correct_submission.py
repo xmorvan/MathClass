@@ -104,9 +104,11 @@ FALLBACK_PROMPT = """Tu es un correcteur de mathématiques. Une étape écrite p
 L'étape de l'élève est JUSTE si elle est mathématiquement vraie et mène au même résultat que l'étape attendue. Ne la pénalise PAS pour :
 - une unité absente (« 2500 » au lieu de « 2500 m ») ;
 - une autre notation (« S = {{2 ; 3}} » pour « x = 2 ou x = 3 », « : » pour la division, virgule décimale) ;
-- moins de détails (l'élève écrit le résultat d'une opération que la référence détaille, ou omet le « ⟹ »).
+- moins de détails (l'élève écrit le résultat d'une opération que la référence détaille, ou omet le « ⟹ ») ;
+- une constante d'intégration « + C » ajoutée ou omise dans une primitive.
 Elle est FAUSSE si elle contient une erreur de calcul, de signe ou de raisonnement, ou si son résultat diffère.
 
+Énoncé de l'exercice : {statement}
 Expression de l'élève : {student_expr}
 Expression de référence : {reference_expr}
 Contexte : {description}
@@ -152,11 +154,21 @@ _IMPLIES = re.compile(r"\\(?:implies|Rightarrow|Longrightarrow|iff|Leftrightarro
 _TEXT = re.compile(r"\\(?:text|mathrm)\{\s*([^{}]*?)\s*\}(?:\^\{?\d\}?)?")
 
 
+_PROBABILITY_NAME = re.compile(r"^\s*[PEV](?:_\{?\w+\}?)?\([^()]*\)\s*=")
+
+
 def _prepare(latex: str) -> str:
     """What SymPy should read in a line: the last statement after an
     implication, without units or words (kept: "ou"/"et" between
     solutions), in French notation normalised."""
     latex = _IMPLIES.split(latex)[-1]
+    # "= 3 \\times 0,125" continues the previous line.
+    latex = re.sub(r"^\s*=", "", latex)
+    # "P(X = 2) = …", "E(X) = …": a probability name, whose inner "=" or
+    # "\\le" is not part of the calculation.
+    latex = _PROBABILITY_NAME.sub("", latex)
+    # The constant of an antiderivative ("x^3 + \\ln x + C").
+    latex = re.sub(r"\+\s*[CK]\s*$", "", latex.rstrip())
     latex = _TEXT.sub(
         lambda m: f"\\text{{ {m.group(1)} }}" if m.group(1).lower() in ("ou", "or", "et", "and") else " ",
         latex,
@@ -249,6 +261,12 @@ def _equations_equivalent(student_latex: str, reference_latex: str) -> bool | No
             if isinstance(target, sympy.Expr) and not target.free_symbols:
                 return _expressions_equal(student_sides[-1], target)
         return None
+    # "F(x) = x^3 + \\ln x" against "F(x) = x^3 + \\ln(x)": the same name
+    # on the left, compare what it is equal to.
+    if student_sides and reference_sides and len(student_sides) >= 2 and len(reference_sides) == 2:
+        name = reference_sides[0]
+        if isinstance(name, sympy.core.function.AppliedUndef) and sympy.srepr(student_sides[0]) == sympy.srepr(name):
+            return _expressions_equal(student_sides[-1], reference_sides[1])
     student = _equation_solutions(student_latex)
     reference = _equation_solutions(reference_latex)
     if student is None or reference is None or student[0] != reference[0]:
@@ -285,6 +303,11 @@ def _inequalities_equivalent(student_latex: str, reference_latex: str) -> bool |
     return student[1] == reference[1]
 
 
+def _canonical_text(latex: str) -> str:
+    """The LaTeX without spacing and sizing commands, to spot identical lines."""
+    return re.sub(r"\s+|\\left|\\right|\\[,;:!]", "", latex)
+
+
 def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | None:
     """Check algebraic equivalence using SymPy.
 
@@ -300,6 +323,9 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
 
     student_latex = _prepare(student_latex)
     reference_latex = _prepare(reference_latex)
+    # The same line as the reference, whatever SymPy can read of it.
+    if _canonical_text(student_latex) and _canonical_text(student_latex) == _canonical_text(reference_latex):
+        return True
     try:
         if _INEQUALITY.search(student_latex) and _INEQUALITY.search(reference_latex):
             return _inequalities_equivalent(student_latex, reference_latex)
@@ -362,6 +388,11 @@ def _parse_or_none(latex: str):
     pi = sympy.Symbol("pi")
     if hasattr(parsed, "free_symbols") and pi in parsed.free_symbols:
         parsed = parsed.subs(pi, sympy.pi)
+    # Written decimals are exact: 1 - 0.3 is 0.7, not 0.7000000000000001.
+    if isinstance(parsed, sympy.Basic):
+        floats = parsed.atoms(sympy.Float)
+        if floats:
+            parsed = parsed.xreplace({f: sympy.Rational(str(f)) for f in floats})
     return parsed
 
 
@@ -388,6 +419,13 @@ def _expressions_equal(a, b) -> bool | None:
     if difference.is_number:
         return False
     return None
+
+
+# The name of a quantity: P(A), P_B(A), E(X), u_{10}, f'(2), |z|, \\Delta.
+# \\ln(4) or \\sin(x) are calculations, not names.
+_LABEL = re.compile(
+    r"^\s*(?:\|[^|=]+\||(?!\\?(?:ln|log|exp|sin|cos|tan|sqrt|frac|lim|int|sum)\b)\\?[A-Za-z]+'*(?:_\{?[^=\s{}]+\}?)?(?:\([^=]*\))?)\s*$"
+)
 
 
 def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | None:
@@ -429,7 +467,11 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
                 solutions = _equation_solutions(step)
                 if solutions is None:
                     return None
-                results.append(solutions[0] == expected[0] and solutions[1] == expected[1])
+                if solutions[0] != expected[0]:
+                    # Another quantity ("\\Delta = 16", "x_1 = -1"): an
+                    # intermediate result SymPy cannot place in the method.
+                    return None
+                results.append(solutions[1] == expected[1])
             if results[-1] and _is_isolated(expected_answer) and not _is_isolated(steps[-1]):
                 results[-1] = False
             return results
@@ -439,7 +481,12 @@ def sympy_grade_steps(expected_answer: str, steps: list[str]) -> list[bool] | No
             return None
         results = []
         for step in steps:
-            sides = [_parse_or_none(side) for side in step.split("=")]
+            written_sides = step.split("=")
+            # "P(\\overline{A}) = 1 - 0,3 = 0,7", "u_{10} = 35": the first
+            # side names the quantity asked for, it is not a calculation.
+            if len(written_sides) > 1 and not target.free_symbols and _LABEL.match(written_sides[0]):
+                written_sides = written_sides[1:]
+            sides = [_parse_or_none(side) for side in written_sides]
             if any(not isinstance(side, sympy.Expr) for side in sides):
                 return None
             # A line whose sides differ ("3 \\times 12 = 37") is a certain
@@ -505,8 +552,10 @@ def claude_check_equivalence(
     student_expr: str,
     reference_expr: str,
     description: str,
+    statement: str = "",
 ) -> bool:
     """Fallback equivalence check using Claude when SymPy can't determine.
+    The statement gives the values a line may use ("u_0 = 5").
 
     Returns:
         True if Claude considers the expressions equivalent, False otherwise.
@@ -515,6 +564,7 @@ def claude_check_equivalence(
         student_expr=student_expr,
         reference_expr=reference_expr,
         description=description,
+        statement=statement or "(non fourni)",
     )
 
     message = client.messages.create(
@@ -771,6 +821,27 @@ def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
     }
 
 
+def _join_continuations(steps: list) -> list:
+    """A line starting with "=" continues the previous one: prefix it with
+    that line's last side, so "= 6 + i - 1" becomes "6 - 2i + 3i - i^2 =
+    6 + i - 1" and a step that does not follow from the previous is seen."""
+    joined: list = []
+    for step in steps:
+        if isinstance(step, str) and step.lstrip().startswith("=") and joined and isinstance(joined[-1], str):
+            previous = _IMPLIES.split(joined[-1])[-1].split("=")[-1].strip()
+            if previous:
+                step = f"{previous} {step.lstrip()}"
+        joined.append(step)
+    return joined
+
+
+def _warm_up() -> None:
+    """Load what the first correction on an instance would otherwise load:
+    the Firestore client and the SymPy LaTeX parser."""
+    _get_firestore()
+    sympy_grade_steps("x=1", ["x+1=2", "x=1"])
+
+
 def _as_int(value):
     """Read an integer sent by a callable client. The Apple Functions SDK
     sends a Swift `Int` as {"@type": ".../google.protobuf.Int64Value",
@@ -817,6 +888,15 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="Aucune donnée fournie.",
         )
+
+    # The iPad sends a warm-up call when an exercise opens, so the instance
+    # has started and loaded SymPy and the LaTeX parser by the time the
+    # student asks for a correction (a cold start cost 8–25 s).
+    if req.data.get("warmup") is True:
+        if getattr(req, "auth", None) is None:
+            raise auth_guard._denied()
+        _warm_up()
+        return {"warm": True}
 
     submission_id = req.data.get("submissionID")
     if not isinstance(submission_id, str) or not submission_id:
@@ -868,9 +948,22 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             "allCorrect": False,
         }
 
+    # "= 6 + i - 1" continues the line above: grade it with what it
+    # claims to be equal to.
+    student_steps = _join_continuations(student_steps)
+
     # Claude client for the configured provider (Vertex AI in Europe by
     # default, see claude_client.py).
     client = claude_client.create_client()
+
+    # The notation note does not depend on the grading: ask for it now so
+    # it runs while the steps are graded instead of after.
+    notation_pool = ThreadPoolExecutor(max_workers=1)
+    notation_future = (
+        notation_pool.submit(_detect_notation_issue, client, student_steps, statement)
+        if notation_strict else None
+    )
+    notation_pool.shutdown(wait=False)
 
     # Exact grading first: when SymPy can check every step against the
     # teacher's answer, no AI call is needed (under a second instead of
@@ -956,6 +1049,7 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                                 pairs[i].get("studentExpr", ""),
                                 pairs[i].get("referenceExpr", ""),
                                 pairs[i].get("description", ""),
+                                statement,
                             ),
                             undecided,
                         )
@@ -1018,23 +1112,15 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         # NOTATION_KEYS) — the iOS client maps it through Localizations.swift
         # to a localized banner. Skipped entirely when notationStrict is
         # false to save Anthropic credits.
-        # The notation note and the per-step error categorization (only
-        # for failed work) are independent: ask Claude for both at once.
-        notation_note_key: str | None = None
-        error_tags: list | None = None
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            notation_future = (
-                pool.submit(_detect_notation_issue, client, student_steps, statement)
-                if notation_strict and student_steps else None
-            )
-            tags_future = (
-                pool.submit(_classify_errors, client, student_steps, step_results)
-                if not all_correct and pairs else None
-            )
-            if notation_future is not None:
-                notation_note_key = notation_future.result()
-            if tags_future is not None:
-                error_tags = tags_future.result()
+        # The per-step error categorization (only for failed work) runs
+        # while the notation note, started earlier, finishes.
+        error_tags: list | None = (
+            _classify_errors(client, student_steps, step_results)
+            if not all_correct and pairs else None
+        )
+        notation_note_key: str | None = (
+            notation_future.result() if notation_future is not None else None
+        )
 
         # ISSUE-004: previously a persist failure was logged and swallowed,
         # so the teacher's inbox would never see a submission whose write

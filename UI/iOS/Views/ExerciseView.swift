@@ -76,7 +76,10 @@ struct ExerciseView: View {
             Divider()
             actionButtons
         }
-        .onAppear { startTime = Date() }
+        .onAppear {
+            startTime = Date()
+            CorrectionService.shared.warmUp()
+        }
         .sheet(isPresented: $showingFlowSheet) {
             submissionFlowSheet(vm: submissionVM)
         }
