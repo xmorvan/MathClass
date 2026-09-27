@@ -93,18 +93,39 @@ struct CorrectionResult: Codable, Hashable {
     /// "notation"). Same length as `stepResults`. `nil` for steps that
     /// are correct or don't fit a known category.
     var errorTags: [String?]?
+    /// Per step, for wrong steps: the skill of the taxonomy that failed, how
+    /// (error type) and a one-line note for the teacher. Same length as
+    /// `stepResults`; nil for right steps.
+    var diagnosis: [StepDiagnosis?]?
 
     init(
         stepResults: [Bool],
         firstErrorIndex: Int? = nil,
         notationNoteKey: String? = nil,
-        errorTags: [String?]? = nil
+        errorTags: [String?]? = nil,
+        diagnosis: [StepDiagnosis?]? = nil
     ) {
         self.stepResults = stepResults
         self.firstErrorIndex = firstErrorIndex
         self.notationNoteKey = notationNoteKey
         self.errorTags = errorTags
+        self.diagnosis = diagnosis
     }
+}
+
+/// Why a step is wrong, as the correction diagnosed it.
+struct StepDiagnosis: Codable, Hashable {
+    /// Skill of the taxonomy that failed (nil when unknown or when the step
+    /// only follows from an earlier mistake).
+    var skillID: String?
+    /// sign_error, arithmetic, algebra, method, conceptual, incomplete,
+    /// notation, misread, consequence.
+    var errorType: String?
+    /// One sentence for the teacher, citing what the student wrote.
+    var note: String?
+
+    /// A step that is only wrong because an earlier one was.
+    var isConsequence: Bool { errorType == "consequence" }
 }
 
 // MARK: - Notation note key → localized message

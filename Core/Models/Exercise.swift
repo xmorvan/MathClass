@@ -24,6 +24,9 @@ struct Exercise: Identifiable, Codable, Hashable {
     var chapterID: String?
     /// References to competencies this exercise tests
     var competencyIDs: [String]
+    /// Skills of the taxonomy the exercise practises (see Taxonomy.swift).
+    /// Set by the `tag_exercises` Cloud Function, editable by the teacher.
+    var skillIDs: [String]?
     /// Difficulty level from 1 (easy) to 5 (hard), used for the "levels" mode
     var difficultyLevel: Int
     /// How this exercise was created

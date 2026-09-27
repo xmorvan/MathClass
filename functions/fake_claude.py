@@ -59,6 +59,18 @@ def _answer(kwargs) -> dict:
                 for s in steps
             ]
         }
+    if '"diagnosis"' in text:
+        verdicts = re.findall(r"^Étape \d+ \((OK|ERREUR)\)", text, flags=re.M)
+        return {"diagnosis": [
+            None if v == "OK" else {
+                "skillID": "nombres.entiers-decimaux.addition-soustraction",
+                "errorType": "arithmetic",
+                "note": "Erreur de calcul.",
+            }
+            for v in verdicts
+        ]}
+    if '"skillIDs"' in text:
+        return {"skillIDs": ["equations.premier-degre.deux-etapes"]}
     if '"key"' in text:
         return {"key": None}
     if '"tags"' in text:

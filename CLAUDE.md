@@ -66,7 +66,15 @@ Functions in `functions/main.py` (every one checks the caller via `functions/aut
 3. **`correct_submission`** — Hybrid: Claude structures student steps vs. reference, SymPy verifies algebraic equivalence (fallback to Claude judgment), returns per-step boolean array, first error index, optional `notationNoteKey` (localized client-side via `NotationNote.localizedMessage(forKey:)`) when the class has `notationStrict=true`, and per-step `errorTags` (e.g. "sign_error", "arithmetic", "notation"). The caller must own the submission; the expected answer, statement and `notationStrict` are read from Firestore, not taken from the request.
 4. **`join_class`** / **`claim_student_seat`** — student class-code login (see Student Authentication).
 5. **`generate_class_code`** — unique `MX-XXXX` code for a new class (teachers only).
-6. **`delete_student_data`** — teacher-only GDPR right-to-erasure: hard-deletes the student doc, their `/submissions`, Storage objects under `submissions/{studentID}/` and `levelProgress/*`, after checking `classes/{classID}.teacherID == auth.uid`.
+6. **`tag_exercises`** — tags the teacher's exercises with 1–4 skills of the taxonomy (`skillIDs`). The app calls it after creating an exercise, or saving one that has no tags; the teacher can correct the tags (exercise detail, `MathClass-Shared/SkillTagsEditor.swift`).
+7. **`delete_student_data`** — teacher-only GDPR right-to-erasure: hard-deletes the student doc, their `/submissions`, Storage objects under `submissions/{studentID}/` and `levelProgress/*`, after checking `classes/{classID}.teacherID == auth.uid`.
+
+### Skill taxonomy and diagnosis
+The teacher's statistics are a diagnosis on a built-in taxonomy **domaine › compétence › savoir-faire** (neutral, by mathematical theme; ~190 skills). Source: `functions/taxonomy_source.txt`; `python3 tools/build_taxonomy.py` writes `functions/taxonomy.json` and the app's `Core/Resources/Taxonomy.json` (a test checks both match the source). Skill IDs (`litteral.developper.trois-facteurs`) are stored on exercises and submissions: never rename one, add a new one.
+- Exercises carry `skillIDs` (see `tag_exercises`).
+- On every wrong copy, `correct_submission` asks Claude which skill failed at each wrong step, how (`errorType`: sign_error, arithmetic, algebra, method, conceptual, incomplete, notation, misread, consequence) and a one-line note for the teacher: `correctionResult.diagnosis`. An error made while practising the exercise's own skill counts against that skill; steps that only follow from an earlier mistake are `consequence` and are not gaps.
+- `Features/ViewModels/SkillDiagnosis.swift` turns the copies into per-student, per-skill records (right copy = success on the exercise's skills; wrong copy = failure on the diagnosed skills), with mastery (not mastered / shaky / to confirm / mastered) and the teacher sentences; `MathClass-Shared/DiagnosisViews.swift` shows them per student, per domain and per class (Mac and iPad).
+- The per-class teacher catalog (Chapter › Competency) still exists but no longer drives the statistics.
 
 ### Localization
 The app is bilingual French/English. FR is the source-of-truth for keys: views call `Text("Foo")` with the French copy as the literal, and `String.tr` looks up the English translation in `Core/Resources/Localizations.swift`. The teacher profile has a language picker; the choice is persisted in `UserDefaults` and the SwiftUI tree rebuilds via `.id(language)` so every visible string flips immediately. `LocalizationManager.shared` is the single source of truth.
@@ -85,7 +93,8 @@ Student draws → MyScript reads each written line live on the iPad (`MathClass/
 /periods/{periodID}                                      (one class hour)
 /periods/{periodID}/sessions/{sessionID}                 (ordered slot, mode A/B/C, allowFreeOrder)
 /periods/{periodID}/sessions/{sessionID}/exercises/{ae}  (per-student/per-group exercise list)
-/submissions/{submissionID}                              (studentID, classID, teacherID, correctionResult.notationNote, errorTags)
+/submissions/{submissionID}                              (studentID, classID, teacherID, correctionResult.{notationNoteKey, errorTags, diagnosis})
+/exercises/{exerciseID}.skillIDs                          (skills of the taxonomy)
 ```
 
 The Period+Session schema is the new home for assignments. The legacy

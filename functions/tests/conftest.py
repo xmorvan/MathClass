@@ -138,6 +138,9 @@ class _DocumentRef:
     def collection(self, name):
         return _CollectionRef(self._store, f"{self._path}/{name}")
 
+    def update(self, fields):
+        self._store[self._path] = {**(self._store.get(self._path) or {}), **fields}
+
 
 class _CollectionRef:
     def __init__(self, store, path, filters=None, max_results=None):

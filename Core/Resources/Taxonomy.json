@@ -1,0 +1,1332 @@
+{
+ "version": 1,
+ "domains": [
+  {
+   "id": "nombres",
+   "fr": "Nombres et calcul",
+   "en": "Numbers and arithmetic",
+   "competencies": [
+    {
+     "id": "nombres.entiers-decimaux",
+     "fr": "Entiers et décimaux",
+     "en": "Whole numbers and decimals",
+     "skills": [
+      {
+       "id": "nombres.entiers-decimaux.addition-soustraction",
+       "fr": "Additionner et soustraire",
+       "en": "Add and subtract"
+      },
+      {
+       "id": "nombres.entiers-decimaux.multiplication",
+       "fr": "Multiplier",
+       "en": "Multiply"
+      },
+      {
+       "id": "nombres.entiers-decimaux.division",
+       "fr": "Diviser (division euclidienne, quotient décimal)",
+       "en": "Divide (remainder, decimal quotient)"
+      },
+      {
+       "id": "nombres.entiers-decimaux.comparer-ranger",
+       "fr": "Comparer et ranger",
+       "en": "Compare and order"
+      },
+      {
+       "id": "nombres.entiers-decimaux.arrondir",
+       "fr": "Arrondir, valeur approchée",
+       "en": "Round, approximate"
+      },
+      {
+       "id": "nombres.entiers-decimaux.calcul-mental",
+       "fr": "Calcul mental et astuces de calcul",
+       "en": "Mental arithmetic"
+      }
+     ]
+    },
+    {
+     "id": "nombres.priorites",
+     "fr": "Priorités opératoires",
+     "en": "Order of operations",
+     "skills": [
+      {
+       "id": "nombres.priorites.sans-parentheses",
+       "fr": "Priorité de × et ÷ sur + et −",
+       "en": "× and ÷ before + and −"
+      },
+      {
+       "id": "nombres.priorites.parentheses",
+       "fr": "Calculs avec parenthèses",
+       "en": "Expressions with brackets"
+      },
+      {
+       "id": "nombres.priorites.expressions-longues",
+       "fr": "Enchaîner plusieurs opérations",
+       "en": "Chain several operations"
+      }
+     ]
+    },
+    {
+     "id": "nombres.fractions",
+     "fr": "Fractions",
+     "en": "Fractions",
+     "skills": [
+      {
+       "id": "nombres.fractions.simplifier",
+       "fr": "Simplifier une fraction",
+       "en": "Simplify a fraction"
+      },
+      {
+       "id": "nombres.fractions.comparer",
+       "fr": "Comparer des fractions",
+       "en": "Compare fractions"
+      },
+      {
+       "id": "nombres.fractions.additionner-meme-denominateur",
+       "fr": "Additionner (même dénominateur)",
+       "en": "Add (same denominator)"
+      },
+      {
+       "id": "nombres.fractions.additionner-denominateurs-differents",
+       "fr": "Additionner (dénominateurs différents)",
+       "en": "Add (different denominators)"
+      },
+      {
+       "id": "nombres.fractions.multiplier",
+       "fr": "Multiplier des fractions",
+       "en": "Multiply fractions"
+      },
+      {
+       "id": "nombres.fractions.diviser",
+       "fr": "Diviser par une fraction",
+       "en": "Divide by a fraction"
+      },
+      {
+       "id": "nombres.fractions.fraction-d-une-quantite",
+       "fr": "Prendre une fraction d'une quantité",
+       "en": "Fraction of a quantity"
+      },
+      {
+       "id": "nombres.fractions.calculs-enchaines",
+       "fr": "Calculs enchaînés avec fractions",
+       "en": "Chained fraction calculations"
+      }
+     ]
+    },
+    {
+     "id": "nombres.relatifs",
+     "fr": "Nombres relatifs",
+     "en": "Signed numbers",
+     "skills": [
+      {
+       "id": "nombres.relatifs.additionner",
+       "fr": "Additionner et soustraire des relatifs",
+       "en": "Add and subtract signed numbers"
+      },
+      {
+       "id": "nombres.relatifs.regle-des-signes",
+       "fr": "Règle des signes (× et ÷)",
+       "en": "Sign rule (× and ÷)"
+      },
+      {
+       "id": "nombres.relatifs.carre-d-un-negatif",
+       "fr": "Carré et puissances d'un négatif (−3² vs (−3)²)",
+       "en": "Powers of a negative ((−3)² vs −3²)"
+      },
+      {
+       "id": "nombres.relatifs.soustraire-une-expression",
+       "fr": "Soustraire une expression entre parenthèses",
+       "en": "Subtract a bracketed expression"
+      }
+     ]
+    },
+    {
+     "id": "nombres.puissances",
+     "fr": "Puissances et racines",
+     "en": "Powers and roots",
+     "skills": [
+      {
+       "id": "nombres.puissances.definition",
+       "fr": "Calculer une puissance",
+       "en": "Evaluate a power"
+      },
+      {
+       "id": "nombres.puissances.produit-meme-base",
+       "fr": "Produit de puissances de même base",
+       "en": "Product with the same base"
+      },
+      {
+       "id": "nombres.puissances.quotient-meme-base",
+       "fr": "Quotient de puissances de même base",
+       "en": "Quotient with the same base"
+      },
+      {
+       "id": "nombres.puissances.puissance-de-puissance",
+       "fr": "Puissance d'une puissance",
+       "en": "Power of a power"
+      },
+      {
+       "id": "nombres.puissances.exposant-negatif-nul",
+       "fr": "Exposant négatif ou nul",
+       "en": "Negative or zero exponent"
+      },
+      {
+       "id": "nombres.puissances.notation-scientifique",
+       "fr": "Notation scientifique",
+       "en": "Scientific notation"
+      },
+      {
+       "id": "nombres.puissances.racine-carree",
+       "fr": "Racine carrée d'un nombre",
+       "en": "Square root of a number"
+      },
+      {
+       "id": "nombres.puissances.simplifier-racines",
+       "fr": "Simplifier une racine (√50 = 5√2)",
+       "en": "Simplify a root (√50 = 5√2)"
+      },
+      {
+       "id": "nombres.puissances.operations-racines",
+       "fr": "Calculer avec des racines",
+       "en": "Operations with roots"
+      }
+     ]
+    },
+    {
+     "id": "nombres.arithmetique",
+     "fr": "Arithmétique",
+     "en": "Number theory",
+     "skills": [
+      {
+       "id": "nombres.arithmetique.multiples-diviseurs",
+       "fr": "Multiples, diviseurs, divisibilité",
+       "en": "Multiples, divisors, divisibility"
+      },
+      {
+       "id": "nombres.arithmetique.nombres-premiers",
+       "fr": "Nombres premiers, décomposition",
+       "en": "Primes, prime factorisation"
+      },
+      {
+       "id": "nombres.arithmetique.pgcd-ppcm",
+       "fr": "PGCD et PPCM",
+       "en": "GCD and LCM"
+      },
+      {
+       "id": "nombres.arithmetique.congruences",
+       "fr": "Congruences",
+       "en": "Congruences"
+      }
+     ]
+    },
+    {
+     "id": "nombres.proportionnalite",
+     "fr": "Proportionnalité et pourcentages",
+     "en": "Proportion and percentages",
+     "skills": [
+      {
+       "id": "nombres.proportionnalite.reconnaitre",
+       "fr": "Reconnaître une situation de proportionnalité",
+       "en": "Recognise proportionality"
+      },
+      {
+       "id": "nombres.proportionnalite.quatrieme-proportionnelle",
+       "fr": "Quatrième proportionnelle, produit en croix",
+       "en": "Missing value, cross-multiplication"
+      },
+      {
+       "id": "nombres.proportionnalite.pourcentage-d-une-quantite",
+       "fr": "Calculer un pourcentage d'une quantité",
+       "en": "Percentage of a quantity"
+      },
+      {
+       "id": "nombres.proportionnalite.taux-de-pourcentage",
+       "fr": "Exprimer une proportion en pourcentage",
+       "en": "Express as a percentage"
+      },
+      {
+       "id": "nombres.proportionnalite.evolutions",
+       "fr": "Augmentations, réductions, coefficient multiplicateur",
+       "en": "Increases, decreases, multiplier"
+      },
+      {
+       "id": "nombres.proportionnalite.echelles",
+       "fr": "Échelles",
+       "en": "Scales"
+      },
+      {
+       "id": "nombres.proportionnalite.ratios",
+       "fr": "Ratios et partages proportionnels",
+       "en": "Ratios and proportional sharing"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "litteral",
+   "fr": "Calcul littéral",
+   "en": "Algebraic expressions",
+   "competencies": [
+    {
+     "id": "litteral.expressions",
+     "fr": "Expressions littérales",
+     "en": "Expressions",
+     "skills": [
+      {
+       "id": "litteral.expressions.substituer",
+       "fr": "Calculer une expression pour une valeur",
+       "en": "Evaluate for a value"
+      },
+      {
+       "id": "litteral.expressions.traduire",
+       "fr": "Traduire un énoncé en expression",
+       "en": "Translate words into an expression"
+      },
+      {
+       "id": "litteral.expressions.conventions",
+       "fr": "Conventions d'écriture (2×x = 2x, x×x = x²)",
+       "en": "Writing conventions (2×x = 2x, x×x = x²)"
+      }
+     ]
+    },
+    {
+     "id": "litteral.reduire",
+     "fr": "Réduire",
+     "en": "Simplify expressions",
+     "skills": [
+      {
+       "id": "litteral.reduire.termes-semblables",
+       "fr": "Regrouper les termes semblables",
+       "en": "Collect like terms"
+      },
+      {
+       "id": "litteral.reduire.avec-signes",
+       "fr": "Réduire avec des signes négatifs",
+       "en": "Simplify with negative signs"
+      },
+      {
+       "id": "litteral.reduire.avec-puissances",
+       "fr": "Réduire avec des puissances (x·x², 3x·2x)",
+       "en": "Simplify with powers"
+      }
+     ]
+    },
+    {
+     "id": "litteral.developper",
+     "fr": "Développer",
+     "en": "Expand",
+     "skills": [
+      {
+       "id": "litteral.developper.simple-distributivite",
+       "fr": "Simple distributivité k(a + b)",
+       "en": "Single distributivity k(a + b)"
+      },
+      {
+       "id": "litteral.developper.facteur-negatif",
+       "fr": "Distributivité avec facteur négatif −k(a − b)",
+       "en": "Negative factor −k(a − b)"
+      },
+      {
+       "id": "litteral.developper.double-distributivite",
+       "fr": "Double distributivité (a + b)(c + d)",
+       "en": "Double distributivity (a + b)(c + d)"
+      },
+      {
+       "id": "litteral.developper.trois-facteurs",
+       "fr": "Produit de trois facteurs (a + b)(c + d)(e + f)",
+       "en": "Product of three factors"
+      },
+      {
+       "id": "litteral.developper.identites-remarquables",
+       "fr": "Identités remarquables",
+       "en": "Special products"
+      },
+      {
+       "id": "litteral.developper.developper-reduire",
+       "fr": "Développer puis réduire une somme de produits",
+       "en": "Expand then simplify a sum of products"
+      }
+     ]
+    },
+    {
+     "id": "litteral.factoriser",
+     "fr": "Factoriser",
+     "en": "Factorise",
+     "skills": [
+      {
+       "id": "litteral.factoriser.facteur-commun-simple",
+       "fr": "Facteur commun apparent",
+       "en": "Common factor"
+      },
+      {
+       "id": "litteral.factoriser.facteur-commun-expression",
+       "fr": "Facteur commun qui est une expression (x + 1)",
+       "en": "Common bracket factor"
+      },
+      {
+       "id": "litteral.factoriser.identites-remarquables",
+       "fr": "Avec une identité remarquable",
+       "en": "Using special products"
+      },
+      {
+       "id": "litteral.factoriser.trinome",
+       "fr": "Factoriser un trinôme du second degré",
+       "en": "Factorise a quadratic"
+      }
+     ]
+    },
+    {
+     "id": "litteral.fractions-rationnelles",
+     "fr": "Fractions rationnelles",
+     "en": "Rational expressions",
+     "skills": [
+      {
+       "id": "litteral.fractions-rationnelles.simplifier",
+       "fr": "Simplifier une fraction rationnelle",
+       "en": "Simplify a rational expression"
+      },
+      {
+       "id": "litteral.fractions-rationnelles.meme-denominateur",
+       "fr": "Réduire au même dénominateur",
+       "en": "Common denominator"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "equations",
+   "fr": "Équations et inéquations",
+   "en": "Equations and inequalities",
+   "competencies": [
+    {
+     "id": "equations.premier-degre",
+     "fr": "Équations du premier degré",
+     "en": "Linear equations",
+     "skills": [
+      {
+       "id": "equations.premier-degre.une-etape",
+       "fr": "En une étape (x + a = b, ax = b)",
+       "en": "One step (x + a = b, ax = b)"
+      },
+      {
+       "id": "equations.premier-degre.deux-etapes",
+       "fr": "En deux étapes (ax + b = c)",
+       "en": "Two steps (ax + b = c)"
+      },
+      {
+       "id": "equations.premier-degre.transposer",
+       "fr": "Changer un terme de membre (transposer)",
+       "en": "Move a term to the other side"
+      },
+      {
+       "id": "equations.premier-degre.inconnue-des-deux-cotes",
+       "fr": "Inconnue des deux côtés",
+       "en": "Unknown on both sides"
+      },
+      {
+       "id": "equations.premier-degre.avec-parentheses",
+       "fr": "Avec parenthèses à développer",
+       "en": "With brackets to expand"
+      },
+      {
+       "id": "equations.premier-degre.avec-fractions",
+       "fr": "Avec fractions",
+       "en": "With fractions"
+      },
+      {
+       "id": "equations.premier-degre.solution-fractionnaire",
+       "fr": "Solution non entière",
+       "en": "Non-integer solution"
+      },
+      {
+       "id": "equations.premier-degre.verifier",
+       "fr": "Vérifier qu'un nombre est solution",
+       "en": "Check a solution"
+      }
+     ]
+    },
+    {
+     "id": "equations.produit-nul",
+     "fr": "Équations produit nul",
+     "en": "Zero-product equations",
+     "skills": [
+      {
+       "id": "equations.produit-nul.appliquer",
+       "fr": "Appliquer la règle du produit nul",
+       "en": "Apply the zero-product rule"
+      },
+      {
+       "id": "equations.produit-nul.factoriser-d-abord",
+       "fr": "Factoriser avant de résoudre",
+       "en": "Factorise first"
+      }
+     ]
+    },
+    {
+     "id": "equations.second-degre",
+     "fr": "Équations du second degré",
+     "en": "Quadratic equations",
+     "skills": [
+      {
+       "id": "equations.second-degre.x2-egal-a",
+       "fr": "x² = a",
+       "en": "x² = a"
+      },
+      {
+       "id": "equations.second-degre.discriminant",
+       "fr": "Calculer le discriminant",
+       "en": "Compute the discriminant"
+      },
+      {
+       "id": "equations.second-degre.racines",
+       "fr": "Calculer les racines avec le discriminant",
+       "en": "Roots with the discriminant"
+      },
+      {
+       "id": "equations.second-degre.toutes-les-solutions",
+       "fr": "Donner toutes les solutions",
+       "en": "Give every solution"
+      },
+      {
+       "id": "equations.second-degre.forme-canonique",
+       "fr": "Forme canonique",
+       "en": "Completing the square"
+      }
+     ]
+    },
+    {
+     "id": "equations.inequations",
+     "fr": "Inéquations",
+     "en": "Inequalities",
+     "skills": [
+      {
+       "id": "equations.inequations.premier-degre",
+       "fr": "Inéquations du premier degré",
+       "en": "Linear inequalities"
+      },
+      {
+       "id": "equations.inequations.changer-de-sens",
+       "fr": "Changer le sens en multipliant par un négatif",
+       "en": "Flip the sign with a negative factor"
+      },
+      {
+       "id": "equations.inequations.tableau-de-signes",
+       "fr": "Tableau de signes",
+       "en": "Sign table"
+      },
+      {
+       "id": "equations.inequations.ecrire-l-ensemble",
+       "fr": "Écrire l'ensemble des solutions (intervalles)",
+       "en": "Write the solution set (intervals)"
+      }
+     ]
+    },
+    {
+     "id": "equations.systemes",
+     "fr": "Systèmes d'équations",
+     "en": "Simultaneous equations",
+     "skills": [
+      {
+       "id": "equations.systemes.substitution",
+       "fr": "Par substitution",
+       "en": "By substitution"
+      },
+      {
+       "id": "equations.systemes.combinaison",
+       "fr": "Par combinaison",
+       "en": "By elimination"
+      },
+      {
+       "id": "equations.systemes.interpreter",
+       "fr": "Interpréter la solution",
+       "en": "Interpret the solution"
+      }
+     ]
+    },
+    {
+     "id": "equations.transcendantes",
+     "fr": "Équations exponentielles, logarithmiques, trigonométriques",
+     "en": "Exponential, log, trig equations",
+     "skills": [
+      {
+       "id": "equations.transcendantes.exponentielle",
+       "fr": "Équations avec exponentielle",
+       "en": "Exponential equations"
+      },
+      {
+       "id": "equations.transcendantes.logarithme",
+       "fr": "Équations avec logarithme (domaine compris)",
+       "en": "Logarithmic equations (domain included)"
+      },
+      {
+       "id": "equations.transcendantes.trigonometrique",
+       "fr": "Équations trigonométriques sur un intervalle",
+       "en": "Trigonometric equations on an interval"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "fonctions",
+   "fr": "Fonctions",
+   "en": "Functions",
+   "competencies": [
+    {
+     "id": "fonctions.notion",
+     "fr": "Notion de fonction",
+     "en": "Function basics",
+     "skills": [
+      {
+       "id": "fonctions.notion.image",
+       "fr": "Calculer une image",
+       "en": "Compute an image"
+      },
+      {
+       "id": "fonctions.notion.antecedent",
+       "fr": "Trouver un antécédent",
+       "en": "Find a preimage"
+      },
+      {
+       "id": "fonctions.notion.lecture-graphique",
+       "fr": "Lire un graphique",
+       "en": "Read a graph"
+      },
+      {
+       "id": "fonctions.notion.domaine",
+       "fr": "Ensemble de définition",
+       "en": "Domain of definition"
+      }
+     ]
+    },
+    {
+     "id": "fonctions.lineaires-affines",
+     "fr": "Fonctions linéaires et affines",
+     "en": "Linear functions",
+     "skills": [
+      {
+       "id": "fonctions.lineaires-affines.coefficient",
+       "fr": "Coefficient directeur et ordonnée à l'origine",
+       "en": "Slope and intercept"
+      },
+      {
+       "id": "fonctions.lineaires-affines.expression-par-deux-points",
+       "fr": "Expression à partir de deux points",
+       "en": "Equation through two points"
+      },
+      {
+       "id": "fonctions.lineaires-affines.representer",
+       "fr": "Représenter une droite",
+       "en": "Draw a line"
+      }
+     ]
+    },
+    {
+     "id": "fonctions.second-degre",
+     "fr": "Fonctions du second degré",
+     "en": "Quadratic functions",
+     "skills": [
+      {
+       "id": "fonctions.second-degre.sommet",
+       "fr": "Sommet de la parabole",
+       "en": "Vertex of the parabola"
+      },
+      {
+       "id": "fonctions.second-degre.variations",
+       "fr": "Variations",
+       "en": "Variations"
+      },
+      {
+       "id": "fonctions.second-degre.signe",
+       "fr": "Signe du trinôme",
+       "en": "Sign of the quadratic"
+      }
+     ]
+    },
+    {
+     "id": "fonctions.derivation",
+     "fr": "Dérivation",
+     "en": "Differentiation",
+     "skills": [
+      {
+       "id": "fonctions.derivation.derivees-usuelles",
+       "fr": "Dérivées usuelles (xⁿ, 1/x, √x)",
+       "en": "Standard derivatives"
+      },
+      {
+       "id": "fonctions.derivation.somme-produit-par-constante",
+       "fr": "Somme, produit par une constante",
+       "en": "Sum, constant multiple"
+      },
+      {
+       "id": "fonctions.derivation.produit",
+       "fr": "Dérivée d'un produit",
+       "en": "Product rule"
+      },
+      {
+       "id": "fonctions.derivation.quotient",
+       "fr": "Dérivée d'un quotient",
+       "en": "Quotient rule"
+      },
+      {
+       "id": "fonctions.derivation.composee",
+       "fr": "Dérivée d'une composée (chaîne)",
+       "en": "Chain rule"
+      },
+      {
+       "id": "fonctions.derivation.exp-ln-trigo",
+       "fr": "Dérivées de exp, ln, sin, cos",
+       "en": "Derivatives of exp, ln, sin, cos"
+      },
+      {
+       "id": "fonctions.derivation.tangente",
+       "fr": "Équation de la tangente",
+       "en": "Tangent line"
+      },
+      {
+       "id": "fonctions.derivation.variations",
+       "fr": "Étudier les variations avec la dérivée",
+       "en": "Variations from the derivative"
+      },
+      {
+       "id": "fonctions.derivation.extremums",
+       "fr": "Extremums, optimisation",
+       "en": "Extrema, optimisation"
+      }
+     ]
+    },
+    {
+     "id": "fonctions.exp-ln",
+     "fr": "Exponentielle et logarithme",
+     "en": "Exponential and logarithm",
+     "skills": [
+      {
+       "id": "fonctions.exp-ln.proprietes-exp",
+       "fr": "Propriétés de l'exponentielle",
+       "en": "Exponential rules"
+      },
+      {
+       "id": "fonctions.exp-ln.proprietes-ln",
+       "fr": "Propriétés du logarithme",
+       "en": "Logarithm rules"
+      },
+      {
+       "id": "fonctions.exp-ln.croissances-comparees",
+       "fr": "Croissances comparées",
+       "en": "Growth rates"
+      }
+     ]
+    },
+    {
+     "id": "fonctions.trigonometrie",
+     "fr": "Trigonométrie",
+     "en": "Trigonometry",
+     "skills": [
+      {
+       "id": "fonctions.trigonometrie.valeurs-remarquables",
+       "fr": "Valeurs remarquables de sin, cos, tan",
+       "en": "Exact values of sin, cos, tan"
+      },
+      {
+       "id": "fonctions.trigonometrie.cercle-trigonometrique",
+       "fr": "Cercle trigonométrique, radians",
+       "en": "Unit circle, radians"
+      },
+      {
+       "id": "fonctions.trigonometrie.formules",
+       "fr": "Formules (cos², duplication, addition)",
+       "en": "Identities (Pythagorean, double angle, sum)"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "analyse",
+   "fr": "Suites, limites et intégrales",
+   "en": "Sequences, limits and integrals",
+   "competencies": [
+    {
+     "id": "analyse.suites",
+     "fr": "Suites",
+     "en": "Sequences",
+     "skills": [
+      {
+       "id": "analyse.suites.terme-general",
+       "fr": "Calculer un terme",
+       "en": "Compute a term"
+      },
+      {
+       "id": "analyse.suites.arithmetique",
+       "fr": "Suites arithmétiques",
+       "en": "Arithmetic sequences"
+      },
+      {
+       "id": "analyse.suites.geometrique",
+       "fr": "Suites géométriques",
+       "en": "Geometric sequences"
+      },
+      {
+       "id": "analyse.suites.sommes",
+       "fr": "Sommes de termes",
+       "en": "Sums of terms"
+      },
+      {
+       "id": "analyse.suites.recurrence",
+       "fr": "Raisonnement par récurrence",
+       "en": "Proof by induction"
+      },
+      {
+       "id": "analyse.suites.limite-de-suite",
+       "fr": "Limite d'une suite",
+       "en": "Limit of a sequence"
+      }
+     ]
+    },
+    {
+     "id": "analyse.limites",
+     "fr": "Limites et continuité",
+     "en": "Limits and continuity",
+     "skills": [
+      {
+       "id": "analyse.limites.forme-indeterminee",
+       "fr": "Lever une forme indéterminée",
+       "en": "Resolve an indeterminate form"
+      },
+      {
+       "id": "analyse.limites.a-l-infini",
+       "fr": "Limites en l'infini (termes dominants)",
+       "en": "Limits at infinity"
+      },
+      {
+       "id": "analyse.limites.en-un-point",
+       "fr": "Limites en un point, asymptotes",
+       "en": "Limits at a point, asymptotes"
+      },
+      {
+       "id": "analyse.limites.continuite",
+       "fr": "Continuité, valeurs intermédiaires",
+       "en": "Continuity, intermediate values"
+      }
+     ]
+    },
+    {
+     "id": "analyse.integration",
+     "fr": "Primitives et intégrales",
+     "en": "Antiderivatives and integrals",
+     "skills": [
+      {
+       "id": "analyse.integration.primitives-usuelles",
+       "fr": "Primitives usuelles",
+       "en": "Standard antiderivatives"
+      },
+      {
+       "id": "analyse.integration.constante",
+       "fr": "Constante d'intégration, primitive vérifiant une condition",
+       "en": "Constant of integration, initial condition"
+      },
+      {
+       "id": "analyse.integration.calculer-integrale",
+       "fr": "Calculer une intégrale avec une primitive",
+       "en": "Evaluate a definite integral"
+      },
+      {
+       "id": "analyse.integration.bornes",
+       "fr": "Appliquer les bornes F(b) − F(a)",
+       "en": "Apply the bounds F(b) − F(a)"
+      },
+      {
+       "id": "analyse.integration.par-parties",
+       "fr": "Intégration par parties",
+       "en": "Integration by parts"
+      },
+      {
+       "id": "analyse.integration.aire",
+       "fr": "Aire sous une courbe, entre deux courbes",
+       "en": "Area under or between curves"
+      },
+      {
+       "id": "analyse.integration.valeur-moyenne",
+       "fr": "Valeur moyenne",
+       "en": "Mean value"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "geometrie",
+   "fr": "Géométrie",
+   "en": "Geometry",
+   "competencies": [
+    {
+     "id": "geometrie.angles-triangles",
+     "fr": "Angles et triangles",
+     "en": "Angles and triangles",
+     "skills": [
+      {
+       "id": "geometrie.angles-triangles.somme-des-angles",
+       "fr": "Somme des angles d'un triangle",
+       "en": "Angle sum of a triangle"
+      },
+      {
+       "id": "geometrie.angles-triangles.angles-et-paralleles",
+       "fr": "Angles et droites parallèles",
+       "en": "Angles and parallel lines"
+      },
+      {
+       "id": "geometrie.angles-triangles.triangles-particuliers",
+       "fr": "Triangles particuliers",
+       "en": "Special triangles"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.pythagore",
+     "fr": "Théorème de Pythagore",
+     "en": "Pythagoras' theorem",
+     "skills": [
+      {
+       "id": "geometrie.pythagore.hypotenuse",
+       "fr": "Calculer l'hypoténuse",
+       "en": "Find the hypotenuse"
+      },
+      {
+       "id": "geometrie.pythagore.cote-de-l-angle-droit",
+       "fr": "Calculer un côté de l'angle droit",
+       "en": "Find a leg"
+      },
+      {
+       "id": "geometrie.pythagore.reciproque",
+       "fr": "Réciproque : le triangle est-il rectangle ?",
+       "en": "Converse: is it a right triangle?"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.thales",
+     "fr": "Théorème de Thalès et similitude",
+     "en": "Intercept theorem and similarity",
+     "skills": [
+      {
+       "id": "geometrie.thales.calculer-une-longueur",
+       "fr": "Calculer une longueur",
+       "en": "Compute a length"
+      },
+      {
+       "id": "geometrie.thales.reciproque",
+       "fr": "Réciproque : droites parallèles ?",
+       "en": "Converse: parallel lines?"
+      },
+      {
+       "id": "geometrie.thales.agrandissement-reduction",
+       "fr": "Agrandissement, réduction (longueurs, aires, volumes)",
+       "en": "Enlargement (lengths, areas, volumes)"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.trigonometrie-triangle",
+     "fr": "Trigonométrie dans le triangle rectangle",
+     "en": "Right-triangle trigonometry",
+     "skills": [
+      {
+       "id": "geometrie.trigonometrie-triangle.choisir-le-rapport",
+       "fr": "Choisir sin, cos ou tan",
+       "en": "Choose sin, cos or tan"
+      },
+      {
+       "id": "geometrie.trigonometrie-triangle.calculer-une-longueur",
+       "fr": "Calculer une longueur",
+       "en": "Compute a side"
+      },
+      {
+       "id": "geometrie.trigonometrie-triangle.calculer-un-angle",
+       "fr": "Calculer un angle",
+       "en": "Compute an angle"
+      },
+      {
+       "id": "geometrie.trigonometrie-triangle.triangle-quelconque",
+       "fr": "Théorèmes du sinus et du cosinus (Al-Kashi)",
+       "en": "Sine and cosine rules"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.aires-perimetres",
+     "fr": "Périmètres et aires",
+     "en": "Perimeters and areas",
+     "skills": [
+      {
+       "id": "geometrie.aires-perimetres.polygones",
+       "fr": "Polygones usuels",
+       "en": "Usual polygons"
+      },
+      {
+       "id": "geometrie.aires-perimetres.disque",
+       "fr": "Cercle et disque",
+       "en": "Circle and disc"
+      },
+      {
+       "id": "geometrie.aires-perimetres.figures-composees",
+       "fr": "Figures composées",
+       "en": "Composite shapes"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.espace",
+     "fr": "Géométrie dans l'espace",
+     "en": "Solid geometry",
+     "skills": [
+      {
+       "id": "geometrie.espace.volumes",
+       "fr": "Volumes des solides usuels",
+       "en": "Volumes of solids"
+      },
+      {
+       "id": "geometrie.espace.sections-patrons",
+       "fr": "Sections et patrons",
+       "en": "Cross-sections and nets"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.vecteurs",
+     "fr": "Vecteurs et repérage",
+     "en": "Vectors and coordinates",
+     "skills": [
+      {
+       "id": "geometrie.vecteurs.coordonnees",
+       "fr": "Coordonnées, milieu, distance",
+       "en": "Coordinates, midpoint, distance"
+      },
+      {
+       "id": "geometrie.vecteurs.operations",
+       "fr": "Somme, colinéarité",
+       "en": "Addition, collinearity"
+      },
+      {
+       "id": "geometrie.vecteurs.produit-scalaire",
+       "fr": "Produit scalaire",
+       "en": "Dot product"
+      },
+      {
+       "id": "geometrie.vecteurs.droites-plans",
+       "fr": "Équations de droites et de plans",
+       "en": "Equations of lines and planes"
+      }
+     ]
+    },
+    {
+     "id": "geometrie.transformations",
+     "fr": "Transformations",
+     "en": "Transformations",
+     "skills": [
+      {
+       "id": "geometrie.transformations.symetries",
+       "fr": "Symétries",
+       "en": "Reflections"
+      },
+      {
+       "id": "geometrie.transformations.translations-rotations",
+       "fr": "Translations et rotations",
+       "en": "Translations and rotations"
+      },
+      {
+       "id": "geometrie.transformations.homotheties",
+       "fr": "Homothéties",
+       "en": "Dilations"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "grandeurs",
+   "fr": "Grandeurs et mesures",
+   "en": "Quantities and measures",
+   "competencies": [
+    {
+     "id": "grandeurs.conversions",
+     "fr": "Conversions d'unités",
+     "en": "Unit conversions",
+     "skills": [
+      {
+       "id": "grandeurs.conversions.longueurs-masses",
+       "fr": "Longueurs, masses, capacités",
+       "en": "Lengths, masses, capacities"
+      },
+      {
+       "id": "grandeurs.conversions.aires-volumes",
+       "fr": "Aires et volumes (m², m³, L)",
+       "en": "Areas and volumes (m², m³, L)"
+      },
+      {
+       "id": "grandeurs.conversions.durees",
+       "fr": "Durées",
+       "en": "Durations"
+      }
+     ]
+    },
+    {
+     "id": "grandeurs.grandeurs-composees",
+     "fr": "Grandeurs composées",
+     "en": "Compound measures",
+     "skills": [
+      {
+       "id": "grandeurs.grandeurs-composees.vitesse",
+       "fr": "Vitesse, distance, durée",
+       "en": "Speed, distance, time"
+      },
+      {
+       "id": "grandeurs.grandeurs-composees.masse-volumique-debit",
+       "fr": "Masse volumique, débit",
+       "en": "Density, flow rate"
+      },
+      {
+       "id": "grandeurs.grandeurs-composees.unites-dans-la-reponse",
+       "fr": "Donner la réponse avec la bonne unité",
+       "en": "Answer with the right unit"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "probabilites",
+   "fr": "Probabilités et statistiques",
+   "en": "Probability and statistics",
+   "competencies": [
+    {
+     "id": "probabilites.statistiques",
+     "fr": "Statistiques",
+     "en": "Statistics",
+     "skills": [
+      {
+       "id": "probabilites.statistiques.moyenne",
+       "fr": "Moyenne (simple, pondérée)",
+       "en": "Mean (simple, weighted)"
+      },
+      {
+       "id": "probabilites.statistiques.mediane-quartiles",
+       "fr": "Médiane et quartiles",
+       "en": "Median and quartiles"
+      },
+      {
+       "id": "probabilites.statistiques.etendue-ecart-type",
+       "fr": "Étendue, variance, écart-type",
+       "en": "Range, variance, standard deviation"
+      },
+      {
+       "id": "probabilites.statistiques.lire-des-donnees",
+       "fr": "Lire un tableau, un diagramme",
+       "en": "Read a table or chart"
+      }
+     ]
+    },
+    {
+     "id": "probabilites.probabilites-base",
+     "fr": "Probabilités élémentaires",
+     "en": "Basic probability",
+     "skills": [
+      {
+       "id": "probabilites.probabilites-base.equiprobabilite",
+       "fr": "Situations d'équiprobabilité",
+       "en": "Equally likely outcomes"
+      },
+      {
+       "id": "probabilites.probabilites-base.evenement-contraire",
+       "fr": "Événement contraire",
+       "en": "Complementary event"
+      },
+      {
+       "id": "probabilites.probabilites-base.union-intersection",
+       "fr": "Union, intersection",
+       "en": "Union, intersection"
+      },
+      {
+       "id": "probabilites.probabilites-base.tirages",
+       "fr": "Tirages avec ou sans remise",
+       "en": "Draws with or without replacement"
+      }
+     ]
+    },
+    {
+     "id": "probabilites.conditionnelles",
+     "fr": "Probabilités conditionnelles",
+     "en": "Conditional probability",
+     "skills": [
+      {
+       "id": "probabilites.conditionnelles.arbre",
+       "fr": "Arbres pondérés",
+       "en": "Tree diagrams"
+      },
+      {
+       "id": "probabilites.conditionnelles.formule",
+       "fr": "Formule P_B(A) = P(A ∩ B) / P(B)",
+       "en": "Formula P(A given B) = P(A ∩ B) / P(B)"
+      },
+      {
+       "id": "probabilites.conditionnelles.probabilites-totales",
+       "fr": "Probabilités totales",
+       "en": "Total probability"
+      },
+      {
+       "id": "probabilites.conditionnelles.independance",
+       "fr": "Indépendance",
+       "en": "Independence"
+      }
+     ]
+    },
+    {
+     "id": "probabilites.variables-aleatoires",
+     "fr": "Variables aléatoires",
+     "en": "Random variables",
+     "skills": [
+      {
+       "id": "probabilites.variables-aleatoires.loi",
+       "fr": "Loi de probabilité",
+       "en": "Probability distribution"
+      },
+      {
+       "id": "probabilites.variables-aleatoires.esperance-variance",
+       "fr": "Espérance et variance",
+       "en": "Expectation and variance"
+      },
+      {
+       "id": "probabilites.variables-aleatoires.binomiale",
+       "fr": "Loi binomiale",
+       "en": "Binomial distribution"
+      },
+      {
+       "id": "probabilites.variables-aleatoires.normale",
+       "fr": "Loi normale",
+       "en": "Normal distribution"
+      }
+     ]
+    },
+    {
+     "id": "probabilites.denombrement",
+     "fr": "Dénombrement",
+     "en": "Counting",
+     "skills": [
+      {
+       "id": "probabilites.denombrement.arrangements-permutations",
+       "fr": "Listes, arrangements, permutations",
+       "en": "Lists, arrangements, permutations"
+      },
+      {
+       "id": "probabilites.denombrement.combinaisons",
+       "fr": "Combinaisons",
+       "en": "Combinations"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "complexes",
+   "fr": "Nombres complexes",
+   "en": "Complex numbers",
+   "competencies": [
+    {
+     "id": "complexes.algebrique",
+     "fr": "Forme algébrique",
+     "en": "Algebraic form",
+     "skills": [
+      {
+       "id": "complexes.algebrique.operations",
+       "fr": "Somme, produit (i² = −1)",
+       "en": "Sum, product (i² = −1)"
+      },
+      {
+       "id": "complexes.algebrique.conjugue-quotient",
+       "fr": "Conjugué et quotient",
+       "en": "Conjugate and quotient"
+      },
+      {
+       "id": "complexes.algebrique.equations",
+       "fr": "Équations dans ℂ",
+       "en": "Equations in ℂ"
+      }
+     ]
+    },
+    {
+     "id": "complexes.trigonometrique",
+     "fr": "Module, argument, forme exponentielle",
+     "en": "Modulus, argument, exponential form",
+     "skills": [
+      {
+       "id": "complexes.trigonometrique.module",
+       "fr": "Module",
+       "en": "Modulus"
+      },
+      {
+       "id": "complexes.trigonometrique.argument",
+       "fr": "Argument",
+       "en": "Argument"
+      },
+      {
+       "id": "complexes.trigonometrique.forme-exponentielle",
+       "fr": "Forme trigonométrique et exponentielle",
+       "en": "Polar and exponential form"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "problemes",
+   "fr": "Résolution de problèmes",
+   "en": "Problem solving",
+   "competencies": [
+    {
+     "id": "problemes.modeliser",
+     "fr": "Modéliser",
+     "en": "Modelling",
+     "skills": [
+      {
+       "id": "problemes.modeliser.choisir-l-operation",
+       "fr": "Choisir la ou les opérations",
+       "en": "Choose the operations"
+      },
+      {
+       "id": "problemes.modeliser.mettre-en-equation",
+       "fr": "Mettre un problème en équation",
+       "en": "Set up an equation"
+      },
+      {
+       "id": "problemes.modeliser.etapes-intermediaires",
+       "fr": "Organiser un calcul en plusieurs étapes",
+       "en": "Plan a multi-step calculation"
+      }
+     ]
+    },
+    {
+     "id": "problemes.repondre",
+     "fr": "Répondre au problème",
+     "en": "Answering",
+     "skills": [
+      {
+       "id": "problemes.repondre.phrase-reponse",
+       "fr": "Rédiger la phrase réponse",
+       "en": "Write the answer sentence"
+      },
+      {
+       "id": "problemes.repondre.verifier-la-vraisemblance",
+       "fr": "Vérifier la vraisemblance du résultat",
+       "en": "Check the result makes sense"
+      },
+      {
+       "id": "problemes.repondre.forme-demandee",
+       "fr": "Donner la réponse sous la forme demandée",
+       "en": "Give the answer in the requested form"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

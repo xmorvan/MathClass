@@ -35,16 +35,13 @@ struct StatisticsPDFReport_macOS: View {
 
             switch tab {
             case .perStudent:
-                studentTable
+                studentDiagnoses
+            case .perDomain:
+                domainReport
             case .perExercise:
                 exerciseTable
             case .perClass:
-                ClassOverviewView_macOS(
-                    viewModel: viewModel,
-                    submissions: submissions,
-                    classID: classID,
-                    scrolls: false
-                )
+                classReport
             }
         }
         .padding(36)
@@ -54,40 +51,110 @@ struct StatisticsPDFReport_macOS: View {
         .environment(\.colorScheme, .light)
     }
 
-    // MARK: - Per student
+    // MARK: - Diagnosis
 
-    private var students: [Student] {
-        if let classID = classID {
-            return viewModel.studentsInClass(classID)
-        }
-        return viewModel.studentRepo.students
+    private var diagnosis: ClassDiagnosis {
+        ClassDiagnosis(viewModel: viewModel, submissions: submissions, classID: classID)
     }
 
-    private var exerciseCompetencyMap: [String: [String]] {
-        var map: [String: [String]] = [:]
-        for exercise in viewModel.exercises {
-            if let id = exercise.id { map[id] = exercise.competencyIDs }
-        }
-        return map
-    }
-
-    private var studentTable: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            tableHeader(["Élève".tr, "Exercices".tr, "Réussis".tr, "Taux de réussite".tr, "Temps moyen".tr])
-            ForEach(students) { student in
-                let stats = statisticsService.getStudentStats(
-                    studentID: student.id ?? "",
-                    submissions: submissions,
-                    exerciseCompetencyMap: exerciseCompetencyMap
-                )
-                tableRow([
-                    student.fullName,
-                    "\(stats.totalAttempts)",
-                    "\(stats.successCount)",
-                    stats.totalAttempts > 0 ? percent(stats.successRate) : "—",
-                    stats.totalAttempts > 0 ? duration(stats.averageTime) : "—"
-                ])
+    /// Every student: success rate, what to work on (with the typical
+    /// mistake), what to watch.
+    private var studentDiagnoses: some View {
+        let data = diagnosis
+        return VStack(alignment: .leading, spacing: 14) {
+            ForEach(data.students) { student in
+                let skills = data.perStudent[student.id ?? ""] ?? [:]
+                let rate = SkillDiagnosis.rate(skills, within: Set(skills.keys))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(student.fullName).font(.headline)
+                        Spacer()
+                        Text(rate.total > 0 ? percent(Double(rate.successes) / Double(rate.total)) : "—")
+                            .font(.callout)
+                    }
+                    let weak = SkillDiagnosis.weakSkills(skills)
+                    if skills.isEmpty {
+                        Text("Pas encore de copie corrigée pour cet élève.".tr).font(.caption).foregroundColor(.secondary)
+                    } else if weak.isEmpty {
+                        Text("Aucune lacune avérée pour l'instant.".tr).font(.caption).foregroundColor(.secondary)
+                    }
+                    ForEach(weak, id: \.skillID) { record in
+                        Text("• " + SkillDiagnosis.sentence(firstName: student.firstName, record: record))
+                            .font(.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    let watch = SkillDiagnosis.toWatch(skills).compactMap { Taxonomy.shared.skill($0.skillID)?.node.label }
+                    if !watch.isEmpty {
+                        Text(LocalizationManager.shared.format("À surveiller : %@", watch.joined(separator: " ; ")))
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                }
                 Divider()
+            }
+        }
+    }
+
+    /// Every domain with data: skill by skill, class rate and who struggles.
+    private var domainReport: some View {
+        let data = diagnosis
+        return VStack(alignment: .leading, spacing: 14) {
+            ForEach(data.domainsWithData, id: \.id) { domain in
+                Text(domain.label).font(.headline)
+                ForEach(Taxonomy.shared.competenciesByDomain[domain.id] ?? [], id: \.id) { competency in
+                    let rows = (Taxonomy.shared.skillsByCompetency[competency.id] ?? []).compactMap { skill in
+                        data.classSkills.first { $0.skillID == skill.id }
+                    }
+                    if !rows.isEmpty {
+                        Text(competency.label).font(.subheadline.bold())
+                        ForEach(rows, id: \.skillID) { row in
+                            VStack(alignment: .leading, spacing: 2) {
+                                tableRow([Taxonomy.shared.skill(row.skillID)?.node.label ?? row.skillID,
+                                          "\(row.successes)/\(row.total)", percent(row.rate)])
+                                if row.struggling > 0 {
+                                    Text(LocalizationManager.shared.format("En difficulté : %@",
+                                                                           (row.notMastered + row.fragile).map(data.name).joined(separator: ", ")))
+                                        .font(.caption).foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                Divider()
+            }
+        }
+    }
+
+    /// Class summary, priorities and students to help.
+    private var classReport: some View {
+        let data = diagnosis
+        let priorities = data.classSkills.filter { $0.struggling > 0 }.prefix(8)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Priorités de la classe".tr).font(.headline)
+            ForEach(Array(priorities), id: \.skillID) { row in
+                if let skill = Taxonomy.shared.skill(row.skillID) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        tableRow(["\(skill.competency.label) › \(skill.node.label)", "\(row.successes)/\(row.total)", percent(row.rate)])
+                        Text(LocalizationManager.shared.format("En difficulté : %@",
+                                                               (row.notMastered + row.fragile).map(data.name).joined(separator: ", ")))
+                            .font(.caption).foregroundColor(.secondary)
+                        if let note = row.notes.first {
+                            Text(LocalizationManager.shared.format("Erreur type : « %@ »", note))
+                                .font(.caption).foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            if priorities.isEmpty {
+                Text("Aucune difficulté partagée pour l'instant.".tr).foregroundColor(.secondary)
+            }
+            Divider()
+            Text("Élèves à accompagner".tr).font(.headline)
+            ForEach(data.students) { student in
+                let weak = SkillDiagnosis.weakSkills(data.perStudent[student.id ?? ""] ?? [:])
+                if !weak.isEmpty {
+                    Text("\(student.fullName) : " + weak.prefix(3).compactMap { Taxonomy.shared.skill($0.skillID)?.node.label }.joined(separator: " ; "))
+                        .font(.callout)
+                }
             }
         }
     }

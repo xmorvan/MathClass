@@ -214,6 +214,12 @@ struct ExerciseListView_macOS: View {
                             )
                         }
 
+                        SkillTagsEditor(exercise: exercise) { skillIDs in
+                            var updated = exercise
+                            updated.skillIDs = skillIDs
+                            Task { try? await viewModel.updateExercise(updated) }
+                        }
+
                         if let imageURL = exercise.statementImageURL {
                             Text("Image source".tr)
                                 .font(.headline)

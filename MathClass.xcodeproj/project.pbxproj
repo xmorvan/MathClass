@@ -28,6 +28,7 @@
 		1A1E00012E9A000100000003 /* libiink in Frameworks */ = {isa = PBXBuildFile; productRef = 1A1E00012E9A000100000002 /* libiink */; };
 		1A1E00012E9A000100000004 /* MathInkRecognizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1E00012E9A000100000005 /* MathInkRecognizerTests.swift */; };
 		885818547EE2C7002DF4783B /* NotationNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */; };
+		A379DC1D89836C54A6AE2238 /* SkillDiagnosisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD34095907AB46DECE201E0 /* SkillDiagnosisTests.swift */; };
 		B24CA57203E0903E3485C0F3 /* PlainMathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE7714377ADA3059EE60772 /* PlainMathTests.swift */; };
 		C4209DE4BF061D19BAFE9310 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F585CD5D7367CE0A93F27840 /* Foundation.framework */; };
 		C9E9A05A506D74D11BB8788C /* LiveProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961402550810895CE95A507A /* LiveProgressTests.swift */; };
@@ -54,6 +55,7 @@
 		19676AEF2D4A860700AB6204 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		19676AFA2D4A8C6000AB6204 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		1A1E00012E9A000100000005 /* MathInkRecognizerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MathInkRecognizerTests.swift; sourceTree = "<group>"; };
+		3FD34095907AB46DECE201E0 /* SkillDiagnosisTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SkillDiagnosisTests.swift; sourceTree = "<group>"; };
 		52AEE589E10C49B3558DB789 /* StudentImportParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StudentImportParserTests.swift; sourceTree = "<group>"; };
 		961402550810895CE95A507A /* LiveProgressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveProgressTests.swift; sourceTree = "<group>"; };
 		A6DECFC0EFA13E17119E89E2 /* NotationNoteTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotationNoteTests.swift; sourceTree = "<group>"; };
@@ -83,10 +85,8 @@
 				macOS/Views/ExerciseEditor/ExerciseMetadataPanel_macOS.swift,
 				macOS/Views/ExerciseEditor/ImageImportPanel_macOS.swift,
 				macOS/Views/ExerciseEditor/WYSIWYGPanel_macOS.swift,
-				macOS/Views/Statistics/ClassOverviewView.swift,
 				macOS/Views/Statistics/ExerciseErrorAnalysisView.swift,
 				macOS/Views/Statistics/StatisticsPDFReport_macOS.swift,
-				macOS/Views/Statistics/StudentStatsDetailView.swift,
 				macOS/Views/StatisticsView_macOS.swift,
 				macOS/Views/Submissions/SubmissionDetailView_macOS.swift,
 				macOS/Views/Submissions/SubmissionInboxView_macOS.swift,
@@ -267,6 +267,7 @@
 				1A1E00012E9A000100000005 /* MathInkRecognizerTests.swift */,
 				AEE7714377ADA3059EE60772 /* PlainMathTests.swift */,
 				961402550810895CE95A507A /* LiveProgressTests.swift */,
+				3FD34095907AB46DECE201E0 /* SkillDiagnosisTests.swift */,
 			);
 			name = MathClassTests;
 			path = MathClassTests;
@@ -440,6 +441,7 @@
 				1A1E00012E9A000100000004 /* MathInkRecognizerTests.swift in Sources */,
 				B24CA57203E0903E3485C0F3 /* PlainMathTests.swift in Sources */,
 				C9E9A05A506D74D11BB8788C /* LiveProgressTests.swift in Sources */,
+				A379DC1D89836C54A6AE2238 /* SkillDiagnosisTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

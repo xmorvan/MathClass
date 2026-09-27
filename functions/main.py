@@ -6,6 +6,7 @@ Functions:
   - extract_exercise: Extract LaTeX from exercise image using Claude Vision
   - recognize_handwriting: Recognize student handwriting from PencilKit PNG
   - correct_submission: Hybrid correction pipeline using Claude + SymPy
+  - tag_exercises: tags exercises with skills of the taxonomy
   - join_class / claim_student_seat: class-code login for students
     (anonymous Firebase Auth + custom claims)
   - generate_class_code: unique MX-XXXX code for a new class
@@ -69,6 +70,13 @@ def correct_submission(req: https_fn.CallableRequest) -> dict:
     """Correct a student's submission using hybrid Claude + SymPy pipeline."""
     from correct_submission import correct_submission_handler
     return correct_submission_handler(req)
+
+
+@https_fn.on_call(secrets=[ANTHROPIC_KEY])
+def tag_exercises(req: https_fn.CallableRequest) -> dict:
+    """Tag the teacher's exercises with the skills they practise."""
+    from tag_exercises import tag_exercises_handler
+    return tag_exercises_handler(req)
 
 
 @https_fn.on_call()

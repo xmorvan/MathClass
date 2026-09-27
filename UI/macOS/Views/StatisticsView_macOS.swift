@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// Teacher statistics dashboard for macOS.
-/// Three tabs: Per-student, Per-exercise, Per-class.
+/// Teacher statistics dashboard for macOS: the diagnosis on the skill
+/// taxonomy (per student, per domain, per class) and the per-exercise
+/// error analysis.
 struct StatisticsView_macOS: View {
     @ObservedObject var viewModel: TeacherViewModel
     @State private var selectedTab: StatTab = .perStudent
@@ -22,8 +23,9 @@ struct StatisticsView_macOS: View {
 
     enum StatTab: String, CaseIterable {
         case perStudent = "Par élève"
-        case perExercise = "Par exercice"
+        case perDomain = "Par domaine"
         case perClass = "Par classe"
+        case perExercise = "Par exercice"
     }
 
     var body: some View {
@@ -42,22 +44,16 @@ struct StatisticsView_macOS: View {
             } else {
                 switch selectedTab {
                 case .perStudent:
-                    StudentStatsListView_macOS(
-                        viewModel: viewModel,
-                        submissions: submissions,
-                        classID: selectedClassID
-                    )
+                    StudentDiagnosisView(data: diagnosis)
+                case .perDomain:
+                    DomainDiagnosisView(data: diagnosis)
                 case .perExercise:
                     ExerciseStatsListView_macOS(
                         viewModel: viewModel,
                         submissions: submissions
                     )
                 case .perClass:
-                    ClassOverviewView_macOS(
-                        viewModel: viewModel,
-                        submissions: submissions,
-                        classID: selectedClassID
-                    )
+                    ClassDiagnosisView(data: diagnosis)
                 }
             }
         }
@@ -88,6 +84,10 @@ struct StatisticsView_macOS: View {
         }
     }
 
+    private var diagnosis: ClassDiagnosis {
+        ClassDiagnosis(viewModel: viewModel, submissions: submissions, classID: selectedClassID)
+    }
+
     // MARK: - Header
 
     private var statsHeader: some View {
@@ -114,7 +114,7 @@ struct StatisticsView_macOS: View {
                 }
             }
             .pickerStyle(.segmented)
-            .frame(width: 300)
+            .frame(width: 400)
 
             Button {
                 Task { await loadSubmissions() }

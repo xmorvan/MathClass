@@ -22,6 +22,7 @@ from firebase_functions import https_fn
 
 import auth_guard
 import claude_client
+import taxonomy
 from _helpers import extract_json
 
 # SymPy is imported lazily on first call — `import sympy` alone takes
@@ -658,60 +659,102 @@ def _detect_notation_issue(
         return None
 
 
-CLASSIFY_PROMPT = """Catégorise chaque étape ci-dessous parmi : "sign_error", "arithmetic", "algebra", "notation", "conceptual", ou null si l'étape est correcte ou inclassable.
+DIAGNOSIS_SYSTEM = """Tu es un professeur de mathématiques qui diagnostique les erreurs d'un élève pour son enseignant.
 
-Étapes (avec verdict) :
-{lines}
+Référentiel de savoir-faire (identifiant — Domaine › Compétence › Savoir-faire) :
+{catalog}
 
-Réponds UNIQUEMENT en JSON :
-{{
-  "tags": ["sign_error", null, "algebra"]
-}}
-"""
+Types d'erreur : sign_error (signe perdu ou inversé), arithmetic (erreur de calcul numérique), algebra (règle algébrique mal appliquée), method (mauvaise méthode, étape sautée), conceptual (notion mal comprise), incomplete (réponse partielle : une solution oubliée, pas de conclusion), notation (écriture incorrecte), misread (énoncé mal lu, mauvaises données), consequence (étape correctement déduite d'une étape fausse précédente).
+
+Pour CHAQUE étape marquée ERREUR, donne :
+- "skillID" : le savoir-faire du référentiel qui a échoué dans CETTE étape. Si l'erreur survient en appliquant un savoir-faire visé par l'exercice, c'est ce savoir-faire (en développant (x²−x−2)(x+3) dans un exercice sur (x+1)(x−2)(x+3) : le produit de trois facteurs). Si elle relève d'un savoir-faire plus élémentaire, choisis celui-ci (signe perdu en déplaçant un terme : transposer dans une équation ; erreur de table : multiplier).
+- "errorType" : un des types ci-dessus. Si l'étape est une conséquence logique correcte d'une étape fausse précédente, errorType = "consequence" et skillID = null : ce n'est pas une nouvelle lacune.
+- "note" : UNE phrase de 20 mots au plus, pour l'enseignant, qui cite ce que l'élève a écrit (ex. « 3(x + 4) = 3x + 4 : 3 distribué sur x seulement »).
+
+Réponds UNIQUEMENT en JSON, une entrée par étape, null pour les étapes justes :
+{{"diagnosis": [null, {{"skillID": "...", "errorType": "...", "note": "..."}}]}}"""
 
 
-def _classify_errors(
+def _diagnose_errors(
     client,
+    statement: str,
+    expected_answer: str,
     student_steps: list,
     step_results: list,
+    exercise_skills: list,
 ) -> list:
-    """Per-step error category. Returns a list of length len(student_steps)
-    with each entry being a short tag string or None. Best-effort.
-    """
+    """For each wrong step, the skill that failed, how, and a note for the
+    teacher: [None | {skillID, errorType, note}] of len(student_steps).
+    Best effort: a failure leaves the entries empty."""
     n = len(student_steps)
     try:
-        lines = []
-        for i in range(n):
-            verdict = "OK" if (i < len(step_results) and step_results[i]) else "ERREUR"
-            lines.append(f"Étape {i + 1} ({verdict}): {student_steps[i]}")
-        prompt = CLASSIFY_PROMPT.format(lines="\n".join(lines))
+        lines = [
+            f"Étape {i + 1} ({'OK' if i < len(step_results) and step_results[i] else 'ERREUR'}) : {student_steps[i]}"
+            for i in range(n)
+        ]
+        exercise_skill_lines = "\n".join(
+            f"- {skill_id} — {' › '.join(taxonomy.skills()[skill_id])}"
+            for skill_id in exercise_skills if taxonomy.is_skill(skill_id)
+        ) or "(non étiqueté)"
         message = client.messages.create(
             model=claude_client.model_id(),
-            max_tokens=256,
+            max_tokens=700,
             temperature=0,
-            messages=[{"role": "user", "content": prompt}],
+            system=[{
+                "type": "text",
+                "text": DIAGNOSIS_SYSTEM.format(catalog=taxonomy.catalog_text()),
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Exercice : {statement}\n"
+                    f"Réponse attendue : {expected_answer}\n"
+                    f"Savoir-faire visés par l'exercice :\n{exercise_skill_lines}\n\n"
+                    f"Travail de l'élève :\n" + "\n".join(lines)
+                ),
+            }],
         )
-        try:
-            data = extract_json(message.content[0].text)
-        except json.JSONDecodeError:
-            return [None] * n
-        tags = data.get("tags") or []
-        # Pad / truncate to length n.
-        if len(tags) < n:
-            tags = tags + [None] * (n - len(tags))
-        elif len(tags) > n:
-            tags = tags[:n]
-        # Normalize: keep strings and None only.
-        normalized: list = []
-        for t in tags:
-            if isinstance(t, str) and t.strip():
-                normalized.append(t.strip())
-            else:
-                normalized.append(None)
-        return normalized
-    except Exception as exc:
-        print(f"[correct_submission] classification pass failed: {exc}")
-        return [None] * n
+        entries = extract_json(message.content[0].text).get("diagnosis") or []
+    except Exception as exc:  # noqa: BLE001 — diagnosis is best effort
+        print(f"[correct_submission] diagnosis failed: {exc}")
+        entries = []
+
+    diagnosis: list = []
+    for i in range(n):
+        entry = entries[i] if i < len(entries) else None
+        wrong = not (i < len(step_results) and step_results[i])
+        if not wrong or not isinstance(entry, dict):
+            diagnosis.append(None)
+            continue
+        skill_id = _exercise_skill_in_same_competency(entry.get("skillID"), exercise_skills)
+        error_type = entry.get("errorType")
+        note = entry.get("note")
+        diagnosis.append({
+            "skillID": skill_id if taxonomy.is_skill(skill_id) else None,
+            "errorType": error_type if error_type in taxonomy.ERROR_TYPES else None,
+            "note": note.strip()[:300] if isinstance(note, str) and note.strip() else None,
+        })
+    return diagnosis
+
+
+def _exercise_skill_in_same_competency(skill_id, exercise_skills: list):
+    """An error made while practising the exercise's skill counts against
+    that skill: in "expand (x+1)(x−2)(x+3)", a slip in one of the double
+    products is a failure at expanding three factors, not at double
+    distributivity."""
+    if not taxonomy.is_skill(skill_id) or skill_id in exercise_skills:
+        return skill_id
+    competency = skill_id.rsplit(".", 1)[0]
+    for exercise_skill in exercise_skills:
+        if taxonomy.is_skill(exercise_skill) and exercise_skill.rsplit(".", 1)[0] == competency:
+            return exercise_skill
+    return skill_id
+
+
+def _error_tags(diagnosis: list) -> list:
+    """The per-step error categories older clients read (errorTags)."""
+    return [entry.get("errorType") if entry else None for entry in diagnosis]
 
 
 def _persist_correction(
@@ -721,6 +764,7 @@ def _persist_correction(
     final_result: str,
     notation_note_key: str | None = None,
     error_tags: list | None = None,
+    diagnosis: list | None = None,
 ) -> Exception | None:
     """Write the correction result to /submissions/{id} via Admin SDK.
 
@@ -743,6 +787,8 @@ def _persist_correction(
                 doc["correctionResult"]["notationNoteKey"] = notation_note_key
             if error_tags is not None:
                 doc["correctionResult"]["errorTags"] = error_tags
+            if diagnosis is not None:
+                doc["correctionResult"]["diagnosis"] = diagnosis
             db.collection("submissions").document(submission_id).update(doc)
             return None
         except Exception as e:  # noqa: BLE001 — retry any failure
@@ -815,6 +861,7 @@ def _authorize(req: https_fn.CallableRequest, submission_id: str) -> dict:
     return {
         "expected_answer": exercise_data.get("expectedAnswer", ""),
         "statement": exercise_data.get("statement", ""),
+        "skill_ids": exercise_data.get("skillIDs") or [],
         # Legacy classes without the field default to strict.
         "notation_strict": True if notation_strict is None else bool(notation_strict),
         "is_teacher": teacher_uid is not None,
@@ -1114,12 +1161,14 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
         # NOTATION_KEYS) — the iOS client maps it through Localizations.swift
         # to a localized banner. Skipped entirely when notationStrict is
         # false to save Anthropic credits.
-        # The per-step error categorization (only for failed work) runs
-        # while the notation note, started earlier, finishes.
-        error_tags: list | None = (
-            _classify_errors(client, student_steps, step_results)
-            if not all_correct and pairs else None
+        # Failed work: which skill failed at each wrong step, and how (for
+        # the teacher's diagnosis), while the notation note finishes.
+        diagnosis: list | None = (
+            _diagnose_errors(client, statement, expected_answer, student_steps,
+                             step_results, context.get("skill_ids") or [])
+            if not all_correct else None
         )
+        error_tags: list | None = _error_tags(diagnosis) if diagnosis is not None else None
         notation_note_key: str | None = (
             notation_future.result() if notation_future is not None else None
         )
@@ -1137,6 +1186,7 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             final_result=final_result,
             notation_note_key=notation_note_key,
             error_tags=error_tags,
+            diagnosis=diagnosis,
         )
         if persist_error is not None:
             raise https_fn.HttpsError(
@@ -1157,6 +1207,8 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
             response["notationNoteKey"] = notation_note_key
         if error_tags is not None:
             response["errorTags"] = error_tags
+        if diagnosis is not None:
+            response["diagnosis"] = diagnosis
         return response
 
     except https_fn.HttpsError:

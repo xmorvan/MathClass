@@ -49,6 +49,9 @@ class ExerciseRepository: ObservableObject {
     /// Create a new exercise. Returns the Firestore document ID.
     func createExercise(_ exercise: Exercise) async throws -> String {
         let docRef = try await firebase.createDocument(exercise, in: collectionPath)
+        if exercise.skillIDs?.isEmpty ?? true {
+            SkillTaggingService.shared.tag(exerciseIDs: [docRef.documentID])
+        }
         return docRef.documentID
     }
 
@@ -94,6 +97,10 @@ class ExerciseRepository: ObservableObject {
     func updateExercise(_ exercise: Exercise) async throws {
         guard let id = exercise.id else { return }
         try await firebase.updateDocument(exercise, in: collectionPath, documentID: id)
+        // Tags the teacher chose are kept; an untagged exercise gets some.
+        if exercise.skillIDs?.isEmpty ?? true {
+            SkillTaggingService.shared.tag(exerciseIDs: [id])
+        }
     }
 
     /// Delete an exercise.

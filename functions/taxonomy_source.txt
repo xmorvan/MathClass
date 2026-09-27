@@ -1,0 +1,262 @@
+// MathClass skill taxonomy — source. `python3 tools/build_taxonomy.py`
+// writes functions/taxonomy.json and Core/Resources/Taxonomy.json from it.
+//
+// Three levels, neutral (by mathematical theme, not by official programme):
+//   # domain-id | Libellé | Label
+//   ## competency-id | Libellé | Label
+//   - skill-id | Libellé | Label
+// Full IDs are dotted: domain.competency.skill. IDs are a contract (stored
+// on exercises and submissions): never rename one, add a new one instead.
+
+# nombres | Nombres et calcul | Numbers and arithmetic
+## entiers-decimaux | Entiers et décimaux | Whole numbers and decimals
+- addition-soustraction | Additionner et soustraire | Add and subtract
+- multiplication | Multiplier | Multiply
+- division | Diviser (division euclidienne, quotient décimal) | Divide (remainder, decimal quotient)
+- comparer-ranger | Comparer et ranger | Compare and order
+- arrondir | Arrondir, valeur approchée | Round, approximate
+- calcul-mental | Calcul mental et astuces de calcul | Mental arithmetic
+## priorites | Priorités opératoires | Order of operations
+- sans-parentheses | Priorité de × et ÷ sur + et − | × and ÷ before + and −
+- parentheses | Calculs avec parenthèses | Expressions with brackets
+- expressions-longues | Enchaîner plusieurs opérations | Chain several operations
+## fractions | Fractions | Fractions
+- simplifier | Simplifier une fraction | Simplify a fraction
+- comparer | Comparer des fractions | Compare fractions
+- additionner-meme-denominateur | Additionner (même dénominateur) | Add (same denominator)
+- additionner-denominateurs-differents | Additionner (dénominateurs différents) | Add (different denominators)
+- multiplier | Multiplier des fractions | Multiply fractions
+- diviser | Diviser par une fraction | Divide by a fraction
+- fraction-d-une-quantite | Prendre une fraction d'une quantité | Fraction of a quantity
+- calculs-enchaines | Calculs enchaînés avec fractions | Chained fraction calculations
+## relatifs | Nombres relatifs | Signed numbers
+- additionner | Additionner et soustraire des relatifs | Add and subtract signed numbers
+- regle-des-signes | Règle des signes (× et ÷) | Sign rule (× and ÷)
+- carre-d-un-negatif | Carré et puissances d'un négatif (−3² vs (−3)²) | Powers of a negative ((−3)² vs −3²)
+- soustraire-une-expression | Soustraire une expression entre parenthèses | Subtract a bracketed expression
+## puissances | Puissances et racines | Powers and roots
+- definition | Calculer une puissance | Evaluate a power
+- produit-meme-base | Produit de puissances de même base | Product with the same base
+- quotient-meme-base | Quotient de puissances de même base | Quotient with the same base
+- puissance-de-puissance | Puissance d'une puissance | Power of a power
+- exposant-negatif-nul | Exposant négatif ou nul | Negative or zero exponent
+- notation-scientifique | Notation scientifique | Scientific notation
+- racine-carree | Racine carrée d'un nombre | Square root of a number
+- simplifier-racines | Simplifier une racine (√50 = 5√2) | Simplify a root (√50 = 5√2)
+- operations-racines | Calculer avec des racines | Operations with roots
+## arithmetique | Arithmétique | Number theory
+- multiples-diviseurs | Multiples, diviseurs, divisibilité | Multiples, divisors, divisibility
+- nombres-premiers | Nombres premiers, décomposition | Primes, prime factorisation
+- pgcd-ppcm | PGCD et PPCM | GCD and LCM
+- congruences | Congruences | Congruences
+## proportionnalite | Proportionnalité et pourcentages | Proportion and percentages
+- reconnaitre | Reconnaître une situation de proportionnalité | Recognise proportionality
+- quatrieme-proportionnelle | Quatrième proportionnelle, produit en croix | Missing value, cross-multiplication
+- pourcentage-d-une-quantite | Calculer un pourcentage d'une quantité | Percentage of a quantity
+- taux-de-pourcentage | Exprimer une proportion en pourcentage | Express as a percentage
+- evolutions | Augmentations, réductions, coefficient multiplicateur | Increases, decreases, multiplier
+- echelles | Échelles | Scales
+- ratios | Ratios et partages proportionnels | Ratios and proportional sharing
+
+# litteral | Calcul littéral | Algebraic expressions
+## expressions | Expressions littérales | Expressions
+- substituer | Calculer une expression pour une valeur | Evaluate for a value
+- traduire | Traduire un énoncé en expression | Translate words into an expression
+- conventions | Conventions d'écriture (2×x = 2x, x×x = x²) | Writing conventions (2×x = 2x, x×x = x²)
+## reduire | Réduire | Simplify expressions
+- termes-semblables | Regrouper les termes semblables | Collect like terms
+- avec-signes | Réduire avec des signes négatifs | Simplify with negative signs
+- avec-puissances | Réduire avec des puissances (x·x², 3x·2x) | Simplify with powers
+## developper | Développer | Expand
+- simple-distributivite | Simple distributivité k(a + b) | Single distributivity k(a + b)
+- facteur-negatif | Distributivité avec facteur négatif −k(a − b) | Negative factor −k(a − b)
+- double-distributivite | Double distributivité (a + b)(c + d) | Double distributivity (a + b)(c + d)
+- trois-facteurs | Produit de trois facteurs (a + b)(c + d)(e + f) | Product of three factors
+- identites-remarquables | Identités remarquables | Special products
+- developper-reduire | Développer puis réduire une somme de produits | Expand then simplify a sum of products
+## factoriser | Factoriser | Factorise
+- facteur-commun-simple | Facteur commun apparent | Common factor
+- facteur-commun-expression | Facteur commun qui est une expression (x + 1) | Common bracket factor
+- identites-remarquables | Avec une identité remarquable | Using special products
+- trinome | Factoriser un trinôme du second degré | Factorise a quadratic
+## fractions-rationnelles | Fractions rationnelles | Rational expressions
+- simplifier | Simplifier une fraction rationnelle | Simplify a rational expression
+- meme-denominateur | Réduire au même dénominateur | Common denominator
+
+# equations | Équations et inéquations | Equations and inequalities
+## premier-degre | Équations du premier degré | Linear equations
+- une-etape | En une étape (x + a = b, ax = b) | One step (x + a = b, ax = b)
+- deux-etapes | En deux étapes (ax + b = c) | Two steps (ax + b = c)
+- transposer | Changer un terme de membre (transposer) | Move a term to the other side
+- inconnue-des-deux-cotes | Inconnue des deux côtés | Unknown on both sides
+- avec-parentheses | Avec parenthèses à développer | With brackets to expand
+- avec-fractions | Avec fractions | With fractions
+- solution-fractionnaire | Solution non entière | Non-integer solution
+- verifier | Vérifier qu'un nombre est solution | Check a solution
+## produit-nul | Équations produit nul | Zero-product equations
+- appliquer | Appliquer la règle du produit nul | Apply the zero-product rule
+- factoriser-d-abord | Factoriser avant de résoudre | Factorise first
+## second-degre | Équations du second degré | Quadratic equations
+- x2-egal-a | x² = a | x² = a
+- discriminant | Calculer le discriminant | Compute the discriminant
+- racines | Calculer les racines avec le discriminant | Roots with the discriminant
+- toutes-les-solutions | Donner toutes les solutions | Give every solution
+- forme-canonique | Forme canonique | Completing the square
+## inequations | Inéquations | Inequalities
+- premier-degre | Inéquations du premier degré | Linear inequalities
+- changer-de-sens | Changer le sens en multipliant par un négatif | Flip the sign with a negative factor
+- tableau-de-signes | Tableau de signes | Sign table
+- ecrire-l-ensemble | Écrire l'ensemble des solutions (intervalles) | Write the solution set (intervals)
+## systemes | Systèmes d'équations | Simultaneous equations
+- substitution | Par substitution | By substitution
+- combinaison | Par combinaison | By elimination
+- interpreter | Interpréter la solution | Interpret the solution
+## transcendantes | Équations exponentielles, logarithmiques, trigonométriques | Exponential, log, trig equations
+- exponentielle | Équations avec exponentielle | Exponential equations
+- logarithme | Équations avec logarithme (domaine compris) | Logarithmic equations (domain included)
+- trigonometrique | Équations trigonométriques sur un intervalle | Trigonometric equations on an interval
+
+# fonctions | Fonctions | Functions
+## notion | Notion de fonction | Function basics
+- image | Calculer une image | Compute an image
+- antecedent | Trouver un antécédent | Find a preimage
+- lecture-graphique | Lire un graphique | Read a graph
+- domaine | Ensemble de définition | Domain of definition
+## lineaires-affines | Fonctions linéaires et affines | Linear functions
+- coefficient | Coefficient directeur et ordonnée à l'origine | Slope and intercept
+- expression-par-deux-points | Expression à partir de deux points | Equation through two points
+- representer | Représenter une droite | Draw a line
+## second-degre | Fonctions du second degré | Quadratic functions
+- sommet | Sommet de la parabole | Vertex of the parabola
+- variations | Variations | Variations
+- signe | Signe du trinôme | Sign of the quadratic
+## derivation | Dérivation | Differentiation
+- derivees-usuelles | Dérivées usuelles (xⁿ, 1/x, √x) | Standard derivatives
+- somme-produit-par-constante | Somme, produit par une constante | Sum, constant multiple
+- produit | Dérivée d'un produit | Product rule
+- quotient | Dérivée d'un quotient | Quotient rule
+- composee | Dérivée d'une composée (chaîne) | Chain rule
+- exp-ln-trigo | Dérivées de exp, ln, sin, cos | Derivatives of exp, ln, sin, cos
+- tangente | Équation de la tangente | Tangent line
+- variations | Étudier les variations avec la dérivée | Variations from the derivative
+- extremums | Extremums, optimisation | Extrema, optimisation
+## exp-ln | Exponentielle et logarithme | Exponential and logarithm
+- proprietes-exp | Propriétés de l'exponentielle | Exponential rules
+- proprietes-ln | Propriétés du logarithme | Logarithm rules
+- croissances-comparees | Croissances comparées | Growth rates
+## trigonometrie | Trigonométrie | Trigonometry
+- valeurs-remarquables | Valeurs remarquables de sin, cos, tan | Exact values of sin, cos, tan
+- cercle-trigonometrique | Cercle trigonométrique, radians | Unit circle, radians
+- formules | Formules (cos², duplication, addition) | Identities (Pythagorean, double angle, sum)
+
+# analyse | Suites, limites et intégrales | Sequences, limits and integrals
+## suites | Suites | Sequences
+- terme-general | Calculer un terme | Compute a term
+- arithmetique | Suites arithmétiques | Arithmetic sequences
+- geometrique | Suites géométriques | Geometric sequences
+- sommes | Sommes de termes | Sums of terms
+- recurrence | Raisonnement par récurrence | Proof by induction
+- limite-de-suite | Limite d'une suite | Limit of a sequence
+## limites | Limites et continuité | Limits and continuity
+- forme-indeterminee | Lever une forme indéterminée | Resolve an indeterminate form
+- a-l-infini | Limites en l'infini (termes dominants) | Limits at infinity
+- en-un-point | Limites en un point, asymptotes | Limits at a point, asymptotes
+- continuite | Continuité, valeurs intermédiaires | Continuity, intermediate values
+## integration | Primitives et intégrales | Antiderivatives and integrals
+- primitives-usuelles | Primitives usuelles | Standard antiderivatives
+- constante | Constante d'intégration, primitive vérifiant une condition | Constant of integration, initial condition
+- calculer-integrale | Calculer une intégrale avec une primitive | Evaluate a definite integral
+- bornes | Appliquer les bornes F(b) − F(a) | Apply the bounds F(b) − F(a)
+- par-parties | Intégration par parties | Integration by parts
+- aire | Aire sous une courbe, entre deux courbes | Area under or between curves
+- valeur-moyenne | Valeur moyenne | Mean value
+
+# geometrie | Géométrie | Geometry
+## angles-triangles | Angles et triangles | Angles and triangles
+- somme-des-angles | Somme des angles d'un triangle | Angle sum of a triangle
+- angles-et-paralleles | Angles et droites parallèles | Angles and parallel lines
+- triangles-particuliers | Triangles particuliers | Special triangles
+## pythagore | Théorème de Pythagore | Pythagoras' theorem
+- hypotenuse | Calculer l'hypoténuse | Find the hypotenuse
+- cote-de-l-angle-droit | Calculer un côté de l'angle droit | Find a leg
+- reciproque | Réciproque : le triangle est-il rectangle ? | Converse: is it a right triangle?
+## thales | Théorème de Thalès et similitude | Intercept theorem and similarity
+- calculer-une-longueur | Calculer une longueur | Compute a length
+- reciproque | Réciproque : droites parallèles ? | Converse: parallel lines?
+- agrandissement-reduction | Agrandissement, réduction (longueurs, aires, volumes) | Enlargement (lengths, areas, volumes)
+## trigonometrie-triangle | Trigonométrie dans le triangle rectangle | Right-triangle trigonometry
+- choisir-le-rapport | Choisir sin, cos ou tan | Choose sin, cos or tan
+- calculer-une-longueur | Calculer une longueur | Compute a side
+- calculer-un-angle | Calculer un angle | Compute an angle
+- triangle-quelconque | Théorèmes du sinus et du cosinus (Al-Kashi) | Sine and cosine rules
+## aires-perimetres | Périmètres et aires | Perimeters and areas
+- polygones | Polygones usuels | Usual polygons
+- disque | Cercle et disque | Circle and disc
+- figures-composees | Figures composées | Composite shapes
+## espace | Géométrie dans l'espace | Solid geometry
+- volumes | Volumes des solides usuels | Volumes of solids
+- sections-patrons | Sections et patrons | Cross-sections and nets
+## vecteurs | Vecteurs et repérage | Vectors and coordinates
+- coordonnees | Coordonnées, milieu, distance | Coordinates, midpoint, distance
+- operations | Somme, colinéarité | Addition, collinearity
+- produit-scalaire | Produit scalaire | Dot product
+- droites-plans | Équations de droites et de plans | Equations of lines and planes
+## transformations | Transformations | Transformations
+- symetries | Symétries | Reflections
+- translations-rotations | Translations et rotations | Translations and rotations
+- homotheties | Homothéties | Dilations
+
+# grandeurs | Grandeurs et mesures | Quantities and measures
+## conversions | Conversions d'unités | Unit conversions
+- longueurs-masses | Longueurs, masses, capacités | Lengths, masses, capacities
+- aires-volumes | Aires et volumes (m², m³, L) | Areas and volumes (m², m³, L)
+- durees | Durées | Durations
+## grandeurs-composees | Grandeurs composées | Compound measures
+- vitesse | Vitesse, distance, durée | Speed, distance, time
+- masse-volumique-debit | Masse volumique, débit | Density, flow rate
+- unites-dans-la-reponse | Donner la réponse avec la bonne unité | Answer with the right unit
+
+# probabilites | Probabilités et statistiques | Probability and statistics
+## statistiques | Statistiques | Statistics
+- moyenne | Moyenne (simple, pondérée) | Mean (simple, weighted)
+- mediane-quartiles | Médiane et quartiles | Median and quartiles
+- etendue-ecart-type | Étendue, variance, écart-type | Range, variance, standard deviation
+- lire-des-donnees | Lire un tableau, un diagramme | Read a table or chart
+## probabilites-base | Probabilités élémentaires | Basic probability
+- equiprobabilite | Situations d'équiprobabilité | Equally likely outcomes
+- evenement-contraire | Événement contraire | Complementary event
+- union-intersection | Union, intersection | Union, intersection
+- tirages | Tirages avec ou sans remise | Draws with or without replacement
+## conditionnelles | Probabilités conditionnelles | Conditional probability
+- arbre | Arbres pondérés | Tree diagrams
+- formule | Formule P_B(A) = P(A ∩ B) / P(B) | Formula P(A given B) = P(A ∩ B) / P(B)
+- probabilites-totales | Probabilités totales | Total probability
+- independance | Indépendance | Independence
+## variables-aleatoires | Variables aléatoires | Random variables
+- loi | Loi de probabilité | Probability distribution
+- esperance-variance | Espérance et variance | Expectation and variance
+- binomiale | Loi binomiale | Binomial distribution
+- normale | Loi normale | Normal distribution
+## denombrement | Dénombrement | Counting
+- arrangements-permutations | Listes, arrangements, permutations | Lists, arrangements, permutations
+- combinaisons | Combinaisons | Combinations
+
+# complexes | Nombres complexes | Complex numbers
+## algebrique | Forme algébrique | Algebraic form
+- operations | Somme, produit (i² = −1) | Sum, product (i² = −1)
+- conjugue-quotient | Conjugué et quotient | Conjugate and quotient
+- equations | Équations dans ℂ | Equations in ℂ
+## trigonometrique | Module, argument, forme exponentielle | Modulus, argument, exponential form
+- module | Module | Modulus
+- argument | Argument | Argument
+- forme-exponentielle | Forme trigonométrique et exponentielle | Polar and exponential form
+
+# problemes | Résolution de problèmes | Problem solving
+## modeliser | Modéliser | Modelling
+- choisir-l-operation | Choisir la ou les opérations | Choose the operations
+- mettre-en-equation | Mettre un problème en équation | Set up an equation
+- etapes-intermediaires | Organiser un calcul en plusieurs étapes | Plan a multi-step calculation
+## repondre | Répondre au problème | Answering
+- phrase-reponse | Rédiger la phrase réponse | Write the answer sentence
+- verifier-la-vraisemblance | Vérifier la vraisemblance du résultat | Check the result makes sense
+- forme-demandee | Donner la réponse sous la forme demandée | Give the answer in the requested form

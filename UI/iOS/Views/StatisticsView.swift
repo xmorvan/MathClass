@@ -21,12 +21,18 @@ struct StatisticsView: View {
 
     enum StatTab: String, CaseIterable {
         case perStudent = "Par élève"
-        case perExercise = "Par exercice"
+        case perDomain = "Par domaine"
         case perClass = "Par classe"
+        case perExercise = "Par exercice"
         case trends = "Tendances"
     }
 
     private let statisticsService = StatisticsService.shared
+
+    /// The diagnosis on the skill taxonomy (students, domains, class).
+    private var diagnosis: ClassDiagnosis {
+        ClassDiagnosis(viewModel: viewModel, submissions: submissions, classID: selectedClassID)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,11 +49,13 @@ struct StatisticsView: View {
             } else {
                 switch selectedTab {
                 case .perStudent:
-                    studentStatsList
+                    StudentDiagnosisView(data: diagnosis)
+                case .perDomain:
+                    DomainDiagnosisView(data: diagnosis)
                 case .perExercise:
                     exerciseStatsList
                 case .perClass:
-                    classOverview
+                    ClassDiagnosisView(data: diagnosis)
                 case .trends:
                     trendsView
                 }
