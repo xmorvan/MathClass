@@ -16,6 +16,17 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Aucun devoir actif": "No active assignment",
+        "au travail": "working",
+        "ont fini": "finished",
+        "erreur à corriger": "mistake to fix",
+        "inactifs": "idle",
+        "pas commencé": "not started",
+        "Au travail": "Working",
+        "Erreur à corriger": "Mistake to fix",
+        "Inactif depuis %@ min": "Idle for %@ min",
+        "Devoir terminé": "Assignment done",
+        "· %@ réussis": "· %@ right",
         "Ajouter une ligne": "Add a line",
         "Écrire au clavier": "Type with the keyboard",
         "Ex. : 3/4 + x^2 = √2": "E.g. 3/4 + x^2 = √2",

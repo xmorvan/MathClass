@@ -2,9 +2,10 @@
 //  LiveDashboardView_iOS.swift
 //  MathClassApp
 //
-//  iPad teacher's live grid for the active session of an active period.
-//  Mirrors LiveDashboardView_macOS but with a more compact layout that
-//  reads well on a 11"/12.9" iPad in portrait or landscape.
+//  iPad teacher's live grid for the assignment the class is working on.
+//  Mirrors LiveDashboardView_macOS (progress, mistakes to fix, idle
+//  students, class summary) with a more compact layout that reads well
+//  on a 11"/12.9" iPad in portrait or landscape.
 //
 
 import SwiftUI
@@ -35,31 +36,37 @@ struct LiveDashboardView_iOS: View {
             if students.isEmpty {
                 emptyState
             } else {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
-                        ForEach(students) { student in
-                            StudentTile_iOS(
-                                student: student,
-                                latestSubmission: latestSubmission(for: student),
-                                exerciseTitle: latestExerciseTitle(for: student),
-                                pushableExercises: pushableExercises(for: student),
-                                onPushExercise: { exerciseID in
-                                    pushExercise(exerciseID, to: student)
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    let progresses = students.map { progress(for: $0, now: context.date) }
+                    VStack(alignment: .leading, spacing: 8) {
+                        summary(progresses)
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
+                                ForEach(Array(zip(students, progresses)), id: \.0.id) { student, progress in
+                                    StudentTile_iOS(
+                                        student: student,
+                                        progress: progress,
+                                        exerciseTitle: exerciseTitle(progress?.currentExerciseID),
+                                        pushableExercises: pushableExercises(for: student),
+                                        onPushExercise: { exerciseID in
+                                            pushExercise(exerciseID, to: student)
+                                        }
+                                    )
                                 }
-                            )
+                            }
+                            .padding()
                         }
                     }
-                    .padding()
+                }
+            }
+        }
+        .padding()
         .alert(
             pushMessage ?? "",
             isPresented: Binding(get: { pushMessage != nil }, set: { if !$0 { pushMessage = nil } })
         ) {
             Button("OK".tr, role: .cancel) { pushMessage = nil }
         }
-                }
-            }
-        }
-        .padding()
         // Runs on appear, when the class list first arrives, and when the
         // teacher switches class. `selectClass` loads that class's roster:
         // `studentsInClass` only sees the selected class's students, so
@@ -90,12 +97,16 @@ struct LiveDashboardView_iOS: View {
                 Text("Vue d'ensemble en direct".tr)
                     .font(.title3)
                     .bold()
-                if let period = activePeriod {
+                if let assignment = lessonAssignment {
+                    Text(assignment.titleWithMode)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else if let period = activePeriod {
                     Text(period.name)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 } else {
-                    Text("Aucune séance active".tr)
+                    Text("Aucun devoir actif".tr)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -126,17 +137,33 @@ struct LiveDashboardView_iOS: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func latestSubmission(for student: Student) -> Submission? {
-        guard let sid = student.id else { return nil }
-        return viewModel.submissionRepo.submissions
-            .filter { $0.studentID == sid }
-            .sorted { $0.timestamp > $1.timestamp }
-            .first
+    private var lessonAssignment: Assignment? {
+        guard let classID = activeClassID else { return nil }
+        return viewModel.lessonAssignment(classID: classID, studentIDs: Set(students.compactMap(\.id)))
     }
 
-    private func latestExerciseTitle(for student: Student) -> String? {
-        guard let sub = latestSubmission(for: student) else { return nil }
-        return viewModel.exercises.first(where: { $0.id == sub.exerciseID })?.displayTitle
+    private func progress(for student: Student, now: Date) -> LiveProgress? {
+        guard let assignment = lessonAssignment else { return nil }
+        return viewModel.liveProgress(of: student, in: assignment, now: now)
+    }
+
+    private func exerciseTitle(_ exerciseID: String?) -> String? {
+        guard let exerciseID else { return nil }
+        return viewModel.exercises.first(where: { $0.id == exerciseID })?.displayTitle
+    }
+
+    /// One line for the whole class: who works, who is done, who needs help.
+    private func summary(_ progresses: [LiveProgress?]) -> some View {
+        let counts = progresses.liveCounts
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                SummaryChip_iOS(count: counts.working, label: "au travail".tr, color: .blue)
+                SummaryChip_iOS(count: counts.finished, label: "ont fini".tr, color: .green)
+                SummaryChip_iOS(count: counts.needsFix, label: "erreur à corriger".tr, color: .orange)
+                SummaryChip_iOS(count: counts.idle, label: "inactifs".tr, color: .yellow)
+                SummaryChip_iOS(count: counts.notStarted, label: "pas commencé".tr, color: .gray)
+            }
+        }
     }
 
     private var activeSession: Session? {
@@ -171,26 +198,35 @@ struct LiveDashboardView_iOS: View {
     }
 }
 
+private struct SummaryChip_iOS: View {
+    let count: Int
+    let label: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text("\(count)").bold()
+            Text(label).foregroundColor(.secondary)
+        }
+        .font(.caption)
+    }
+}
+
 private struct StudentTile_iOS: View {
     let student: Student
-    let latestSubmission: Submission?
+    let progress: LiveProgress?
     let exerciseTitle: String?
     let pushableExercises: [Exercise]
     let onPushExercise: (String) -> Void
 
-    private var statusKey: String {
-        guard let sub = latestSubmission else { return "En attente" }
-        if sub.finalResult == nil { return "En cours" }
-        return "Terminé"
-    }
-
-    private var statusColor: Color {
-        guard let sub = latestSubmission else { return .gray }
-        if sub.finalResult == nil { return .blue }
-        switch sub.finalResult {
-        case .success1st, .success2nd: return .green
-        case .failed: return .orange
-        case .none: return .blue
+    private var status: (label: String, color: Color) {
+        switch progress?.state ?? .notStarted {
+        case .notStarted: return ("Pas encore commencé".tr, .gray)
+        case .working: return ("Au travail".tr, .blue)
+        case .needsFix: return ("Erreur à corriger".tr, .orange)
+        case .idle(let minutes): return (LocalizationManager.shared.format("Inactif depuis %@ min", String(minutes)), .yellow)
+        case .finished: return ("Devoir terminé".tr, .green)
         }
     }
 
@@ -208,21 +244,24 @@ private struct StudentTile_iOS: View {
                         .cornerRadius(4)
                 }
             }
-            if let title = exerciseTitle {
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-            } else {
-                Text("Pas encore commencé".tr)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            Text(exerciseTitle ?? " ")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+            if let progress, progress.assigned > 0 {
+                HStack(spacing: 6) {
+                    ProgressView(value: Double(progress.done), total: Double(progress.assigned))
+                        .tint(status.color)
+                    Text("\(progress.done)/\(progress.assigned)")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundColor(.secondary)
+                }
             }
             HStack {
-                Circle().fill(statusColor).frame(width: 6, height: 6)
-                Text(statusKey.tr).font(.caption2)
+                Circle().fill(status.color).frame(width: 6, height: 6)
+                Text(status.label).font(.caption2)
                 Spacer()
-                if statusKey == "Terminé" && !pushableExercises.isEmpty {
+                if progress?.state == .finished && !pushableExercises.isEmpty {
                     Menu {
                         ForEach(pushableExercises) { exercise in
                             Button(exercise.displayTitle) {
@@ -239,6 +278,10 @@ private struct StudentTile_iOS: View {
             }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.08)))
+        .background(RoundedRectangle(cornerRadius: 8).fill(status.color.opacity(progress?.state == .needsFix ? 0.12 : 0.06)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(status.color.opacity(progress?.state == .needsFix ? 0.5 : 0), lineWidth: 1)
+        )
     }
 }

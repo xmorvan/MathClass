@@ -29,6 +29,11 @@ class AssignmentRepository: ObservableObject {
     /// the per-chunk results keyed by assignmentID (ISSUE-005).
     private var teacherChunkListeners: [ListenerRegistration] = []
     private var teacherChunkResults: [Int: [Assignment]] = [:]
+    /// A refused listener stops for good; it is re-armed a few times (a
+    /// class just created is seen locally before the server has it, and
+    /// the rules then refuse the query).
+    private var teacherRetries: Int = 0
+    private var teacherClassIDs: [String] = []
     private var exerciseListeners: [String: ListenerRegistration] = [:]
     private let collectionPath = "assignments"
 
@@ -92,6 +97,8 @@ class AssignmentRepository: ObservableObject {
     /// and merges the results keyed by assignmentID (ISSUE-005 — previously
     /// truncated at 10 and silently lost the rest).
     func startListeningAcrossClasses(classIDs: [String]) {
+        if classIDs != teacherClassIDs { teacherRetries = 0 }
+        teacherClassIDs = classIDs
         teacherChunkListeners.forEach { $0.remove() }
         teacherChunkListeners = []
         teacherChunkResults = [:]
@@ -110,8 +117,7 @@ class AssignmentRepository: ObservableObject {
                 guard let self else { return }
                 if let error = error {
                     print("Erreur écoute devoirs enseignant (chunk \(index)): \(error.localizedDescription)")
-                    self.teacherChunkResults[index] = []
-                    self.recomputeMergedTeacherAssignments()
+                    self.retryTeacherListening()
                     return
                 }
                 guard let documents = snapshot?.documents else {
@@ -119,16 +125,31 @@ class AssignmentRepository: ObservableObject {
                     self.recomputeMergedTeacherAssignments()
                     return
                 }
-                do {
-                    let parsed = try documents.map { try $0.data(as: Assignment.self) }
-                    self.teacherChunkResults[index] = parsed
-                } catch {
-                    print("Erreur décodage devoirs enseignant (chunk \(index)): \(error.localizedDescription)")
-                    self.teacherChunkResults[index] = []
+                self.teacherRetries = 0
+                // One unreadable document must not hide all the others.
+                self.teacherChunkResults[index] = documents.compactMap { document in
+                    do {
+                        return try document.data(as: Assignment.self)
+                    } catch {
+                        print("Devoir illisible \(document.documentID): \(error.localizedDescription)")
+                        return nil
+                    }
                 }
                 self.recomputeMergedTeacherAssignments()
             }
             teacherChunkListeners.append(registration)
+        }
+    }
+
+    /// Re-arms the cross-class listener after an error, keeping what is
+    /// already shown, with a growing delay (up to 5 tries).
+    private func retryTeacherListening() {
+        guard teacherRetries < 5 else { return }
+        teacherRetries += 1
+        let classIDs = teacherClassIDs
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(teacherRetries) * 2) { [weak self] in
+            guard let self, self.teacherClassIDs == classIDs else { return }
+            self.startListeningAcrossClasses(classIDs: classIDs)
         }
     }
 
@@ -267,19 +288,6 @@ class AssignmentRepository: ObservableObject {
         studentGroupIDs: Set<String> = []
     ) async throws -> [AssignmentExercise] {
         let allExercises = try await getAssignmentExercises(assignmentID: assignmentID)
-        return allExercises.filter { ae in
-            let hasStudentTarget = !(ae.targetStudentIDs?.isEmpty ?? true)
-            let hasGroupTarget = (ae.targetGroupID?.isEmpty == false)
-            if !hasStudentTarget && !hasGroupTarget {
-                return true  // untargeted exercise: for everyone
-            }
-            if let ids = ae.targetStudentIDs, ids.contains(studentID) {
-                return true
-            }
-            if let gid = ae.targetGroupID, studentGroupIDs.contains(gid) {
-                return true
-            }
-            return false
-        }
+        return allExercises.filter { $0.isAssigned(to: studentID, groupIDs: studentGroupIDs) }
     }
 }

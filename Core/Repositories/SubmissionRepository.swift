@@ -26,6 +26,13 @@ class SubmissionRepository: ObservableObject {
     /// are in use.
     private var teacherChunkListeners: [ListenerRegistration] = []
     private var teacherChunkResults: [Int: [Submission]] = [:]
+    /// Most recent copies the teacher listens to. One lesson of 25 students
+    /// already writes over 150; at 100, the first students to finish
+    /// vanished from the live view ("not started").
+    static let teacherSubmissionLimit = 400
+    /// A refused listener stops for good; it is re-armed a few times.
+    private var teacherRetries: Int = 0
+    private var teacherAssignmentIDs: [String] = []
     private let collectionPath = "submissions"
 
     deinit {
@@ -85,6 +92,8 @@ class SubmissionRepository: ObservableObject {
     /// teacher with many assignments still sees every submission live
     /// (ISSUE-005).
     func startListeningForTeacher(classAssignmentIDs: [String]) {
+        if classAssignmentIDs != teacherAssignmentIDs { teacherRetries = 0 }
+        teacherAssignmentIDs = classAssignmentIDs
         // Tear down anything from a previous run (single or multi-chunk).
         listener?.remove()
         listener = nil
@@ -102,14 +111,13 @@ class SubmissionRepository: ObservableObject {
             let query = scoped
                 .whereField("assignmentID", in: chunk)
                 .order(by: "timestamp", descending: true)
-                .limit(to: 100)
+                .limit(to: Self.teacherSubmissionLimit)
 
             let registration = query.addSnapshotListener { [weak self] snapshot, error in
                 guard let self else { return }
                 if let error = error {
                     print("Erreur écoute soumissions enseignant (chunk \(index)): \(error.localizedDescription)")
-                    self.teacherChunkResults[index] = []
-                    self.recomputeMergedTeacherSubmissions()
+                    self.retryTeacherListening()
                     return
                 }
                 guard let documents = snapshot?.documents else {
@@ -117,16 +125,31 @@ class SubmissionRepository: ObservableObject {
                     self.recomputeMergedTeacherSubmissions()
                     return
                 }
-                do {
-                    let parsed = try documents.map { try $0.data(as: Submission.self) }
-                    self.teacherChunkResults[index] = parsed
-                } catch {
-                    print("Erreur décodage soumissions enseignant (chunk \(index)): \(error.localizedDescription)")
-                    self.teacherChunkResults[index] = []
+                self.teacherRetries = 0
+                // One unreadable copy must not empty the whole inbox.
+                self.teacherChunkResults[index] = documents.compactMap { document in
+                    do {
+                        return try document.data(as: Submission.self)
+                    } catch {
+                        print("Soumission illisible \(document.documentID): \(error.localizedDescription)")
+                        return nil
+                    }
                 }
                 self.recomputeMergedTeacherSubmissions()
             }
             teacherChunkListeners.append(registration)
+        }
+    }
+
+    /// Re-arms the teacher listener after an error, keeping what is already
+    /// shown, with a growing delay (up to 5 tries).
+    private func retryTeacherListening() {
+        guard teacherRetries < 5 else { return }
+        teacherRetries += 1
+        let assignmentIDs = teacherAssignmentIDs
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(teacherRetries) * 2) { [weak self] in
+            guard let self, self.teacherAssignmentIDs == assignmentIDs else { return }
+            self.startListeningForTeacher(classAssignmentIDs: assignmentIDs)
         }
     }
 
@@ -144,9 +167,8 @@ class SubmissionRepository: ObservableObject {
             }
         }
         merged.sort { $0.timestamp > $1.timestamp }
-        // Cap to 100 like the previous single-listener behaviour, post-merge,
-        // so the inbox stays responsive when many assignments are active.
-        submissions = Array(merged.prefix(100))
+        // Same cap after the merge of several chunks.
+        submissions = Array(merged.prefix(Self.teacherSubmissionLimit))
     }
 
     /// Listen for a student's submissions within an assignment.
@@ -169,13 +191,16 @@ class SubmissionRepository: ObservableObject {
                 self?.submissions = []
                 return
             }
-            do {
-                self?.submissions = try documents.map { try $0.data(as: Submission.self) }
-                    .sorted { $0.timestamp > $1.timestamp }
-            } catch {
-                print("Erreur décodage soumissions: \(error.localizedDescription)")
-                self?.submissions = []
+            // One unreadable copy must not erase the student's progress.
+            self?.submissions = documents.compactMap { document in
+                do {
+                    return try document.data(as: Submission.self)
+                } catch {
+                    print("Soumission illisible \(document.documentID): \(error.localizedDescription)")
+                    return nil
+                }
             }
+            .sorted { $0.timestamp > $1.timestamp }
         }
     }
 
