@@ -14,9 +14,13 @@ struct VerificationView: View {
     @ObservedObject var viewModel: SubmissionViewModel
     @ObservedObject private var network = NetworkMonitor.shared
     @State private var editableSteps: [String] = []
-    /// Steps whose raw LaTeX field is open. Students read the rendered
-    /// formula; the source is only shown on request.
+    /// Steps whose keyboard field is open. Students read the rendered
+    /// formula; the field shows it in keyboard notation, never LaTeX.
     @State private var editingSteps: Set<Int> = []
+    /// What the student types in each open field ("1/2", "x^2", "√2"),
+    /// converted to LaTeX as they type.
+    @State private var drafts: [Int: String] = [:]
+    @FocusState private var focusedStep: Int?
 
     var onCancel: () -> Void
 
@@ -149,7 +153,7 @@ struct VerificationView: View {
             Text("Aucune étape reconnue".tr)
                 .font(.headline)
 
-            Text("La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou réessayez la reconnaissance.".tr)
+            Text("La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou écrivez vos étapes au clavier.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -170,6 +174,13 @@ struct VerificationView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
+
+                Button {
+                    addStep()
+                } label: {
+                    Label("Écrire au clavier".tr, systemImage: "keyboard")
+                }
+                .buttonStyle(.bordered)
             }
             .padding(.top, 8)
         }
@@ -194,7 +205,7 @@ struct VerificationView: View {
                 }
             }
 
-            Text("Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, supprimez-la ou retournez au dessin pour la réécrire.".tr)
+            Text("Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, corrigez-la au clavier, supprimez-la ou ajoutez une ligne.".tr)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -223,7 +234,7 @@ struct VerificationView: View {
                         }
 
                         Button {
-                            if editingSteps.contains(index) { editingSteps.remove(index) } else { editingSteps.insert(index) }
+                            toggleEditing(index)
                         } label: {
                             Image(systemName: "keyboard")
                         }
@@ -242,15 +253,52 @@ struct VerificationView: View {
                     }
 
                     if editingSteps.contains(index) {
-                        TextField("LaTeX".tr, text: stepBinding(index))
-                            .font(.system(.body, design: .monospaced))
-                            .textFieldStyle(.roundedBorder)
-                            .padding(.leading, 68)
+                        stepEditor(index)
                     }
                 }
                 .padding(.vertical, 4)
             }
+
+            Button {
+                addStep()
+            } label: {
+                Label("Ajouter une ligne".tr, systemImage: "plus.circle")
+            }
+            .buttonStyle(.borderless)
+            .padding(.leading, 68)
         }
+    }
+
+    /// Keyboard field of a step, in keyboard notation, with the symbols a
+    /// tablet keyboard lacks. The rendered line above updates as they type.
+    private func stepEditor(_ index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("Ex. : 3/4 + x^2 = √2".tr, text: draftBinding(index))
+                .font(.title3)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($focusedStep, equals: index)
+
+            if SubmissionViewModel.sentence(ofStep: editableSteps.indices.contains(index) ? editableSteps[index] : "") == nil {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(PlainMath.keys, id: \.label) { key in
+                            Button(key.label) {
+                                draftBinding(index).wrappedValue += key.insert
+                                focusedStep = index
+                            }
+                            .buttonStyle(.bordered)
+                            .font(.body)
+                        }
+                    }
+                }
+                Text("Écrivez 1/2 pour une fraction, x^2 pour une puissance, √ pour une racine.".tr)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.leading, 68)
     }
 
     // MARK: - Step editing
@@ -262,21 +310,50 @@ struct VerificationView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// Bounds-checked binding: a step can be deleted while its field is
-    /// still on screen.
-    private func stepBinding(_ index: Int) -> Binding<String> {
+    /// Bounds-checked binding on what the student types: a step can be
+    /// deleted while its field is still on screen. A sentence step stays a
+    /// sentence; anything else is converted to LaTeX.
+    private func draftBinding(_ index: Int) -> Binding<String> {
         Binding(
-            get: { editableSteps.indices.contains(index) ? editableSteps[index] : "" },
+            get: { drafts[index] ?? "" },
             set: { newValue in
-                if editableSteps.indices.contains(index) { editableSteps[index] = newValue }
+                guard editableSteps.indices.contains(index) else { return }
+                drafts[index] = newValue
+                if SubmissionViewModel.sentence(ofStep: editableSteps[index]) != nil {
+                    editableSteps[index] = SubmissionViewModel.textStep(newValue).first ?? ""
+                } else {
+                    editableSteps[index] = PlainMath.toLatex(newValue)
+                }
             }
         )
+    }
+
+    private func toggleEditing(_ index: Int) {
+        guard editableSteps.indices.contains(index) else { return }
+        if editingSteps.contains(index) {
+            editingSteps.remove(index)
+            return
+        }
+        let step = editableSteps[index]
+        drafts[index] = SubmissionViewModel.sentence(ofStep: step) ?? PlainMath.fromLatex(step)
+        editingSteps.insert(index)
+        focusedStep = index
+    }
+
+    /// A line the recognition missed, typed at the keyboard.
+    private func addStep() {
+        editableSteps.append("")
+        let index = editableSteps.count - 1
+        drafts[index] = ""
+        editingSteps.insert(index)
+        focusedStep = index
     }
 
     private func removeStep(at index: Int) {
         guard editableSteps.indices.contains(index) else { return }
         editableSteps.remove(at: index)
         editingSteps = []  // indices shifted
+        drafts = [:]
     }
 
     // MARK: - Action Buttons

@@ -37,6 +37,7 @@ struct ExerciseStatsListView_macOS: View {
             if let exerciseID = selectedExerciseID,
                let exercise = viewModel.exercises.first(where: { $0.id == exerciseID }) {
                 exerciseDetail(exercise: exercise)
+                    .frame(minWidth: 420, maxWidth: .infinity)
             } else {
                 Text("Sélectionnez un exercice pour voir l'analyse des erreurs".tr)
                     .foregroundColor(.secondary)

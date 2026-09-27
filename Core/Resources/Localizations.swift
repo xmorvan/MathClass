@@ -16,6 +16,10 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Ajouter une ligne": "Add a line",
+        "Écrire au clavier": "Type with the keyboard",
+        "Ex. : 3/4 + x^2 = √2": "E.g. 3/4 + x^2 = √2",
+        "Écrivez 1/2 pour une fraction, x^2 pour une puissance, √ pour une racine.": "Type 1/2 for a fraction, x^2 for a power, √ for a root.",
         "Compétence supprimée": "Deleted competency",
         "Réponse en une phrase (ex. : Paul a 41 billes)": "Answer in a sentence (e.g. Paul has 41 marbles)",
         "Voir la photo de l'énoncé": "Show the photo of the statement",
@@ -24,7 +28,7 @@ enum Localizations {
         "Ce que l'app lit": "What the app reads",
         "Ligne %@": "Line %@",
         "Modifier au clavier": "Edit with keyboard",
-        "Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, supprimez-la ou retournez au dessin pour la réécrire.": "Check that each line matches what you wrote. If not, delete it or go back to the drawing to rewrite it.",
+        "Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, corrigez-la au clavier, supprimez-la ou ajoutez une ligne.": "Check that each line matches what you wrote. If not, fix it with the keyboard, delete it or add a line.",
         "Outil": "Tool",
         "Stylo": "Pen",
         "Gomme": "Eraser",
@@ -384,7 +388,7 @@ enum Localizations {
         "Étapes reconnues": "Recognized steps",
         "Aucune étape reconnue": "No step recognized",
         "Aucune étape reconnue.": "No step recognized.",
-        "La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou réessayez la reconnaissance.": "The recognizer couldn't read your drawing.\nGo back and rewrite more legibly, or retry recognition.",
+        "La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou écrivez vos étapes au clavier.": "Nothing could be read in your drawing.\nGo back to the drawing and write more clearly, or type your steps with the keyboard.",
         "Reconnaissance de l'écriture…": "Recognizing handwriting…",
         "Reconnaître à nouveau": "Recognize again",
         "Retour au dessin": "Back to drawing",

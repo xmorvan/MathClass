@@ -56,6 +56,7 @@ struct StudentStatsListView_macOS: View {
             if let studentID = selectedStudentID,
                let student = students.first(where: { $0.id == studentID }) {
                 studentDetail(student: student)
+                    .frame(minWidth: 420, maxWidth: .infinity)
             } else {
                 Text("Sélectionnez un élève".tr)
                     .foregroundColor(.secondary)

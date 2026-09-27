@@ -37,20 +37,23 @@ struct AssignmentListView_macOS: View {
                     assignmentList
                 }
             }
-            .frame(minWidth: 300)
+            .frame(minWidth: 300, idealWidth: 460)
 
             // Right: Assignment detail
             if let assignmentID = selectedAssignmentID,
                let assignment = viewModel.assignments.first(where: { $0.id == assignmentID }) {
+                // Without a minimum width the split view could squeeze the
+                // detail to a column of one letter per line.
                 AssignmentDetailView_macOS(
                     assignment: assignment,
                     viewModel: viewModel,
                     assignmentVM: assignmentVM
                 )
+                .frame(minWidth: 420, maxWidth: .infinity)
             } else {
                 Text("Sélectionnez un devoir pour voir les détails".tr)
                     .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .sheet(isPresented: $showingCreateSheet) {
