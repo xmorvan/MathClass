@@ -19,10 +19,6 @@
     {
       "target": "images",
       "rules": "storage.rules"
-    },
-    {
-      "target": "legacy",
-      "rules": "storage.rules"
     }
   ],
   "emulators": {

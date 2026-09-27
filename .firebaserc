@@ -7,9 +7,6 @@
       "storage": {
         "images": [
           "mathclass-a9328-zurich"
-        ],
-        "legacy": [
-          "mathclass-a9328.firebasestorage.app"
         ]
       }
     },
@@ -17,9 +14,6 @@
       "storage": {
         "images": [
           "demo-mathclass.appspot.com"
-        ],
-        "legacy": [
-          "demo-mathclass-legacy"
         ]
       }
     }

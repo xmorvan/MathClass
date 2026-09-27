@@ -69,7 +69,7 @@ Ce qui est envoyé au modèle : l'énoncé de l'exercice, la réponse attendue, 
 | Prestataire | Service | Lieu |
 |---|---|---|
 | Google (Firebase) | base de données Cloud Firestore (fiches, copies transcrites, diagnostics) | Zurich, Suisse (europe-west6), vérifié le 27 septembre 2026 |
-| Google (Firebase) | stockage des images Cloud Storage | Zurich, Suisse (europe-west6), depuis le 27 septembre 2026. L'ancien espace de stockage aux États-Unis, qui contient encore des copies de test, sera supprimé. |
+| Google (Firebase) | stockage des images Cloud Storage | Zurich, Suisse (europe-west6), depuis le 27 septembre 2026 (l'ancien espace de stockage aux États-Unis a été supprimé). |
 | Google (Firebase) | fonctions serveur (Cloud Functions) | Zurich, Suisse (europe-west6) |
 | Google (Firebase Authentication) | comptes enseignants, comptes anonymes des élèves | États-Unis |
 | Google Cloud (Vertex AI) | exécution du modèle Claude | Union européenne (région europe-west1, Belgique) ; en attente de l'ouverture du quota par Google. Pendant les tests internes, sans données d'élèves réels, l'API d'Anthropic aux États-Unis est utilisée. |
