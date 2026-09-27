@@ -137,10 +137,6 @@ struct StatisticsPDFReport_macOS: View {
                         Text(LocalizationManager.shared.format("En difficulté : %@",
                                                                (row.notMastered + row.fragile).map(data.name).joined(separator: ", ")))
                             .font(.caption).foregroundColor(.secondary)
-                        if let note = row.notes.first {
-                            Text(LocalizationManager.shared.format("Erreur type : « %@ »", note))
-                                .font(.caption).foregroundColor(.secondary)
-                        }
                     }
                 }
             }

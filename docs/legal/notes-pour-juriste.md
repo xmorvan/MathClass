@@ -55,7 +55,7 @@ France : la position de la CNIL et du ministère de l'Éducation nationale sur l
 
 Consentement : faut-il informer les parents, ou recueillir un accord, avant qu'une copie d'élève soit traitée par une IA ? Qui s'en charge, l'école ou l'éditeur ?
 
-Correction et diagnostic automatiques : la mention « aide pédagogique, pas de décision automatisée » suffit-elle au regard de l'art. 21 LPD et de l'art. 22 RGPD ? Depuis le 27 septembre 2026, le modèle propose aussi, pour chaque étape fausse, le savoir-faire en cause et une note sur l'erreur, et l'app en tire un bilan par savoir-faire (« maîtrisé », « fragile », « non maîtrisé »). C'est une forme de profilage d'élèves mineurs : visible par l'enseignant seul, marqué « Proposé par l'IA », corrigeable ou supprimable par l'enseignant, supprimé avec la copie à douze mois. Faut-il une analyse d'impact (LPD art. 22), et une information spécifique des parents ?
+Correction et diagnostic automatiques : la mention « aide pédagogique, pas de décision automatisée » suffit-elle au regard de l'art. 21 LPD et de l'art. 22 RGPD ? Depuis le 27 septembre 2026, le modèle classe aussi chaque étape fausse (savoir-faire en cause et type d'erreur, dans des listes fixes, sans texte libre), et l'app en tire un bilan par savoir-faire (« maîtrisé », « fragile », « non maîtrisé »). C'est une forme de profilage d'élèves mineurs : visible par l'enseignant seul, marqué « Proposé par l'IA », corrigeable ou supprimable par l'enseignant, supprimé avec la copie à douze mois. Faut-il une analyse d'impact (LPD art. 22), et une information spécifique des parents ?
 
 Forme juridique et responsabilité : exercer en raison individuelle ou créer une Sàrl avant de signer avec des écoles ; assurance responsabilité civile professionnelle (cyber).
 

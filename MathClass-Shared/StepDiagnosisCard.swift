@@ -56,9 +56,6 @@ struct StepDiagnosisCard: View {
                 if let type = diagnosis.errorType {
                     Text(SkillDiagnosis.errorTypeLabel(type)).font(.caption2).foregroundColor(.orange)
                 }
-                if let note = diagnosis.note {
-                    Text(note).font(.caption).fixedSize(horizontal: false, vertical: true)
-                }
             }
         }
         .padding(8)

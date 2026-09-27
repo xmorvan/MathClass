@@ -248,8 +248,8 @@ private struct StudentTile: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
-            if let note = progress?.mistakeNote {
-                Text(note)
+            if let skillID = progress?.mistakeSkillID, let skill = Taxonomy.shared.skill(skillID) {
+                Text("\(skill.competency.label) › \(skill.node.label)")
                     .font(.caption)
                     .foregroundColor(.orange)
                     .lineLimit(2)

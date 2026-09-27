@@ -231,9 +231,6 @@ private struct StudentDiagnosisDetail: View {
                     if let skill = Taxonomy.shared.skill(record.skillID) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(skill.competency.label) › \(skill.node.label)").font(.callout)
-                            if let note = record.mistakes.first?.note {
-                                Text("« \(note) »").font(.caption).foregroundColor(.secondary)
-                            }
                         }
                     }
                 }
@@ -316,9 +313,6 @@ private struct SkillFinding: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(data.exercises[item.exerciseID]?.displayTitle ?? item.exerciseID) — \(item.date.appFormatted(date: .abbreviated, time: .shortened))")
                                 .font(.caption)
-                            if let note = item.note {
-                                Text(note).font(.caption).foregroundColor(.secondary)
-                            }
                             if let type = item.errorType {
                                 Text(SkillDiagnosis.errorTypeLabel(type)).font(.caption2).foregroundColor(.orange)
                             }
@@ -416,9 +410,6 @@ struct DomainDiagnosisView: View {
                             Text(LocalizationManager.shared.format("Fragile : %@", row.fragile.map(data.name).joined(separator: ", ")))
                                 .font(.caption).foregroundColor(.orange)
                         }
-                        ForEach(row.notes.prefix(3), id: \.self) { note in
-                            Text("« \(note) »").font(.caption).foregroundColor(.secondary)
-                        }
                     }
                     .padding(8)
                     .background(RoundedRectangle(cornerRadius: 6).fill(Color.gray.opacity(0.05)))
@@ -480,10 +471,6 @@ struct ClassDiagnosisView: View {
                             String(row.struggling), (row.notMastered + row.fragile).map(data.name).joined(separator: ", ")
                         ))
                         .font(.caption)
-                        if let note = row.notes.first {
-                            Text(LocalizationManager.shared.format("Erreur type : « %@ »", note))
-                                .font(.caption).foregroundColor(.secondary)
-                        }
                     }
                     .padding(8)
                     .background(RoundedRectangle(cornerRadius: 6).fill(Color.orange.opacity(0.06)))

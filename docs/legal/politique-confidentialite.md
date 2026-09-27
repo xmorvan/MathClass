@@ -33,7 +33,7 @@ MathClass traite les données suivantes :
 | Copie manuscrite (image du tracé sur l'iPad) | produite par l'élève | montrer la copie à l'enseignant ; la transcrire si la lecture sur l'iPad n'est pas disponible |
 | Étapes transcrites en notation mathématique, phrase-réponse saisie au clavier | vérifiées par l'élève | corriger le raisonnement |
 | Résultat par étape, temps passé, progression | calculés par MathClass | retour à l'élève, suivi par l'enseignant |
-| Diagnostic des étapes fausses : savoir-faire en cause, type d'erreur, courte note | proposé par le modèle d'IA, que l'enseignant peut confirmer, corriger ou retirer | aider l'enseignant à repérer ce que l'élève doit retravailler |
+| Diagnostic des étapes fausses : savoir-faire en cause et type d'erreur (catégories fixes, aucun texte libre sur l'élève) | proposé par le modèle d'IA, que l'enseignant peut confirmer, corriger ou retirer | aider l'enseignant à repérer ce que l'élève doit retravailler |
 | Bilan par savoir-faire (maîtrisé, fragile, non maîtrisé, à confirmer) | calculé par l'app à partir des copies | statistiques de l'enseignant |
 | Identifiant d'iPad | nombre aléatoire créé par l'app | savoir quel iPad est lié à quel élève |
 | Identifiant de connexion anonyme | créé par Firebase Authentication | réserver à l'élève l'accès à son propre travail |
@@ -57,7 +57,7 @@ Le processus, dans l'ordre :
 1. L'écriture de l'élève est lue sur l'iPad lui-même (moteur MyScript intégré à l'app) : rien ne sort de l'appareil pour cette étape. L'élève voit ce qui est lu et le corrige si besoin.
 2. L'image du tracé est enregistrée pour que l'enseignant puisse voir la copie.
 3. La correction est faite d'abord par un calcul symbolique (SymPy) sur les serveurs de MathClass ; le modèle d'intelligence artificielle (Claude, développé par Anthropic) n'est consulté que pour les étapes que ce calcul ne peut pas trancher.
-4. Quand une copie est fausse, le modèle propose un diagnostic de chaque étape fausse : le savoir-faire en cause (par exemple « Développer › produit de trois facteurs »), le type d'erreur et une courte note qui cite ce que l'élève a écrit. Ce diagnostic est visible par l'enseignant seul ; il est marqué « Proposé par l'IA » et l'enseignant peut le confirmer, le corriger ou le retirer.
+4. Quand une copie est fausse, le modèle propose un diagnostic de chaque étape fausse : le savoir-faire en cause (par exemple « Développer › produit de trois facteurs ») et le type d'erreur, choisis dans des listes fixes. Le modèle ne rédige aucun commentaire sur l'élève. Ce diagnostic est visible par l'enseignant seul ; il est marqué « Proposé par l'IA » et l'enseignant peut le confirmer, le corriger ou le retirer.
 5. Les statistiques de l'enseignant regroupent ces diagnostics par savoir-faire et par élève. Les phrases de synthèse (« En Développer, Zoé ne maîtrise pas … ») sont assemblées par l'app à partir d'un modèle fixe ; le prénom y est ajouté sur l'appareil de l'enseignant.
 
 Le résultat est une aide pédagogique : aucune note scolaire, aucune décision ayant des effets juridiques ou significatifs pour l'élève n'est prise automatiquement ; l'enseignant reste seul juge de l'évaluation.

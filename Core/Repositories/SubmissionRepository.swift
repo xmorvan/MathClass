@@ -239,7 +239,6 @@ class SubmissionRepository: ObservableObject {
             return [
                 "skillID": entry.skillID ?? NSNull(),
                 "errorType": entry.errorType ?? NSNull(),
-                "note": entry.note ?? NSNull(),
                 "reviewedByTeacher": entry.reviewedByTeacher ?? false,
             ] as [String: Any]
         }

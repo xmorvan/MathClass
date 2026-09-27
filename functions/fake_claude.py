@@ -65,7 +65,6 @@ def _answer(kwargs) -> dict:
             None if v == "OK" else {
                 "skillID": "nombres.entiers-decimaux.addition-soustraction",
                 "errorType": "arithmetic",
-                "note": "Erreur de calcul.",
             }
             for v in verdicts
         ]}

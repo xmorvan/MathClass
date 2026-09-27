@@ -45,12 +45,12 @@ final class SkillDiagnosisTests: XCTestCase {
     func testWrongCopyCountsAgainstTheDiagnosedSkillOnly() {
         let wrong = copy("zoe", "e3", .failed, diagnosis: [
             nil,
-            StepDiagnosis(skillID: signs, errorType: "sign_error", note: "−2 × 3 = 6"),
-            StepDiagnosis(skillID: nil, errorType: "consequence", note: "suite"),
+            StepDiagnosis(skillID: signs, errorType: "sign_error"),
+            StepDiagnosis(skillID: nil, errorType: "consequence"),
         ])
         let records = SkillDiagnosis.build(submissions: [wrong], exerciseSkills: exerciseSkills)
         XCTAssertEqual(records["zoe"]?[signs]?.failures, 1)
-        XCTAssertEqual(records["zoe"]?[signs]?.mistakes.first?.note, "−2 × 3 = 6")
+        XCTAssertEqual(records["zoe"]?[signs]?.mistakes.first?.errorType, "sign_error")
         XCTAssertNil(records["zoe"]?[threeFactors], "the exercise skill was not the one that failed")
     }
 
@@ -60,8 +60,7 @@ final class SkillDiagnosisTests: XCTestCase {
     }
 
     func testMasteryAndTheTeacherSentence() {
-        let failure = StepDiagnosis(skillID: threeFactors, errorType: "algebra",
-                                    note: "(x²−x−2)(x+3) = x³+3x²−x−2 : −x et −2 non distribués")
+        let failure = StepDiagnosis(skillID: threeFactors, errorType: "algebra")
         let copies = [
             copy("zoe", "e3", .failed, diagnosis: [failure], minutesAgo: 30),
             copy("zoe", "e3", .failed, diagnosis: [failure], minutesAgo: 20),
@@ -77,12 +76,12 @@ final class SkillDiagnosisTests: XCTestCase {
         let sentence = SkillDiagnosis.sentence(firstName: "Zoé", record: zoe[threeFactors]!)
         XCTAssertTrue(sentence.hasPrefix("En Développer, Zoé ne maîtrise pas : produit de trois facteurs"), sentence)
         XCTAssertTrue(sentence.contains("(1/3 réussis)"), sentence)
-        XCTAssertTrue(sentence.contains("−x et −2 non distribués"), sentence)
+        XCTAssertFalse(sentence.contains("Erreur type"), "no free text about the student")
     }
 
     /// One slip fixed at the second try is not a gap; two failures are.
     func testVerdictNeedsEnoughCopies() {
-        let slip = StepDiagnosis(skillID: simple, errorType: "algebra", note: "x")
+        let slip = StepDiagnosis(skillID: simple, errorType: "algebra")
         let once = SkillDiagnosis.build(submissions: [
             copy("zoe", "e1", .failed, diagnosis: [slip]), copy("zoe", "e1", .success2nd, attempt: 2),
         ], exerciseSkills: exerciseSkills)["zoe"]!
@@ -95,7 +94,7 @@ final class SkillDiagnosisTests: XCTestCase {
     }
 
     func testClassViewNamesTheStrugglingStudents() {
-        let failure = StepDiagnosis(skillID: threeFactors, errorType: "algebra", note: "oubli")
+        let failure = StepDiagnosis(skillID: threeFactors, errorType: "algebra")
         let copies = [
             copy("zoe", "e3", .failed, diagnosis: [failure]), copy("zoe", "e3", .failed, diagnosis: [failure]),
             copy("noa", "e3", .success1st), copy("noa", "e3", .success1st),
@@ -105,6 +104,5 @@ final class SkillDiagnosisTests: XCTestCase {
         XCTAssertEqual(skill.notMastered, ["zoe"])
         XCTAssertEqual(skill.students, 2)
         XCTAssertEqual(skill.rate, 0.5, accuracy: 0.001)
-        XCTAssertEqual(skill.notes, ["oubli"])
     }
 }

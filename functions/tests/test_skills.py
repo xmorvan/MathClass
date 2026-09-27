@@ -117,26 +117,24 @@ def test_tag_handler_bounds_its_input(monkeypatch):
 def test_diagnosis_ties_each_wrong_step_to_a_skill():
     client = _answer({"diagnosis": [
         None,
-        {"skillID": "litteral.developper.trois-facteurs", "errorType": "algebra",
-         "note": "N'a pas distribué le troisième facteur."},
+        {"skillID": "litteral.developper.trois-facteurs", "errorType": "algebra"},
     ]})
     diagnosis = cs._diagnose_errors(client, "Développer (x+1)(x+2)(x+3)", "x^3+6x^2+11x+6",
                                     ["(x+1)(x+2) = x^2+3x+2", "(x^2+3x+2)(x+3) = x^3+3x+2"],
                                     [True, False], ["litteral.developper.trois-facteurs"])
     assert diagnosis[0] is None
-    assert diagnosis[1] == {"skillID": "litteral.developper.trois-facteurs", "errorType": "algebra",
-                            "note": "N'a pas distribué le troisième facteur."}
+    assert diagnosis[1] == {"skillID": "litteral.developper.trois-facteurs", "errorType": "algebra"}
     assert cs._error_tags(diagnosis) == [None, "algebra"]
 
 
 def test_diagnosis_drops_invented_skills_and_types_and_right_steps():
     client = _answer({"diagnosis": [
-        {"skillID": "litteral.developper.trois-facteurs", "errorType": "algebra", "note": "x"},
-        {"skillID": "not.a.skill", "errorType": "oops", "note": "  "},
+        {"skillID": "litteral.developper.trois-facteurs", "errorType": "algebra"},
+        {"skillID": "not.a.skill", "errorType": "oops", "note": "a free-text comment is dropped"},
     ]})
     diagnosis = cs._diagnose_errors(client, "s", "e", ["a", "b"], [True, False], [])
     assert diagnosis[0] is None  # the step is right: nothing to diagnose
-    assert diagnosis[1] == {"skillID": None, "errorType": None, "note": None}
+    assert diagnosis[1] == {"skillID": None, "errorType": None}
 
 
 def test_diagnosis_failure_leaves_empty_entries():
@@ -156,14 +154,14 @@ def test_failed_copy_is_diagnosed_and_saved(monkeypatch):
         "skill_ids": ["equations.premier-degre.deux-etapes"],
     })
     client = _answer({"diagnosis": [None, {"skillID": "equations.premier-degre.deux-etapes",
-                                           "errorType": "arithmetic", "note": "18 / 3 = 5"}]})
+                                           "errorType": "arithmetic"}]})
     monkeypatch.setattr(cs.claude_client, "create_client", lambda: client)
     result = cs.correct_submission_handler(make_request(
         {"submissionID": "s1", "studentSteps": ["3x = 18", "x = 5"], "attemptNumber": 1},
         auth=student_auth()))
     assert result["stepResults"] == [True, False]
     assert result["diagnosis"][1]["skillID"] == "equations.premier-degre.deux-etapes"
-    assert persisted["diagnosis"][1]["note"] == "18 / 3 = 5"
+    assert persisted["diagnosis"][1] == {"skillID": "equations.premier-degre.deux-etapes", "errorType": "arithmetic"}
     assert persisted["error_tags"] == [None, "arithmetic"]
 
 
@@ -181,5 +179,4 @@ def test_an_incomplete_system_is_diagnosed_as_incomplete(monkeypatch):
     result = cs.correct_submission_handler(make_request(
         {"submissionID": "s1", "studentSteps": ["2x = 12", "x = 6"], "attemptNumber": 1}, auth=student_auth()))
     assert result["stepResults"] == [True, False]
-    assert result["diagnosis"][1] == {"skillID": "equations.systemes.combinaison", "errorType": "incomplete",
-                                      "note": "Réponse incomplète : il manque y."}
+    assert result["diagnosis"][1] == {"skillID": "equations.systemes.combinaison", "errorType": "incomplete"}

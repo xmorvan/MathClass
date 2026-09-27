@@ -44,7 +44,6 @@ struct SkillEvidence: Hashable {
     let success: Bool
     let attempt: Int
     let errorType: String?
-    let note: String?
 }
 
 struct SkillRecord: Hashable {
@@ -73,7 +72,7 @@ struct SkillRecord: Hashable {
         return .notMastered
     }
 
-    /// Failures, most recent first, with the correction's note.
+    /// Failures, most recent first.
     var mistakes: [SkillEvidence] {
         evidence.filter { !$0.success }.sorted { $0.date > $1.date }
     }
@@ -104,8 +103,7 @@ enum SkillDiagnosis {
                     date: submission.timestamp,
                     success: success,
                     attempt: submission.attemptNumber,
-                    errorType: step?.errorType,
-                    note: step?.note
+                    errorType: step?.errorType
                 ))
                 result[submission.studentID, default: [:]][skillID] = entry
             }
@@ -141,8 +139,8 @@ enum SkillDiagnosis {
         skills.values.filter { $0.mastery == .toConfirm && $0.failures > 0 }.sorted { $0.skillID < $1.skillID }
     }
 
-    /// "En Développer, Zoé a des lacunes : produit de trois facteurs (0/3).
-    /// Erreur type : « … »."
+    /// "En Développer, Zoé ne maîtrise pas : produit de trois facteurs
+    /// (1/3 réussis)."
     static func sentence(firstName: String, record: SkillRecord) -> String {
         guard let skill = Taxonomy.shared.skill(record.skillID) else { return "" }
         let head = LocalizationManager.shared.format(
@@ -152,8 +150,7 @@ enum SkillDiagnosis {
             skill.competency.label, firstName, skill.node.label.lowercasedFirst,
             String(record.successes), String(record.total)
         )
-        guard let note = record.mistakes.first(where: { $0.note != nil })?.note else { return head }
-        return head + " " + LocalizationManager.shared.format("Erreur type : « %@ »", note)
+        return head
     }
 
     // MARK: - Class and domain
@@ -167,8 +164,6 @@ enum SkillDiagnosis {
         /// Student IDs by mastery (weakest first).
         let notMastered: [String]
         let fragile: [String]
-        /// Recent notes of the class's mistakes on this skill.
-        let notes: [String]
 
         var rate: Double { total > 0 ? Double(successes) / Double(total) : 0 }
         var struggling: Int { notMastered.count + fragile.count }
@@ -182,17 +177,13 @@ enum SkillDiagnosis {
             }
         }
         return bySkill.map { skillID, entries in
-            let notes = entries.flatMap { $0.1.mistakes }
-                .sorted { $0.date > $1.date }
-                .compactMap(\.note)
             return ClassSkill(
                 skillID: skillID,
                 students: entries.count,
                 successes: entries.reduce(0) { $0 + $1.1.successes },
                 total: entries.reduce(0) { $0 + $1.1.total },
                 notMastered: entries.filter { $0.1.mastery == .notMastered }.map(\.0).sorted(),
-                fragile: entries.filter { $0.1.mastery == .fragile }.map(\.0).sorted(),
-                notes: Array(NSOrderedSet(array: notes).array.compactMap { $0 as? String }.prefix(5))
+                fragile: entries.filter { $0.1.mastery == .fragile }.map(\.0).sorted()
             )
         }
         .sorted { ($0.struggling, -$0.rate) > ($1.struggling, -$1.rate) }

@@ -40,7 +40,7 @@ def run(case):
     entry = diagnosis[first] if first is not None and first < len(diagnosis) else None
     skill = entry.get("skillID") if entry else None
     return {"id": case.id, "exerciseSkills": skills, "skill": skill, "ok": skill in EXPECTED[case.id],
-            "expected": sorted(EXPECTED[case.id]), "note": entry.get("note") if entry else None,
+            "expected": sorted(EXPECTED[case.id]),
             "type": entry.get("errorType") if entry else None}
 
 
@@ -50,7 +50,7 @@ def main():
         rows = list(pool.map(run, cases))
     for r in rows:
         if not r["ok"]:
-            print(f"ERR {r['id']:<30} → {r['skill']} ({r['type']}) attendu {r['expected']} | {r['note']}")
+            print(f"ERR {r['id']:<30} → {r['skill']} ({r['type']}) attendu {r['expected']}")
     good = sum(r["ok"] for r in rows)
     print(f"\n{good}/{len(rows)} diagnostics justes ({round(100 * good / len(rows))} %)")
     pathlib.Path(os.environ.get("BENCH_OUT", "diagnosis_benchmark.json")).write_text(

@@ -717,13 +717,12 @@ Référentiel de savoir-faire (identifiant — Domaine › Compétence › Savoi
 
 Types d'erreur : sign_error (signe perdu ou inversé), arithmetic (erreur de calcul numérique), algebra (règle algébrique mal appliquée), method (mauvaise méthode, étape sautée), conceptual (notion mal comprise), incomplete (réponse partielle : une solution oubliée, pas de conclusion), notation (écriture incorrecte), misread (énoncé mal lu, mauvaises données), consequence (étape correctement déduite d'une étape fausse précédente).
 
-Pour CHAQUE étape marquée ERREUR, dans cet ordre :
-- "note" : UNE phrase de 20 mots au plus, pour l'enseignant, qui cite ce que l'élève a écrit et dit précisément ce qui ne va pas (ex. « 3(x + 4) = 3x + 4 : 3 distribué sur x seulement »).
+Pour CHAQUE étape marquée ERREUR :
 - "errorType" : un des types ci-dessus. Si l'étape est une conséquence logique correcte d'une étape fausse précédente, errorType = "consequence" et skillID = null : ce n'est pas une nouvelle lacune.
-- "skillID" : le savoir-faire du référentiel dont le libellé décrit LE PLUS PRÉCISÉMENT l'erreur décrite dans ta note. Préfère toujours le plus spécifique : sens de l'inégalité non inversé → « Changer le sens en multipliant par un négatif » ; mauvais rapport trigonométrique → « Choisir sin, cos ou tan » ; carré mal calculé → « Calculer une puissance » ; discriminant faux → « Calculer le discriminant » ; signe perdu en changeant un terme de membre → « Changer un terme de membre ». Pour une erreur en développant un produit de trois facteurs, même dans l'une des doubles distributivités intermédiaires : « Produit de trois facteurs ». Ce n'est pas forcément un savoir-faire de l'exercice.
+- "skillID" : le savoir-faire du référentiel dont le libellé décrit LE PLUS PRÉCISÉMENT l'erreur commise dans cette étape. Préfère toujours le plus spécifique : sens de l'inégalité non inversé → « Changer le sens en multipliant par un négatif » ; mauvais rapport trigonométrique → « Choisir sin, cos ou tan » ; carré mal calculé → « Calculer une puissance » ; discriminant faux → « Calculer le discriminant » ; signe perdu en changeant un terme de membre → « Changer un terme de membre ». Pour une erreur en développant un produit de trois facteurs, même dans l'une des doubles distributivités intermédiaires : « Produit de trois facteurs ». Ce n'est pas forcément un savoir-faire de l'exercice.
 
 Réponds UNIQUEMENT en JSON, une entrée par étape, null pour les étapes justes :
-{{"diagnosis": [null, {{"note": "...", "errorType": "...", "skillID": "..."}}]}}"""
+{{"diagnosis": [null, {{"errorType": "...", "skillID": "..."}}]}}"""
 
 
 def _diagnose_errors(
@@ -734,8 +733,9 @@ def _diagnose_errors(
     step_results: list,
     exercise_skills: list,
 ) -> list:
-    """For each wrong step, the skill that failed, how, and a note for the
-    teacher: [None | {skillID, errorType, note}] of len(student_steps).
+    """For each wrong step, the skill that failed and how:
+    [None | {skillID, errorType}] of len(student_steps). No free text about
+    the student: the teacher reads failure rates per skill.
     Best effort: a failure leaves the entries empty."""
     n = len(student_steps)
     try:
@@ -780,11 +780,9 @@ def _diagnose_errors(
             continue
         skill_id = taxonomy.within_exercise(entry.get("skillID"), exercise_skills)
         error_type = entry.get("errorType")
-        note = entry.get("note")
         diagnosis.append({
             "skillID": skill_id if taxonomy.is_skill(skill_id) else None,
             "errorType": error_type if error_type in taxonomy.ERROR_TYPES else None,
-            "note": note.strip()[:300] if isinstance(note, str) and note.strip() else None,
         })
     return diagnosis
 
@@ -1216,15 +1214,13 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                              step_results, context.get("skill_ids") or [])
             if not all_correct else None
         )
-        if diagnosis and (missing or wrong_form) and not (diagnosis[-1] or {}).get("errorType"):
+        if diagnosis and (missing or wrong_form):
             # The last line is right in itself: the gap is what it leaves
-            # out, or the form it is left in.
+            # out, or the form it is left in (known here, not guessed).
             exercise_skills = [s for s in context.get("skill_ids") or [] if taxonomy.is_skill(s)]
             diagnosis[-1] = {
                 "skillID": exercise_skills[0] if exercise_skills else None,
                 "errorType": "incomplete",
-                "note": (f"Réponse incomplète : il manque {', '.join(missing)}." if missing
-                         else "Juste, mais pas sous la forme demandée par l'énoncé."),
             }
         error_tags: list | None = _error_tags(diagnosis) if diagnosis is not None else None
         notation_note_key: str | None = (

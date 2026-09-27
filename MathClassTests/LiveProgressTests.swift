@@ -35,13 +35,13 @@ final class LiveProgressTests: XCTestCase {
         XCTAssertEqual(p.currentExerciseID, "e2")
     }
 
-    func testNeedsFixCarriesTheDiagnosisNote() {
+    func testNeedsFixNamesTheFailedSkill() {
         var wrong = copy("e2", .failed)
         wrong.correctionResult = CorrectionResult(stepResults: [false, false], diagnosis: [
-            StepDiagnosis(skillID: nil, errorType: "algebra", note: "2³ × 2⁴ = 2¹² : exposants multipliés"),
-            StepDiagnosis(skillID: nil, errorType: "consequence", note: "suite"),
+            StepDiagnosis(skillID: "nombres.puissances.produit-meme-base", errorType: "algebra"),
+            StepDiagnosis(skillID: nil, errorType: "consequence"),
         ])
-        XCTAssertEqual(progress([wrong]).mistakeNote, "2³ × 2⁴ = 2¹² : exposants multipliés")
+        XCTAssertEqual(progress([wrong]).mistakeSkillID, "nombres.puissances.produit-meme-base")
     }
 
     func testWrongSecondTrySettlesTheExercise() {

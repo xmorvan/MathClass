@@ -113,7 +113,8 @@ struct CorrectionResult: Codable, Hashable {
     }
 }
 
-/// Why a step is wrong, as the correction diagnosed it.
+/// Why a step is wrong, as the correction classified it: the skill and the
+/// kind of error, no free text about the student.
 struct StepDiagnosis: Codable, Hashable {
     /// Skill of the taxonomy that failed (nil when unknown or when the step
     /// only follows from an earlier mistake).
@@ -121,8 +122,6 @@ struct StepDiagnosis: Codable, Hashable {
     /// sign_error, arithmetic, algebra, method, conceptual, incomplete,
     /// notation, misread, consequence.
     var errorType: String?
-    /// One sentence for the teacher, citing what the student wrote.
-    var note: String?
     /// The teacher checked or corrected this diagnosis (otherwise it is
     /// the AI's proposal).
     var reviewedByTeacher: Bool?

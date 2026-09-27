@@ -35,7 +35,6 @@ enum Localizations {
         "Maîtrisé": "Mastered",
         "En %@, %@ ne maîtrise pas : %@ (%@/%@ réussis).": "In %@, %@ has not mastered: %@ (%@/%@ right).",
         "En %@, %@ est fragile : %@ (%@/%@ réussis).": "In %@, %@ is shaky: %@ (%@/%@ right).",
-        "Erreur type : « %@ »": "Typical mistake: “%@”",
         "Erreur de calcul": "Calculation error",
         "Règle algébrique": "Algebra rule",
         "Méthode": "Method",
