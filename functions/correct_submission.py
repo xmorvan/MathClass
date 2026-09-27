@@ -332,8 +332,10 @@ def sympy_check_equivalence(student_latex: str, reference_latex: str) -> bool | 
         if "=" in student_latex or "=" in reference_latex:
             return _equations_equivalent(student_latex, reference_latex)
 
-        student_expr = parse_latex(student_latex)
-        reference_expr = parse_latex(reference_latex)
+        student_expr = _parse_or_none(student_latex)
+        reference_expr = _parse_or_none(reference_latex)
+        if not isinstance(student_expr, sympy.Expr) or not isinstance(reference_expr, sympy.Expr):
+            return None
 
         # Try direct simplification (timeout-bounded).
         diff = _run_with_timeout(sympy.simplify, student_expr - reference_expr)
