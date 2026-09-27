@@ -83,7 +83,9 @@ struct CreateAssignmentView_macOS: View {
 
     private var configureView: some View {
         Form {
-            Section("Classe".tr) {
+            // Each row carries its own label: a section title repeated it
+            // ("Classe" above "Classe").
+            Section {
                 Picker("Classe".tr, selection: $assignmentVM.selectedClassID) {
                     Text("Sélectionner une classe".tr).tag(nil as String?)
                     ForEach(viewModel.classes) { classroom in
@@ -93,11 +95,11 @@ struct CreateAssignmentView_macOS: View {
                 .pickerStyle(.menu)
             }
 
-            Section("Nom".tr) {
+            Section {
                 TextField("Nom du devoir (facultatif)".tr, text: $assignmentVM.assignmentName)
             }
 
-            Section("Mode".tr) {
+            Section {
                 Picker("Mode du devoir".tr, selection: $assignmentVM.selectedMode) {
                     ForEach(AssignmentMode.allCases, id: \.self) { mode in
                         Label(mode.displayName, systemImage: mode.iconName)

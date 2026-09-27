@@ -171,12 +171,17 @@ struct SubmissionDetailView_macOS: View {
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .leading)
 
-                KaTeXView(
-                    content: "$\(step)$",
-                    mode: .preview,
-                    fontSize: 14,
-                    minHeight: 30
-                )
+                if let sentence = SubmissionViewModel.sentence(ofStep: step) {
+                    Text(sentence)
+                        .font(.body)
+                } else {
+                    KaTeXView(
+                        content: "$\(step)$",
+                        mode: .preview,
+                        fontSize: 14,
+                        minHeight: 30
+                    )
+                }
             }
 
             if firstErrorIndex == index {

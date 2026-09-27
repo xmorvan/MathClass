@@ -193,7 +193,11 @@ struct FeedbackView: View {
                     Text(LocalizationManager.shared.format("Étape %@", String(index + 1)))
                         .font(.body)
 
-                    if index < viewModel.recognizedSteps.count {
+                    if index < viewModel.recognizedSteps.count,
+                       let sentence = SubmissionViewModel.sentence(ofStep: viewModel.recognizedSteps[index]) {
+                        Text(sentence)
+                            .font(.body)
+                    } else if index < viewModel.recognizedSteps.count {
                         KaTeXView(
                             content: "$\(viewModel.recognizedSteps[index])$",
                             mode: .preview,

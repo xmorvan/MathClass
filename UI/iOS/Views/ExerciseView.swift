@@ -83,6 +83,14 @@ struct ExerciseView: View {
         .sheet(isPresented: $showingFlowSheet) {
             submissionFlowSheet(vm: submissionVM)
         }
+        // "Réessayer" hands the canvas back to the student, who corrects
+        // the work in place; the sheet used to stay open on an empty
+        // result that read "Correction en cours…" forever.
+        .onChange(of: submissionVM.phase) { _, phase in
+            if phase == .retrying {
+                showingFlowSheet = false
+            }
+        }
     }
 
     // MARK: - Exercise Header
@@ -131,9 +139,10 @@ struct ExerciseView: View {
     private var statementStack: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !exercise.statement.isEmpty {
-                // The native renderer only styles $…$; fractions, powers and
-                // other commands need KaTeX, or the student reads raw LaTeX.
-                if exercise.statement.contains("\\") {
+                // The native renderer only styles $…$; fractions, powers
+                // ("x^3"), indices and other commands need KaTeX, or the
+                // student reads raw LaTeX.
+                if exercise.statement.range(of: #"[\\^_{]"#, options: .regularExpression) != nil {
                     KaTeXView(content: exercise.statement, mode: .preview, fontSize: 20, minHeight: 90)
                         .frame(height: 90)
                         .padding(.horizontal)

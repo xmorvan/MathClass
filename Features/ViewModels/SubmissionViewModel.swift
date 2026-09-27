@@ -123,6 +123,15 @@ class SubmissionViewModel: ObservableObject {
         return cleaned.isEmpty ? [] : ["\\text{\(cleaned)}"]
     }
 
+    /// The sentence of a step made by `textStep`, to show it as plain text
+    /// (KaTeX renders `\\text` small and in a serif face); nil for maths.
+    static func sentence(ofStep step: String) -> String? {
+        let trimmed = step.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("\\text{"), trimmed.hasSuffix("}") else { return nil }
+        let inner = trimmed.dropFirst("\\text{".count).dropLast()
+        return inner.contains("{") || inner.contains("}") ? nil : String(inner)
+    }
+
     /// Send the canvas PNG to recognition and receive LaTeX steps. When the
     /// iPad already read the lines (MyScript, on device), those are used and
     /// the slower cloud recognition is skipped; the PNG is still uploaded

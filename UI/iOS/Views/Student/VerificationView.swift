@@ -208,13 +208,19 @@ struct VerificationView: View {
                             .foregroundColor(.secondary)
                             .frame(width: 56, alignment: .leading)
 
-                        KaTeXView(
-                            content: step.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "$\(step)$",
-                            mode: .preview,
-                            fontSize: 22,
-                            minHeight: 48
-                        )
-                        .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
+                        if let sentence = SubmissionViewModel.sentence(ofStep: step) {
+                            Text(sentence)
+                                .font(.title3)
+                                .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                        } else {
+                            KaTeXView(
+                                content: step.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "$\(step)$",
+                                mode: .preview,
+                                fontSize: 22,
+                                minHeight: 48
+                            )
+                            .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
+                        }
 
                         Button {
                             if editingSteps.contains(index) { editingSteps.remove(index) } else { editingSteps.insert(index) }
