@@ -84,7 +84,7 @@ Les élèves se connectent sans adresse e-mail ni mot de passe, par un compte an
 
 Chiffrement des échanges (HTTPS). Les fonctions serveur vérifient l'identité de l'appelant avant tout traitement.
 
-Minimisation : l'écriture est lue sur l'iPad ; le modèle d'intelligence artificielle ne reçoit ni nom ni identifiant d'élève, seulement l'énoncé, la réponse attendue et les étapes de calcul (l'image du tracé uniquement si la lecture sur l'iPad n'est pas disponible). Les diagnostics proposés par le modèle sont visibles de l'enseignant seul, qui peut les confirmer, les corriger ou les retirer ; la liste de connexion n'affiche que le prénom et l'initiale du nom.
+Minimisation : l'écriture est lue sur l'iPad ; le modèle d'intelligence artificielle ne reçoit ni nom ni identifiant d'élève, seulement l'énoncé, la réponse attendue et les étapes de calcul, jamais l'image du tracé ; les images sont effacées après 30 jours. Les diagnostics proposés par le modèle sont visibles de l'enseignant seul, qui peut les confirmer, les corriger ou les retirer ; la liste de connexion n'affiche que le prénom et l'initiale du nom.
 
 Clé d'accès au service d'intelligence artificielle stockée dans le gestionnaire de secrets de Google Cloud, jamais dans l'app.
 
@@ -93,6 +93,6 @@ Accès administrateur au projet Google Cloud limité au Prestataire, avec authen
 ## Annexe 3. Sous-traitants ultérieurs
 
 Google (services Firebase et Google Cloud ; entité contractante À VÉRIFIER, voir ci-dessous) :
-Cloud Firestore à Zurich (europe-west6) ; Cloud Storage à Zurich (transfert depuis les États-Unis à terminer avant la mise en service) ; Cloud Functions à Zurich (europe-west6) ; Firebase Authentication aux États-Unis (identifiants anonymes des élèves, comptes des enseignants), Google étant certifié Swiss-U.S. Data Privacy Framework ; Vertex AI (modèle Claude d'Anthropic) dans l'Union européenne (europe-west1). Délai d'effacement des données d'authentification dans les sauvegardes : 180 jours selon la documentation de Firebase.
+Cloud Firestore à Zurich (europe-west6) ; Cloud Storage à Zurich (europe-west6) ; Cloud Functions à Zurich (europe-west6) ; Firebase Authentication aux États-Unis (identifiants anonymes des élèves, comptes des enseignants), Google étant certifié Swiss-U.S. Data Privacy Framework ; Vertex AI (modèle Claude d'Anthropic) dans l'Union européenne (europe-west1). Délai d'effacement des données d'authentification dans les sauvegardes : 180 jours selon la documentation de Firebase.
 
 L'entité Google contractante exacte dépend du compte Google Cloud du Prestataire. À VÉRIFIER dans la console Google Cloud.

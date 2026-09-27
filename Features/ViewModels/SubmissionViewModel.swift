@@ -46,7 +46,6 @@ class SubmissionViewModel: ObservableObject {
     let exercise: Exercise
     let assignmentMode: AssignmentMode?
     private let studentViewModel: StudentViewModel
-    private let recognitionService: ClaudeRecognitionService
     private let correctionService: CorrectionService
     private let modeHandler: AssignmentModeHandler
     private let levelProgressRepo: LevelProgressRepository
@@ -64,7 +63,6 @@ class SubmissionViewModel: ObservableObject {
         exercise: Exercise,
         assignmentMode: AssignmentMode?,
         studentViewModel: StudentViewModel,
-        recognitionService: ClaudeRecognitionService = .shared,
         correctionService: CorrectionService = .shared,
         modeHandler: AssignmentModeHandler = .shared,
         levelProgressRepo: LevelProgressRepository = .shared
@@ -72,7 +70,6 @@ class SubmissionViewModel: ObservableObject {
         self.exercise = exercise
         self.assignmentMode = assignmentMode
         self.studentViewModel = studentViewModel
-        self.recognitionService = recognitionService
         self.correctionService = correctionService
         self.modeHandler = modeHandler
         self.levelProgressRepo = levelProgressRepo
@@ -132,18 +129,16 @@ class SubmissionViewModel: ObservableObject {
         return inner.contains("{") || inner.contains("}") ? nil : String(inner)
     }
 
-    /// Send the canvas PNG to recognition and receive LaTeX steps. When the
-    /// iPad already read the lines (MyScript, on device), those are used and
-    /// the slower cloud recognition is skipped; the PNG is still uploaded
-    /// for the teacher.
+    /// Upload the drawing (for the teacher, kept 30 days) and move to the
+    /// verification screen with the lines the iPad read (MyScript, on
+    /// device). The drawing is never sent to an AI: when nothing could be
+    /// read, the student redraws or types the lines.
     func verify(imageData: Data, duration: TimeInterval, onDeviceSteps: [String] = [], typedAnswer: String = "") async {
         let answerStep = Self.textStep(typedAnswer)
         phase = .recognizing
         timeSpent = duration
 
         do {
-            // Upload PNG to Cloud Storage via the DataService gateway
-            // (replaces direct Storage.storage() access — see CLAUDE.md).
             // Path layout is fixed by storage.rules: only this student
             // writes here; they and the class's teacher read it back.
             let studentID = studentViewModel.studentID
@@ -152,77 +147,12 @@ class SubmissionViewModel: ObservableObject {
             let imagePath = "submissions/\(classID)/\(studentID)/\(exerciseID)_attempt\(currentAttempt).png"
             _ = try await DataService.shared.uploadData(imageData, path: imagePath)
             self.pngURL = imagePath
-
-            if !onDeviceSteps.isEmpty {
-                self.recognizedSteps = onDeviceSteps + answerStep
-                self.phase = .verifying
-                return
-            }
-
-            // Call RecognitionService via Cloud Function
-            let result = try await recognitionService.recognizeFromStorage(path: imagePath)
-            self.recognizedSteps = result.latexSteps + answerStep
-            self.phase = .verifying
-        } catch let recognitionError as RecognitionError {
-            handleRecognitionFailure(recognitionError)
-            if !answerStep.isEmpty { self.recognizedSteps += answerStep }
         } catch {
-            self.error = LocalizationManager.shared.format("Erreur lors de l'envoi : %@", error.localizedDescription)
-            self.showError = true
-            // Fallback: go to verification with empty steps
-            self.recognizedSteps = []
-            self.phase = .verifying
+            // The copy can still be checked and graded without the image.
+            print("Envoi de l'image échoué: \(error.localizedDescription)")
         }
-    }
-
-    /// Re-run recognition against the PNG that was already uploaded for this
-    /// attempt. Surfaced from `VerificationView` when the first call returned
-    /// no steps or timed out (ISSUE-003).
-    func retryRecognition() async {
-        guard let imagePath = pngURL else {
-            // No PNG was ever uploaded — caller should send the student back
-            // to the canvas instead of staying on this screen.
-            self.error = "Aucun dessin à reconnaître. Veuillez retourner au dessin.".tr
-            self.showError = true
-            return
-        }
-        phase = .recognizing
-        do {
-            let result = try await recognitionService.recognizeFromStorage(path: imagePath)
-            self.recognizedSteps = result.latexSteps
-            self.phase = .verifying
-        } catch let recognitionError as RecognitionError {
-            handleRecognitionFailure(recognitionError)
-        } catch {
-            self.error = LocalizationManager.shared.format("Erreur lors de la reconnaissance : %@", error.localizedDescription)
-            self.showError = true
-            self.phase = .verifying
-        }
-    }
-
-    private func handleRecognitionFailure(_ recognitionError: RecognitionError) {
-        switch recognitionError {
-        case .lowConfidence(_, let steps):
-            // Low confidence — still show whatever steps came back, but warn
-            // and let the student decide whether to fix, retry or redraw.
-            self.recognizedSteps = steps
-            self.error = recognitionError.errorDescription
-            self.showError = true
-            self.phase = .verifying
-        default:
-            self.error = recognitionError.errorDescription ?? "Erreur de reconnaissance."
-            self.showError = true
-            // Go to verification with empty steps so the student can retry
-            // recognition, manually enter LaTeX, or go back to the canvas.
-            self.recognizedSteps = []
-            self.phase = .verifying
-        }
-    }
-
-    /// Whether the student can ask for another recognition pass on the
-    /// already-uploaded PNG (no point if no PNG was ever uploaded).
-    var canRetryRecognition: Bool {
-        pngURL != nil && phase != .recognizing && phase != .submitting
+        self.recognizedSteps = onDeviceSteps + answerStep
+        self.phase = .verifying
     }
 
     // MARK: - Step 2: Confirm LaTeX and Submit

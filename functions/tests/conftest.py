@@ -157,7 +157,7 @@ class _CollectionRef:
         return self._path
 
     def where(self, field, op, value):
-        assert op in ("==", "<"), "FakeFirestore supports == and < filters"
+        assert op in ("==", "<", ">="), "FakeFirestore supports ==, < and >= filters"
         return _CollectionRef(
             self._store, self._path, self._filters + [(field, op, value)], self._limit
         )
@@ -196,6 +196,8 @@ class FakeFirestore:
 def _matches(actual, op, expected):
     if op == "==":
         return actual == expected
+    if op == ">=":
+        return actual is not None and actual >= expected
     return actual is not None and actual < expected
 
 

@@ -16,6 +16,8 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Aucune ligne lue": "No line read",
+        "Image effacée : les copies manuscrites sont conservées 30 jours, le temps de vérifier la lecture de l'écriture.": "Image deleted: handwritten copies are kept 30 days, long enough to check how the handwriting was read.",
         "Revu par l'enseignant": "Reviewed by the teacher",
         "Proposé par l'IA": "Suggested by AI",
         "Confirmer": "Confirm",

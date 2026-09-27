@@ -15,9 +15,16 @@
       "concurrency": 4
     }
   ],
-  "storage": {
-    "rules": "storage.rules"
-  },
+  "storage": [
+    {
+      "target": "images",
+      "rules": "storage.rules"
+    },
+    {
+      "target": "legacy",
+      "rules": "storage.rules"
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099

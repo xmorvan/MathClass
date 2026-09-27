@@ -127,7 +127,8 @@ def delete_account(req: https_fn.CallableRequest) -> dict:
 
 @scheduler_fn.on_schedule(schedule="every day 03:00", timezone=scheduler_fn.Timezone("Europe/Zurich"))
 def purge_old_submissions(event: scheduler_fn.ScheduledEvent) -> None:
-    """Delete submissions and handwriting images older than the retention period."""
-    from data_deletion import purge_old_submissions as purge
+    """Delete handwriting images after 30 days and submissions after a year."""
+    from data_deletion import purge_old_images, purge_old_submissions as purge
+    cleared = purge_old_images()
     deleted = purge()
-    print(f"[purge_old_submissions] deleted {deleted} submissions")
+    print(f"[purge_old_submissions] cleared {cleared} images, deleted {deleted} submissions")

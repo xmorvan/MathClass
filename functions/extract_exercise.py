@@ -146,7 +146,8 @@ def extract_exercise_handler(req: https_fn.CallableRequest) -> dict:
 
     try:
         # Download image from Cloud Storage
-        bucket = storage.bucket()
+        from storage_location import images_bucket
+        bucket = images_bucket(storage)
         blob = bucket.blob(storage_path)
 
         if not blob.exists():

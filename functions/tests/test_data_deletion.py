@@ -166,3 +166,35 @@ def test_purge_deletes_only_submissions_past_retention(env):
     assert "submissions/class-2/stu-9/ex-2_attempt1.png" not in env.bucket.paths
     assert {"submissions/sub-1", "submissions/sub-9"} <= set(env.db.docs)
     assert "submissions/class-2/stu-9/ex-2_attempt2.png" in env.bucket.paths
+
+
+# ---------------------------------------------------------------------------
+# purge_old_images
+# ---------------------------------------------------------------------------
+
+
+def test_images_go_after_a_month_the_copy_stays(env):
+    month_old = NOW - datetime.timedelta(days=33)
+    env.db.docs["submissions/sub-month"] = {
+        "studentID": "stu-1", "classID": "class-1", "teacherID": "teacher-1",
+        "pngURL": "submissions/class-1/stu-1/ex-3_attempt1.png", "timestamp": month_old,
+    }
+    env.bucket.paths.add("submissions/class-1/stu-1/ex-3_attempt1.png")
+
+    cleared = data_deletion.purge_old_images(now=NOW)
+
+    assert cleared == 1
+    assert "submissions/class-1/stu-1/ex-3_attempt1.png" not in env.bucket.paths
+    assert env.db.docs["submissions/sub-month"]["pngURL"] is None
+    assert env.db.docs["submissions/sub-month"]["imageDeleted"] is True
+    # A 10-day-old drawing stays.
+    assert "submissions/class-1/stu-1/ex-1_attempt1.png" in env.bucket.paths
+    # Outside the daily window (400 days): left to the catch-up run.
+    assert "submissions/class-2/stu-9/ex-2_attempt1.png" in env.bucket.paths
+
+
+def test_catch_up_run_clears_every_older_image(env):
+    cleared = data_deletion.purge_old_images(now=NOW, window_days=None)
+    assert cleared == 1
+    assert "submissions/class-2/stu-9/ex-2_attempt1.png" not in env.bucket.paths
+    assert env.db.docs["submissions/sub-old"]["pngURL"] is None

@@ -117,7 +117,8 @@ def recognize_handwriting_handler(req: https_fn.CallableRequest) -> dict:
     try:
         # Get image data
         if storage_path:
-            bucket = storage.bucket()
+            from storage_location import images_bucket
+            bucket = images_bucket(storage)
             blob = bucket.blob(storage_path)
 
             if not blob.exists():

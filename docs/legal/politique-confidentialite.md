@@ -30,7 +30,7 @@ MathClass traite les données suivantes :
 |---|---|---|
 | Prénom et nom | saisis par l'enseignant | identifier l'élève dans la classe |
 | Niveau (1 à 5) et groupe | saisis par l'enseignant | proposer des exercices adaptés |
-| Copie manuscrite (image du tracé sur l'iPad) | produite par l'élève | montrer la copie à l'enseignant ; la transcrire si la lecture sur l'iPad n'est pas disponible |
+| Copie manuscrite (image du tracé sur l'iPad) | produite par l'élève | permettre à l'enseignant de vérifier qu'une erreur n'est pas une mauvaise lecture de l'écriture ; conservée 30 jours |
 | Étapes transcrites en notation mathématique, phrase-réponse saisie au clavier | vérifiées par l'élève | corriger le raisonnement |
 | Résultat par étape, temps passé, progression | calculés par MathClass | retour à l'élève, suivi par l'enseignant |
 | Diagnostic des étapes fausses : savoir-faire en cause et type d'erreur (catégories fixes, aucun texte libre sur l'élève) | proposé par le modèle d'IA, que l'enseignant peut confirmer, corriger ou retirer | aider l'enseignant à repérer ce que l'élève doit retravailler |
@@ -55,21 +55,21 @@ MathClass ne vend aucune donnée, n'affiche aucune publicité et ne se sert pas 
 Le processus, dans l'ordre :
 
 1. L'écriture de l'élève est lue sur l'iPad lui-même (moteur MyScript intégré à l'app) : rien ne sort de l'appareil pour cette étape. L'élève voit ce qui est lu et le corrige si besoin.
-2. L'image du tracé est enregistrée pour que l'enseignant puisse voir la copie.
+2. L'image du tracé est enregistrée à Zurich, pour que l'enseignant puisse vérifier qu'une erreur n'est pas une mauvaise lecture de l'écriture. Elle n'est envoyée à aucune intelligence artificielle et elle est effacée après 30 jours. Si l'iPad n'arrive pas à lire l'écriture, l'élève réécrit ou tape ses lignes au clavier.
 3. La correction est faite d'abord par un calcul symbolique (SymPy) sur les serveurs de MathClass ; le modèle d'intelligence artificielle (Claude, développé par Anthropic) n'est consulté que pour les étapes que ce calcul ne peut pas trancher.
 4. Quand une copie est fausse, le modèle propose un diagnostic de chaque étape fausse : le savoir-faire en cause (par exemple « Développer › produit de trois facteurs ») et le type d'erreur, choisis dans des listes fixes. Le modèle ne rédige aucun commentaire sur l'élève. Ce diagnostic est visible par l'enseignant seul ; il est marqué « Proposé par l'IA » et l'enseignant peut le confirmer, le corriger ou le retirer.
 5. Les statistiques de l'enseignant regroupent ces diagnostics par savoir-faire et par élève. Les phrases de synthèse (« En Développer, Zoé ne maîtrise pas … ») sont assemblées par l'app à partir d'un modèle fixe ; le prénom y est ajouté sur l'appareil de l'enseignant.
 
 Le résultat est une aide pédagogique : aucune note scolaire, aucune décision ayant des effets juridiques ou significatifs pour l'élève n'est prise automatiquement ; l'enseignant reste seul juge de l'évaluation.
 
-Ce qui est envoyé au modèle : l'énoncé de l'exercice, la réponse attendue, les étapes transcrites de l'élève et les savoir-faire de l'exercice ; l'image du tracé seulement si la lecture sur l'iPad n'est pas disponible. Le nom de l'élève, son niveau, sa classe et ses identifiants ne sont jamais envoyés. Le modèle sert aussi à classer les exercices de l'enseignant par savoir-faire (sans aucune donnée d'élève).
+Ce qui est envoyé au modèle : l'énoncé de l'exercice, la réponse attendue, les étapes transcrites de l'élève et les savoir-faire de l'exercice. Jamais l'image du tracé. Le nom de l'élève, son niveau, sa classe et ses identifiants ne sont jamais envoyés. Le modèle sert aussi à classer les exercices de l'enseignant par savoir-faire (sans aucune donnée d'élève).
 
 ## 5. Prestataires et lieux de traitement
 
 | Prestataire | Service | Lieu |
 |---|---|---|
 | Google (Firebase) | base de données Cloud Firestore (fiches, copies transcrites, diagnostics) | Zurich, Suisse (europe-west6), vérifié le 27 septembre 2026 |
-| Google (Firebase) | stockage des images Cloud Storage | aujourd'hui États-Unis (us-west1) ; transfert vers Zurich prévu avant toute utilisation avec des élèves (voir notes pour le juriste) |
+| Google (Firebase) | stockage des images Cloud Storage | Zurich, Suisse (europe-west6), depuis le 27 septembre 2026. L'ancien espace de stockage aux États-Unis, qui contient encore des copies de test, sera supprimé. |
 | Google (Firebase) | fonctions serveur (Cloud Functions) | Zurich, Suisse (europe-west6) |
 | Google (Firebase Authentication) | comptes enseignants, comptes anonymes des élèves | États-Unis |
 | Google Cloud (Vertex AI) | exécution du modèle Claude | Union européenne (région europe-west1, Belgique) ; en attente de l'ouverture du quota par Google. Pendant les tests internes, sans données d'élèves réels, l'API d'Anthropic aux États-Unis est utilisée. |
@@ -81,7 +81,7 @@ Google agit comme sous-traitant de MathClass selon ses conditions de traitement 
 
 ## 6. Durée de conservation
 
-Les copies manuscrites, les transcriptions, les résultats et les diagnostics (qui sont enregistrés avec la copie) sont supprimés automatiquement douze mois après leur envoi.
+Les images des copies manuscrites sont supprimées automatiquement 30 jours après leur envoi. Les transcriptions, les résultats et les diagnostics (enregistrés avec la copie) sont supprimés automatiquement douze mois après leur envoi.
 
 Quand un enseignant supprime une classe, MathClass supprime immédiatement la classe, ses élèves, leurs copies, leurs images et leur progression.
 

@@ -1,5 +1,27 @@
 {
   "projects": {
     "default": "mathclass-a9328"
+  },
+  "targets": {
+    "mathclass-a9328": {
+      "storage": {
+        "images": [
+          "mathclass-a9328-zurich"
+        ],
+        "legacy": [
+          "mathclass-a9328.firebasestorage.app"
+        ]
+      }
+    },
+    "demo-mathclass": {
+      "storage": {
+        "images": [
+          "demo-mathclass.appspot.com"
+        ],
+        "legacy": [
+          "demo-mathclass-legacy"
+        ]
+      }
+    }
   }
 }

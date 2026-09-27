@@ -16,17 +16,17 @@ L'enseignant voit uniquement les classes qu'il a créées. L'élève voit unique
 
 ## Intelligence artificielle
 
-L'écriture est lue sur l'iPad, sans rien transmettre. La correction se fait d'abord par calcul symbolique ; le modèle Claude (Anthropic), exécuté par Google Cloud dans l'Union européenne, n'intervient que lorsque ce calcul ne suffit pas, et pour proposer le diagnostic des erreurs. Il reçoit l'énoncé, la réponse attendue et les étapes de calcul, jamais le nom de l'élève ni un identifiant. Les données ne servent pas à entraîner de modèle.
+L'écriture est lue sur l'iPad, sans rien transmettre ; l'image de la copie n'est jamais envoyée à une IA. La correction se fait d'abord par calcul symbolique ; le modèle Claude (Anthropic), exécuté par Google Cloud dans l'Union européenne, n'intervient que lorsque ce calcul ne suffit pas, et pour proposer le diagnostic des erreurs. Il reçoit l'énoncé, la réponse attendue et les étapes de calcul, jamais le nom de l'élève ni un identifiant. Les données ne servent pas à entraîner de modèle.
 
 Tout est une aide pour l'enseignant : l'élève valide la lecture de sa copie ; chaque diagnostic est marqué « Proposé par l'IA » et l'enseignant peut le confirmer, le corriger ou le retirer ; aucune note ni décision n'est prise automatiquement. Les diagnostics ne sont pas montrés aux élèves.
 
 ## Où sont les données
 
-Les fonctions serveur et la base de données sont à Zurich. Les images des copies seront stockées à Zurich (transfert en cours ; à confirmer avant diffusion de cette fiche). Les comptes de connexion sont gérés par Firebase Authentication aux États-Unis ; pour un élève, il ne s'agit que d'un identifiant anonyme, sans nom. Google est certifié Swiss-U.S. Data Privacy Framework.
+Les fonctions serveur et la base de données sont à Zurich. Les images des copies sont stockées à Zurich. Les comptes de connexion sont gérés par Firebase Authentication aux États-Unis ; pour un élève, il ne s'agit que d'un identifiant anonyme, sans nom. Google est certifié Swiss-U.S. Data Privacy Framework.
 
 ## Combien de temps
 
-Les copies, les résultats et les diagnostics sont supprimés automatiquement douze mois après leur envoi. L'enseignant peut supprimer une classe à tout moment : toutes les données de la classe disparaissent immédiatement. En fin de contrat, toutes les données de l'établissement sont supprimées dans les 30 jours.
+Les images des copies sont supprimées après 30 jours (elles ne servent qu'à vérifier la lecture de l'écriture) ; les copies transcrites, les résultats et les diagnostics après douze mois. L'enseignant peut supprimer une classe à tout moment : toutes les données de la classe disparaissent immédiatement. En fin de contrat, toutes les données de l'établissement sont supprimées dans les 30 jours.
 
 ## Ce qui n'existe pas dans MathClass
 

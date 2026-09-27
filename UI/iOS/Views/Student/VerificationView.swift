@@ -150,7 +150,7 @@ struct VerificationView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.secondary)
 
-            Text("Aucune étape reconnue".tr)
+            Text("Aucune ligne lue".tr)
                 .font(.headline)
 
             Text("La reconnaissance n'a rien lu sur votre dessin.\nRetournez au dessin pour réécrire plus lisiblement, ou écrivez vos étapes au clavier.".tr)
@@ -165,15 +165,6 @@ struct VerificationView: View {
                     Label("Retour au dessin".tr, systemImage: "arrow.uturn.left")
                 }
                 .buttonStyle(.bordered)
-
-                if viewModel.canRetryRecognition {
-                    Button {
-                        Task { await viewModel.retryRecognition() }
-                    } label: {
-                        Label("Réessayer".tr, systemImage: "arrow.clockwise")
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
 
                 Button {
                     addStep()
@@ -194,15 +185,6 @@ struct VerificationView: View {
                 Text("Étapes reconnues".tr)
                     .font(.headline)
                 Spacer()
-                if viewModel.canRetryRecognition {
-                    Button {
-                        Task { await viewModel.retryRecognition() }
-                    } label: {
-                        Label("Reconnaître à nouveau".tr, systemImage: "arrow.clockwise")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
 
             Text("Vérifiez que chaque ligne correspond à ce que vous avez écrit. Sinon, corrigez-la au clavier, supprimez-la ou ajoutez une ligne.".tr)

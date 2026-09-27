@@ -25,6 +25,12 @@ from firebase_functions import https_fn
 import auth_guard
 
 RETENTION_DAYS = 365
+# The drawing only lets the teacher check that a mistake is not a misread
+# of the handwriting: it is kept a month, the copy (steps, result) a year.
+IMAGE_RETENTION_DAYS = 30
+# Days before the image cutoff the daily purge looks at: catches up if a
+# run fails, without reading a year of copies every day.
+IMAGE_PURGE_WINDOW_DAYS = 7
 _PAGE = 300
 
 
@@ -34,7 +40,8 @@ def _bucket():
 
     if not firebase_admin._apps:
         firebase_admin.initialize_app()
-    return storage.bucket()
+    from storage_location import images_bucket
+    return images_bucket(storage)
 
 
 def _delete_blob(bucket, path) -> None:
@@ -127,6 +134,28 @@ def delete_account_handler(req: https_fn.CallableRequest) -> dict:
 
     auth.delete_user(uid)
     return {"deletedClasses": len(class_ids)}
+
+
+def purge_old_images(now: datetime.datetime | None = None, window_days: int | None = IMAGE_PURGE_WINDOW_DAYS) -> int:
+    """Delete the drawings of copies older than IMAGE_RETENTION_DAYS and
+    clear their pngURL; the copies stay. window_days=None scans every older
+    copy (one-off catch-up)."""
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    cutoff = now - datetime.timedelta(days=IMAGE_RETENTION_DAYS)
+    db = auth_guard._get_firestore()
+    query = db.collection("submissions").where("timestamp", "<", cutoff)
+    if window_days is not None:
+        query = query.where("timestamp", ">=", cutoff - datetime.timedelta(days=window_days))
+    bucket = _bucket()
+    cleared = 0
+    for snapshot in query.stream():
+        path = (snapshot.to_dict() or {}).get("pngURL")
+        if not path:
+            continue
+        _delete_blob(bucket, path)
+        snapshot.reference.update({"pngURL": None, "imageDeleted": True})
+        cleared += 1
+    return cleared
 
 
 def purge_old_submissions(now: datetime.datetime | None = None) -> int:

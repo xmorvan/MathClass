@@ -34,7 +34,17 @@ class DataService: ObservableObject {
 
     // MARK: - Storage
 
-    let storage = Storage.storage()
+    /// Images (students' drawings, exercise photos) live in Zurich
+    /// (europe-west6), not in the project's default bucket, which is in the
+    /// United States. Same bucket as IMAGES_BUCKET in functions/.env.
+    static let imagesBucketURL = "gs://mathclass-a9328-zurich"
+
+    /// The images bucket; the emulators keep their default bucket.
+    static var imagesStorage: Storage {
+        FirebaseEmulator.isEnabled ? Storage.storage() : Storage.storage(url: imagesBucketURL)
+    }
+
+    let storage = DataService.imagesStorage
 
     private init() {}
 

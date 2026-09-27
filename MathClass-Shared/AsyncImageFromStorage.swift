@@ -73,7 +73,7 @@ struct AsyncImageFromStorage: View {
 
     private func loadImage() {
         isLoading = true
-        let ref = Storage.storage().reference().child(path)
+        let ref = DataService.imagesStorage.reference().child(path)
         ref.getData(maxSize: 10 * 1024 * 1024) { data, error in
             DispatchQueue.main.async {
                 isLoading = false

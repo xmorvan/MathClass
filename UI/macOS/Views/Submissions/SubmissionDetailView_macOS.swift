@@ -127,6 +127,10 @@ struct SubmissionDetailView_macOS: View {
                 .font(.headline)
             if let path = submission.pngURL, !path.isEmpty {
                 AsyncImageFromStorage(path: path)
+            } else if submission.imageDeleted == true {
+                Text("Image effacée : les copies manuscrites sont conservées 30 jours, le temps de vérifier la lecture de l'écriture.".tr)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             } else {
                 Text("Aucun PNG enregistré pour cette soumission.".tr)
                     .font(.caption)

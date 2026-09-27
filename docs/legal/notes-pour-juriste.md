@@ -36,7 +36,7 @@ Suppression automatique des copies à douze mois, suppression immédiate d'une c
 
 ## Points à vérifier avant publication
 
-1. Emplacements vérifiés le 27 septembre 2026 : Cloud Firestore à Zurich (europe-west6) ; **bucket Cloud Storage aux États-Unis (us-west1)**. L'emplacement d'un bucket ne se change pas : il faut créer un bucket à Zurich, y copier les images, publier une version de l'app qui l'utilise, puis supprimer l'ancien. À faire avant tout usage avec de vrais élèves.
+1. Emplacements au 27 septembre 2026 : Cloud Firestore à Zurich (europe-west6) ; images dans un nouveau bucket à Zurich (mathclass-a9328-zurich), copiées depuis l'ancien bucket américain (us-west1). Reste à publier la nouvelle version de l'app sur TestFlight et sur l'iPad de test, puis à supprimer l'ancien bucket. Les images sont effacées après 30 jours et ne sont plus envoyées à l'IA (la lecture se fait sur l'iPad).
 1 bis. Vertex AI en Europe : le quota de Claude Haiku 4.5 en europe-west1 est toujours à zéro (vérifié le 27 septembre 2026) ; une demande d'augmentation doit être faite dans la console Google Cloud. D'ici là, l'API Anthropic (États-Unis) sert aux seuls tests internes, sans données d'élèves réels.
 2. Conditions de Google Cloud pour les modèles partenaires sur Vertex AI : absence de conservation des requêtes, absence d'entraînement, rôle d'Anthropic (accède-t-il aux requêtes ?). Une source secondaire affirme « zero data retention » ; aucune source Google primaire relue à ce jour.
 3. Entité Google contractante et acceptation des Data Processing and Security Terms (console Google Cloud).

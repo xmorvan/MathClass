@@ -27,6 +27,9 @@ struct Submission: Identifiable, Codable {
     var inkDataRef: String?
     /// Cloud Storage URL to the PNG export of the student's handwriting
     var pngURL: String?
+    /// The drawing was deleted after 30 days (data_deletion.purge_old_images);
+    /// the steps and the result stay a year.
+    var imageDeleted: Bool?
     /// The LaTeX steps extracted from handwriting recognition (confirmed by student)
     var latexSteps: [String]
     /// The correction result from the hybrid Claude + SymPy pipeline

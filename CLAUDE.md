@@ -83,7 +83,9 @@ The teacher's statistics are a diagnosis on a built-in taxonomy **domaine › co
 The app is bilingual French/English. FR is the source-of-truth for keys: views call `Text("Foo")` with the French copy as the literal, and `String.tr` looks up the English translation in `Core/Resources/Localizations.swift`. The teacher profile has a language picker; the choice is persisted in `UserDefaults` and the SwiftUI tree rebuilds via `.id(language)` so every visible string flips immediately. `LocalizationManager.shared` is the single source of truth.
 
 ### Data Flow (student solving an exercise)
-Student draws → MyScript reads each written line live on the iPad (`MathClass/MyScript/MathInkRecognizer.swift`, shown beside the canvas) → student checks the lines → PNG uploaded for the teacher → `correct_submission` (SymPy first, Claude only when SymPy cannot decide) → per-step feedback in `FeedbackView`. Without MyScript, the PNG goes through `recognize_handwriting` (Claude Vision) instead.
+Student draws → MyScript reads each written line live on the iPad (`MathClass/MyScript/MathInkRecognizer.swift`, shown beside the canvas) → student checks the lines (or types them) → PNG uploaded for the teacher → `correct_submission` (SymPy first, Claude only when SymPy cannot decide) → per-step feedback in `FeedbackView`. The drawing is never sent to an AI: when MyScript reads nothing, the student redraws or types (the `recognize_handwriting` fallback is no longer called by the app; the founder wants to test without it).
+
+Images (drawings, exercise photos) live in the Zurich bucket `mathclass-a9328-zurich` (`DataService.imagesStorage` in the app, `IMAGES_BUCKET` / `storage_location.py` in functions; storage deploy targets in `.firebaserc`). Drawings are deleted after 30 days (`data_deletion.purge_old_images`, daily), submissions after a year. The old US bucket `mathclass-a9328.firebasestorage.app` still holds copies until it is deleted.
 
 ### Firestore Structure
 ```

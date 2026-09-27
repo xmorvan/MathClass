@@ -100,7 +100,8 @@ def delete_student_data_handler(req: https_fn.CallableRequest) -> dict:
 
     # Storage prefix.
     deleted_blobs = 0
-    bucket = storage.bucket()
+    from storage_location import images_bucket
+    bucket = images_bucket(storage)
     # Drawings live under submissions/{classID}/{studentID}/ (the pre-2026-09
     # layout was submissions/{studentID}/, kept for old uploads).
     for prefix in (f"submissions/{class_id}/{student_id}/", f"submissions/{student_id}/"):
