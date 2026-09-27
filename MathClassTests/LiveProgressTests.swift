@@ -35,6 +35,15 @@ final class LiveProgressTests: XCTestCase {
         XCTAssertEqual(p.currentExerciseID, "e2")
     }
 
+    func testNeedsFixCarriesTheDiagnosisNote() {
+        var wrong = copy("e2", .failed)
+        wrong.correctionResult = CorrectionResult(stepResults: [false, false], diagnosis: [
+            StepDiagnosis(skillID: nil, errorType: "algebra", note: "2³ × 2⁴ = 2¹² : exposants multipliés"),
+            StepDiagnosis(skillID: nil, errorType: "consequence", note: "suite"),
+        ])
+        XCTAssertEqual(progress([wrong]).mistakeNote, "2³ × 2⁴ = 2¹² : exposants multipliés")
+    }
+
     func testWrongSecondTrySettlesTheExercise() {
         let p = progress([copy("e1", .failed, minutesAgo: 2), copy("e1", .failed, attempt: 2)])
         XCTAssertEqual(p.state, .working)

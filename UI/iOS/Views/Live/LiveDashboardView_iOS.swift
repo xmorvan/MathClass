@@ -248,6 +248,12 @@ private struct StudentTile_iOS: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
+            if let note = progress?.mistakeNote {
+                Text(note)
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                    .lineLimit(2)
+            }
             if let progress, progress.assigned > 0 {
                 HStack(spacing: 6) {
                     ProgressView(value: Double(progress.done), total: Double(progress.assigned))

@@ -29,6 +29,9 @@ struct LiveProgress: Equatable {
     let succeeded: Int
     /// Exercise of the latest copy.
     let currentExerciseID: String?
+    /// What went wrong in the latest copy, when it needs fixing (the
+    /// correction's diagnosis note), so the teacher knows what to say.
+    var mistakeNote: String? = nil
 
     /// A student without a copy for this long is shown as idle.
     static let idleAfter: TimeInterval = 5 * 60
@@ -74,12 +77,16 @@ struct LiveProgress: Equatable {
         } else {
             state = .working
         }
+        let note = state == .needsFix
+            ? latest.correctionResult?.diagnosis?.compactMap { $0 }.first { !$0.isConsequence && $0.note != nil }?.note
+            : nil
         return LiveProgress(
             state: state,
             assigned: assigned.count,
             done: settled.count,
             succeeded: succeeded.count,
-            currentExerciseID: latest.exerciseID
+            currentExerciseID: latest.exerciseID,
+            mistakeNote: note
         )
     }
 }

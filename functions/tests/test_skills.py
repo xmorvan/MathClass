@@ -167,3 +167,21 @@ def test_error_in_a_more_basic_skill_is_kept():
     diagnosis = cs._diagnose_errors(client, "Résoudre", "", ["..."], [False],
                                     ["equations.premier-degre.deux-etapes"])
     assert diagnosis[0]["skillID"] == "nombres.relatifs.regle-des-signes"
+
+
+def test_an_incomplete_system_is_diagnosed_as_incomplete(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(cs, "_persist_correction", lambda **kw: None)
+    monkeypatch.setattr(cs, "_authorize", lambda req, sid: {
+        "expected_answer": r"x = 6 \text{ et } y = 4", "statement": "Système", "notation_strict": False,
+        "is_teacher": False, "stored_steps": [], "stored_attempt": None,
+        "skill_ids": ["equations.systemes.combinaison"],
+    })
+    client = _answer({"diagnosis": [None, None]})
+    monkeypatch.setattr(cs.claude_client, "create_client", lambda: client)
+    monkeypatch.setattr(cs, "sympy_grade_steps", lambda *_: [True, True])
+    result = cs.correct_submission_handler(make_request(
+        {"submissionID": "s1", "studentSteps": ["2x = 12", "x = 6"], "attemptNumber": 1}, auth=student_auth()))
+    assert result["stepResults"] == [True, False]
+    assert result["diagnosis"][1] == {"skillID": "equations.systemes.combinaison", "errorType": "incomplete",
+                                      "note": "Réponse incomplète : il manque y."}

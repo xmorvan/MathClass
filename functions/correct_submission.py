@@ -536,39 +536,43 @@ def _stated_values(latex: str) -> dict:
 
 
 def answer_is_incomplete(expected_answer: str, steps: list) -> bool:
+    return bool(missing_unknowns(expected_answer, steps))
+
+
+def missing_unknowns(expected_answer: str, steps: list) -> list:
     """True when the expected answer gives several unknowns (x = 6 et
     y = 4) and the work never states one of them: "x = 6" alone answers
     half of the system."""
     _ensure_sympy()
     if not SYMPY_AVAILABLE:
-        return False
+        return []
     try:
         expected = [p for p in _SOLUTION_SEPARATORS.split(_prepare(expected_answer)) if p.strip()]
         if len(expected) < 2:
-            return False
+            return []
         wanted = []
         for part in expected:
             sides = _sides(part) if "=" in part else None
             if not sides or len(sides) != 2 or not isinstance(sides[0], sympy.Symbol) or sides[1].free_symbols:
-                return False  # not a list of values: nothing to check
+                return []  # not a list of values: nothing to check
             wanted.append((sides[0].name.lower(), sides[1]))
         # Alternatives for one unknown (x = 2 ou x = 3) are compared as
         # solution sets elsewhere; here, several unknowns (a system).
         if len({name for name, _ in wanted}) < 2:
-            return False
+            return []
         # An answer given as a set, S = {(6 ; 4)}, is left to the other checks.
         if any("\\{" in step or re.search(r"\bS\s*=", step) for step in steps):
-            return False
+            return []
         stated: dict = {}
         for step in steps:
             for name, values in _stated_values(step).items():
                 stated.setdefault(name, []).extend(values)
-        return any(
-            not any(_expressions_equal(value, candidate) is True for candidate in stated.get(name, []))
-            for name, value in wanted
-        )
+        return [
+            name for name, value in wanted
+            if not any(_expressions_equal(value, candidate) is True for candidate in stated.get(name, []))
+        ]
     except Exception:  # noqa: BLE001 — a check that cannot run blocks nothing
-        return False
+        return []
 
 
 def final_form_is_wrong(statement: str, last_step: str) -> bool:
@@ -1187,8 +1191,9 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
 
         # Every part of a multi-part answer must be given: "x = 6" alone
         # does not solve a system whose answer is x = 6 et y = 4.
-        if step_results and step_results[-1] and answer_is_incomplete(expected_answer, student_steps):
-            print(f"[correct_submission] incomplete answer for {expected_answer[:60]!r}")
+        missing = missing_unknowns(expected_answer, student_steps) if step_results and step_results[-1] else []
+        if missing:
+            print(f"[correct_submission] incomplete answer for {expected_answer[:60]!r}: {missing}")
             step_results[-1] = False
             if first_error_index is None:
                 first_error_index = len(step_results) - 1
@@ -1224,6 +1229,14 @@ def correct_submission_handler(req: https_fn.CallableRequest) -> dict:
                              step_results, context.get("skill_ids") or [])
             if not all_correct else None
         )
+        if diagnosis and missing and diagnosis[-1] is None:
+            # The last line is right in itself: the gap is what it leaves out.
+            exercise_skills = [s for s in context.get("skill_ids") or [] if taxonomy.is_skill(s)]
+            diagnosis[-1] = {
+                "skillID": exercise_skills[0] if exercise_skills else None,
+                "errorType": "incomplete",
+                "note": f"Réponse incomplète : il manque {', '.join(missing)}.",
+            }
         error_tags: list | None = _error_tags(diagnosis) if diagnosis is not None else None
         notation_note_key: str | None = (
             notation_future.result() if notation_future is not None else None
