@@ -35,9 +35,10 @@ final class StatisticsService {
         submissions: [Submission],
         exerciseCompetencyMap: [String: [String]]
     ) -> StudentStats {
-        let studentSubmissions = submissions.filter { $0.studentID == studentID }
+        let studentSubmissions = submissions.filter { $0.studentID == studentID && $0.finalResult != nil }
 
-        // Use best result per exercise (avoid double-counting attempts)
+        // Best result per exercise of each assignment (a second try does not
+        // count twice; the same exercise given in two lessons counts twice).
         let bestByExercise = bestResultPerExercise(studentSubmissions)
 
         let totalAttempts = bestByExercise.count
@@ -51,8 +52,8 @@ final class StatisticsService {
         var competencyCorrect: [String: Int] = [:]
         var competencyTotal: [String: Int] = [:]
 
-        for (exerciseID, submission) in bestByExercise {
-            let competencies = exerciseCompetencyMap[exerciseID] ?? []
+        for submission in bestByExercise.values {
+            let competencies = exerciseCompetencyMap[submission.exerciseID] ?? []
             for competency in competencies {
                 competencyTotal[competency, default: 0] += 1
                 if submission.finalResult?.isSuccess == true {
@@ -98,9 +99,9 @@ final class StatisticsService {
         exerciseID: String,
         submissions: [Submission]
     ) -> ExerciseStats {
-        let exerciseSubmissions = submissions.filter { $0.exerciseID == exerciseID }
+        let exerciseSubmissions = submissions.filter { $0.exerciseID == exerciseID && $0.finalResult != nil }
 
-        // Best result per student
+        // Best result per student and assignment
         let bestByStudent = bestResultPerStudent(exerciseSubmissions)
 
         let totalSubmissions = bestByStudent.count
@@ -114,7 +115,8 @@ final class StatisticsService {
         var stepExpressions: [Int: [String: Int]] = [:]
         var failedStudentsByStep: [Int: [String]] = [:]
 
-        for (studentID, submission) in bestByStudent {
+        for submission in bestByStudent.values {
+            let studentID = submission.studentID
             guard let correction = submission.correctionResult else { continue }
 
             for (index, isCorrect) in correction.stepResults.enumerated() {
@@ -172,7 +174,7 @@ final class StatisticsService {
         submissions: [Submission],
         exerciseCompetencyMap: [String: [String]]
     ) -> ClassStats {
-        let classSubmissions = submissions.filter { studentIDs.contains($0.studentID) }
+        let classSubmissions = submissions.filter { studentIDs.contains($0.studentID) && $0.finalResult != nil }
 
         // Per-student stats
         var allStudentStats: [StudentStats] = []
@@ -236,61 +238,38 @@ final class StatisticsService {
 
     // MARK: - Helpers
 
-    /// Best submission result per exercise (for a single student's submissions).
+    /// Best submission per key: success over failure, then 1st try over 2nd.
+    private func best(_ submissions: [Submission], by key: (Submission) -> String) -> [String: Submission] {
+        var best: [String: Submission] = [:]
+        for submission in submissions {
+            let k = key(submission)
+            if let existing = best[k] {
+                if (submission.finalResult?.isSuccess == true && existing.finalResult?.isSuccess != true)
+                    || (submission.finalResult == .success1st && existing.finalResult != .success1st) {
+                    best[k] = submission
+                }
+            } else {
+                best[k] = submission
+            }
+        }
+        return best
+    }
+
+    /// Best result per exercise of each assignment (one student's copies).
+    /// Keyed by assignment too: an exercise reused in another lesson is
+    /// another piece of work, not a retry.
     private func bestResultPerExercise(_ submissions: [Submission]) -> [String: Submission] {
-        var best: [String: Submission] = [:]
-
-        for submission in submissions {
-            let exerciseID = submission.exerciseID
-            if let existing = best[exerciseID] {
-                // Prefer success over failure, then 1st > 2nd > failed
-                if (submission.finalResult?.isSuccess == true && existing.finalResult?.isSuccess != true)
-                    || (submission.finalResult == .success1st && existing.finalResult != .success1st) {
-                    best[exerciseID] = submission
-                }
-            } else {
-                best[exerciseID] = submission
-            }
-        }
-
-        return best
+        best(submissions) { "\($0.assignmentID)|\($0.exerciseID)" }
     }
 
-    /// Best submission result per student (for a single exercise's submissions).
+    /// Best result per student and assignment (one exercise's copies).
     private func bestResultPerStudent(_ submissions: [Submission]) -> [String: Submission] {
-        var best: [String: Submission] = [:]
-
-        for submission in submissions {
-            let studentID = submission.studentID
-            if let existing = best[studentID] {
-                if (submission.finalResult?.isSuccess == true && existing.finalResult?.isSuccess != true)
-                    || (submission.finalResult == .success1st && existing.finalResult != .success1st) {
-                    best[studentID] = submission
-                }
-            } else {
-                best[studentID] = submission
-            }
-        }
-
-        return best
+        best(submissions) { "\($0.studentID)|\($0.assignmentID)" }
     }
 
-    /// Get the best result per (student, exercise) pair — flattened list.
+    /// Best result per (student, assignment, exercise) — flattened list.
     private func bestResultsGrouped(_ submissions: [Submission]) -> [Submission] {
-        var best: [String: Submission] = [:]
-
-        for submission in submissions {
-            let key = "\(submission.studentID)_\(submission.exerciseID)"
-            if let existing = best[key] {
-                if (submission.finalResult?.isSuccess == true && existing.finalResult?.isSuccess != true) {
-                    best[key] = submission
-                }
-            } else {
-                best[key] = submission
-            }
-        }
-
-        return Array(best.values)
+        Array(best(submissions) { "\($0.studentID)|\($0.assignmentID)|\($0.exerciseID)" }.values)
     }
 
     // MARK: - Slice 8: error-pattern co-occurrence (X→Y)

@@ -93,9 +93,23 @@ class FirebaseService {
     // MARK: - Collection Queries
 
     /// Fetch all documents from a collection.
+    /// Decodes each document on its own: one unreadable document (an old
+    /// schema, a partial write) is skipped and logged instead of failing
+    /// the whole read, which emptied e.g. the teacher's statistics.
+    private func decodeEach<T: Decodable>(_ documents: [QueryDocumentSnapshot]) -> [T] {
+        documents.compactMap { document in
+            do {
+                return try document.data(as: T.self)
+            } catch {
+                print("Document illisible \(document.reference.path): \(error.localizedDescription)")
+                return nil
+            }
+        }
+    }
+
     func getDocuments<T: Decodable>(from collection: String) async throws -> [T] {
         let snapshot = try await db.collection(collection).getDocuments()
-        return try snapshot.documents.map { try $0.data(as: T.self) }
+        return decodeEach(snapshot.documents)
     }
 
     /// Fetch documents matching a single field equality condition.
@@ -107,7 +121,7 @@ class FirebaseService {
         let snapshot = try await db.collection(collection)
             .whereField(field, isEqualTo: value)
             .getDocuments()
-        return try snapshot.documents.map { try $0.data(as: T.self) }
+        return decodeEach(snapshot.documents)
     }
 
     /// Fetch documents matching a field-in-array condition.
@@ -120,14 +134,14 @@ class FirebaseService {
         let snapshot = try await db.collection(collection)
             .whereField(field, in: values)
             .getDocuments()
-        return try snapshot.documents.map { try $0.data(as: T.self) }
+        return decodeEach(snapshot.documents)
     }
 
     /// Fetch the documents matching a query built by the caller (compound
     /// filters, e.g. the per-caller scoping `SubmissionRepository` applies).
     func getDocuments<T: Decodable>(matching query: Query) async throws -> [T] {
         let snapshot = try await query.getDocuments()
-        return try snapshot.documents.map { try $0.data(as: T.self) }
+        return decodeEach(snapshot.documents)
     }
 
     // MARK: - Batch writes

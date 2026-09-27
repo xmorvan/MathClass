@@ -28,7 +28,8 @@ final class StatisticsServiceTests: XCTestCase {
         stepResults: [Bool] = [],
         errorTags: [String?]? = nil,
         timeSpent: TimeInterval = 60,
-        daysAgo: Int = 0
+        daysAgo: Int = 0,
+        assignment: String = "assign1"
     ) -> Submission {
         let correction: CorrectionResult? = stepResults.isEmpty && errorTags == nil
             ? nil
@@ -43,7 +44,7 @@ final class StatisticsServiceTests: XCTestCase {
         return Submission(
             studentID: student,
             exerciseID: exercise,
-            assignmentID: "assign1",
+            assignmentID: assignment,
             attemptNumber: attempt,
             latexSteps: stepResults.map { _ in "x" },
             correctionResult: correction,
@@ -100,6 +101,34 @@ final class StatisticsServiceTests: XCTestCase {
         XCTAssertEqual(stats.totalAttempts, 0)
         XCTAssertEqual(stats.successRate, 0)
         XCTAssertEqual(stats.averageTime, 0)
+    }
+
+    /// The same exercise given in two lessons is two pieces of work: it
+    /// used to count once, keeping only the better result.
+    func testSameExerciseInTwoAssignmentsCountsTwice() {
+        let subs = [
+            makeSubmission(student: "s1", exercise: "ex1", result: .success1st, assignment: "monday"),
+            makeSubmission(student: "s1", exercise: "ex1", result: .failed, attempt: 2, assignment: "tuesday"),
+        ]
+        let stats = service.getStudentStats(studentID: "s1", submissions: subs, exerciseCompetencyMap: [:])
+        XCTAssertEqual(stats.totalAttempts, 2)
+        XCTAssertEqual(stats.successCount, 1)
+        XCTAssertEqual(stats.successRate, 0.5, accuracy: 0.001)
+
+        let exercise = service.getExerciseStats(exerciseID: "ex1", submissions: subs)
+        XCTAssertEqual(exercise.totalSubmissions, 2)
+        XCTAssertEqual(exercise.successRate, 0.5, accuracy: 0.001)
+    }
+
+    /// A copy whose correction never came back is not a failure.
+    func testUngradedCopyIsNotCounted() {
+        let subs = [
+            makeSubmission(student: "s1", exercise: "ex1", result: .success1st),
+            makeSubmission(student: "s1", exercise: "ex2", result: nil),
+        ]
+        let stats = service.getStudentStats(studentID: "s1", submissions: subs, exerciseCompetencyMap: [:])
+        XCTAssertEqual(stats.totalAttempts, 1)
+        XCTAssertEqual(stats.successRate, 1, accuracy: 0.001)
     }
 
     // MARK: - getExerciseStats
