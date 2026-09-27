@@ -193,6 +193,12 @@ extension Array {
 // MARK: - Extensions Date
 
 extension Date {
+    /// The date in the app's language (FR/EN picker), not the system's:
+    /// a French report printed "27 September 2026" on an English Mac.
+    func appFormatted(date: Date.FormatStyle.DateStyle, time: Date.FormatStyle.TimeStyle) -> String {
+        formatted(Date.FormatStyle(date: date, time: time).locale(LocalizationManager.shared.language.locale))
+    }
+
     /// Calcule l'intervalle de temps écoulé depuis cette date
     func timeElapsed() -> String {
         let components = Calendar.current.dateComponents([.minute, .hour, .day], from: self, to: Date())

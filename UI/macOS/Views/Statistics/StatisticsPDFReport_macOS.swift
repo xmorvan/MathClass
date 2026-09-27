@@ -27,7 +27,7 @@ struct StatisticsPDFReport_macOS: View {
                 Text(title)
                     .font(.title2)
                     .bold()
-                Text(generatedAt.formatted(date: .long, time: .shortened))
+                Text(generatedAt.appFormatted(date: .long, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

@@ -49,7 +49,7 @@ struct TeacherProfileView: View {
                         HStack {
                             Text("Membre depuis".tr)
                             Spacer()
-                            Text(viewModel.createdAt.formatted(date: .long, time: .omitted))
+                            Text(viewModel.createdAt.appFormatted(date: .long, time: .omitted))
                                 .foregroundColor(.secondary)
                         }
                     }

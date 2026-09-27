@@ -16,6 +16,7 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Compétence supprimée": "Deleted competency",
         "Réponse en une phrase (ex. : Paul a 41 billes)": "Answer in a sentence (e.g. Paul has 41 marbles)",
         "Voir la photo de l'énoncé": "Show the photo of the statement",
         "Nom du devoir (facultatif)": "Assignment name (optional)",

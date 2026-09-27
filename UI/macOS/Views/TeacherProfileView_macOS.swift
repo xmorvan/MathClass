@@ -40,7 +40,7 @@ struct TeacherProfileView_macOS: View {
 
                     Section("Compte".tr) {
                         LabeledContent("Membre depuis".tr) {
-                            Text(viewModel.createdAt.formatted(date: .long, time: .omitted))
+                            Text(viewModel.createdAt.appFormatted(date: .long, time: .omitted))
                                 .foregroundColor(.secondary)
                         }
                     }

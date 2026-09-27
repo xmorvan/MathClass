@@ -190,7 +190,7 @@ struct AssignmentListView_macOS: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text(assignment.createdAt.formatted(date: .abbreviated, time: .omitted))
+                Text(assignment.createdAt.appFormatted(date: .abbreviated, time: .omitted))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -253,7 +253,7 @@ struct AssignmentDetailView_macOS: View {
 
                     VStack(alignment: .trailing, spacing: 4) {
                         statusBadge
-                        Text(assignment.createdAt.formatted(date: .long, time: .shortened))
+                        Text(assignment.createdAt.appFormatted(date: .long, time: .shortened))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

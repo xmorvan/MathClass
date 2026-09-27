@@ -88,7 +88,7 @@ struct ClassDetailView_macOS: View {
                 }
 
                 if let createdAt = classRoom.createdAt {
-                    Text(LocalizationManager.shared.format("Créée le %@", createdAt.formatted(date: .abbreviated, time: .omitted)))
+                    Text(LocalizationManager.shared.format("Créée le %@", createdAt.appFormatted(date: .abbreviated, time: .omitted)))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

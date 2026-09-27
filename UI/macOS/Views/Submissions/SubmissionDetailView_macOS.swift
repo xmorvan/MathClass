@@ -58,7 +58,7 @@ struct SubmissionDetailView_macOS: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Label(
-                    submission.timestamp.formatted(date: .abbreviated, time: .shortened),
+                    submission.timestamp.appFormatted(date: .abbreviated, time: .shortened),
                     systemImage: "clock"
                 )
                 .font(.subheadline)
@@ -109,8 +109,8 @@ struct SubmissionDetailView_macOS: View {
                     KaTeXView(
                         content: "$\(exercise.expectedAnswer)$",
                         mode: .preview,
-                        fontSize: 14,
-                        minHeight: 40
+                        fontSize: 18,
+                        minHeight: 48
                     )
                     .background(Color.gray.opacity(0.05))
                     .cornerRadius(6)
@@ -178,8 +178,8 @@ struct SubmissionDetailView_macOS: View {
                     KaTeXView(
                         content: "$\(step)$",
                         mode: .preview,
-                        fontSize: 14,
-                        minHeight: 30
+                        fontSize: 18,
+                        minHeight: 40
                     )
                 }
             }

@@ -131,7 +131,7 @@ struct StatisticsView: View {
         let labels = competencyLabelMap()
         let report = VStack(alignment: .leading, spacing: 16) {
             Text(title).font(.title2).bold()
-            Text(Date().formatted(date: .long, time: .shortened))
+            Text(Date().appFormatted(date: .long, time: .shortened))
                 .font(.caption)
                 .foregroundColor(.secondary)
             Divider()

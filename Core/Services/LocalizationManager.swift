@@ -24,6 +24,11 @@ enum AppLanguage: String, CaseIterable, Codable {
         }
     }
 
+    /// Locale for dates and numbers shown in this language.
+    var locale: Locale {
+        Locale(identifier: self == .fr ? "fr_FR" : "en_GB")
+    }
+
     var flag: String {
         switch self {
         case .fr: return "🇫🇷"

@@ -215,7 +215,7 @@ struct StudentStatsListView_macOS: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(exerciseTitle)
                     .font(.body)
-                Text(LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)) + " — " + submission.timestamp.formatted(date: .abbreviated, time: .shortened))
+                Text(LocalizationManager.shared.format("Essai %@", String(submission.attemptNumber)) + " — " + submission.timestamp.appFormatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

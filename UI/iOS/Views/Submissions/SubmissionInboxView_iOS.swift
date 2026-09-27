@@ -116,7 +116,7 @@ struct SubmissionInboxView_iOS: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                Text(submission.timestamp.formatted(date: .abbreviated, time: .shortened))
+                Text(submission.timestamp.appFormatted(date: .abbreviated, time: .shortened))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

@@ -60,7 +60,7 @@ struct SubmissionDetailView_iOS: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Label(
-                        submission.timestamp.formatted(date: .abbreviated, time: .shortened),
+                        submission.timestamp.appFormatted(date: .abbreviated, time: .shortened),
                         systemImage: "clock"
                     )
                     .font(.caption)

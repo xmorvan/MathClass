@@ -20,25 +20,22 @@ struct TeacherView_macOS: View {
     var body: some View {
         NavigationSplitView {
             VStack {
+                // Tagged rows, not NavigationLink(value:): with links and no
+                // navigationDestination, the detail showed the section
+                // selected before the one clicked.
                 List(selection: $selectedSidebar) {
-                    NavigationLink(value: 1) {
-                        Label("Classes".tr, systemImage: "person.3")
-                    }
-                    NavigationLink(value: 2) {
-                        Label("Exercices".tr, systemImage: "book")
-                    }
-                    NavigationLink(value: 3) {
-                        Label("Devoirs".tr, systemImage: "tray.full")
-                    }
-                    NavigationLink(value: 5) {
-                        Label("Soumissions".tr, systemImage: "tray.and.arrow.down")
-                    }
-                    NavigationLink(value: 6) {
-                        Label("En direct".tr, systemImage: "dot.radiowaves.left.and.right")
-                    }
-                    NavigationLink(value: 4) {
-                        Label("Statistiques".tr, systemImage: "chart.bar")
-                    }
+                    Label("Classes".tr, systemImage: "person.3")
+                        .tag(1)
+                    Label("Exercices".tr, systemImage: "book")
+                        .tag(2)
+                    Label("Devoirs".tr, systemImage: "tray.full")
+                        .tag(3)
+                    Label("Soumissions".tr, systemImage: "tray.and.arrow.down")
+                        .tag(5)
+                    Label("En direct".tr, systemImage: "dot.radiowaves.left.and.right")
+                        .tag(6)
+                    Label("Statistiques".tr, systemImage: "chart.bar")
+                        .tag(4)
                 }
                 .listStyle(SidebarListStyle())
 

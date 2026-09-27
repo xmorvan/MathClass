@@ -152,9 +152,10 @@ class ChapterRepository: ObservableObject {
     }
 
     /// Human-readable label for a competency ID from any of the teacher's
-    /// classes; falls back to the ID itself.
+    /// classes. An exercise can keep the tag of a competency deleted with
+    /// its class (e.g. the demo class): say so rather than show the raw ID.
     func competencyLabel(for competencyID: String) -> String {
-        competencyLabels[competencyID] ?? competencyID
+        competencyLabels[competencyID] ?? "Compétence supprimée".tr
     }
 
     /// Get all competencies for a given chapter (one-shot, not real-time).

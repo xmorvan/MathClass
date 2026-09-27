@@ -83,6 +83,9 @@ final class KaTeXRenderer {
                 .katex-display { margin: 0.5em 0; }
                 .katex { font-size: 1.1em; }
                 #content { white-space: pre-wrap; }
+                /* A formula a few points taller than its frame showed a
+                   scroll bar beside every step on the Mac. */
+                ::-webkit-scrollbar { display: none; }
                 .render-error {
                     color: #e74c3c;
                     font-family: monospace;

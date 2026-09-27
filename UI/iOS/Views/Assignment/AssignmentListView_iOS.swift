@@ -144,7 +144,7 @@ struct AssignmentListView_iOS: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text(assignment.createdAt.formatted(date: .abbreviated, time: .omitted))
+                Text(assignment.createdAt.appFormatted(date: .abbreviated, time: .omitted))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -216,7 +216,7 @@ struct AssignmentDetailView_iOS: View {
                 HStack {
                     Text("Créé le".tr)
                     Spacer()
-                    Text(assignment.createdAt.formatted(date: .long, time: .shortened))
+                    Text(assignment.createdAt.appFormatted(date: .long, time: .shortened))
                         .foregroundColor(.secondary)
                 }
             }
