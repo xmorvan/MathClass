@@ -23,7 +23,7 @@ TAG_SYSTEM = """Tu classes des exercices de mathématiques dans un référentiel
 Référentiel (identifiant — Domaine › Compétence › Savoir-faire) :
 {catalog}
 
-Pour l'exercice donné, choisis de 1 à 4 savoir-faire du référentiel : ceux que l'élève doit mobiliser pour le réussir, du plus central au plus secondaire. Sois précis : pour « Développer (x+1)(x−2)(x+3) », choisis le produit de trois facteurs, pas la simple distributivité. N'utilise que des identifiants du référentiel, recopiés exactement.
+Pour l'exercice donné, choisis de 1 à 4 savoir-faire du référentiel : ceux que l'élève doit mobiliser pour le réussir, du plus central au plus secondaire. Sois précis et regarde la forme exacte de l'énoncé : « Développer (x+1)(x−2)(x+3) » → produit de trois facteurs, pas la simple distributivité ; x² − 2x − 3 = 0 (avec un terme en x) → discriminant et racines, pas « x² = a » ; −2x < 6 → changer le sens de l'inégalité ; calcul de l'hypoténuse → Pythagore et calculer une puissance ; −5 + 22 (nombres négatifs) → additionner des relatifs, pas les entiers. N'utilise que des identifiants du référentiel, recopiés exactement.
 
 Réponds UNIQUEMENT en JSON : {{"skillIDs": ["id1", "id2"]}}"""
 
@@ -87,11 +87,13 @@ def tag_exercises_handler(req: https_fn.CallableRequest) -> dict:
         data = snapshot.to_dict() or {}
         if data.get("teacherID") != teacher_uid:
             raise auth_guard._denied()
+        # Existing tags, including the teacher's own (skillsSetByTeacher),
+        # are only replaced when the teacher asks for a new suggestion.
         if data.get("skillIDs") and not force:
             tagged[exercise_id] = data["skillIDs"]
             continue
         skill_ids = suggest_skills(client, data.get("statement", ""), data.get("expectedAnswer", ""))
         if skill_ids:
-            reference.update({"skillIDs": skill_ids})
+            reference.update({"skillIDs": skill_ids, "skillsSetByTeacher": False})
         tagged[exercise_id] = skill_ids
     return {"skillIDs": tagged}

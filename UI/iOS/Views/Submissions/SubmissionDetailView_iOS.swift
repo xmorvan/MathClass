@@ -174,12 +174,16 @@ struct SubmissionDetailView_iOS: View {
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .leading)
 
-                KaTeXView(
-                    content: "$\(step)$",
-                    mode: .preview,
-                    fontSize: 14,
-                    minHeight: 30
-                )
+                if let sentence = SubmissionViewModel.sentence(ofStep: step) {
+                    Text(sentence).font(.body)
+                } else {
+                    KaTeXView(
+                        content: "$\(step)$",
+                        mode: .preview,
+                        fontSize: 18,
+                        minHeight: 40
+                    )
+                }
             }
 
             if firstErrorIndex == index {
@@ -189,8 +193,30 @@ struct SubmissionDetailView_iOS: View {
                     .bold()
                     .padding(.leading, 88)
             }
+
+            if let diagnosis = submission.correctionResult?.diagnosis,
+               index < diagnosis.count, let entry = diagnosis[index] {
+                StepDiagnosisCard(diagnosis: entry) { updated in
+                    updateDiagnosis(at: index, with: updated)
+                }
+                .padding(.leading, 88)
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    /// Saves the teacher's version of one step's diagnosis.
+    private func updateDiagnosis(at index: Int, with entry: StepDiagnosis?) {
+        guard let id = submission.id, var diagnosis = submission.correctionResult?.diagnosis,
+              index < diagnosis.count else { return }
+        diagnosis[index] = entry
+        Task {
+            do {
+                try await viewModel.submissionRepo.updateDiagnosis(submissionID: id, diagnosis: diagnosis)
+            } catch {
+                print("Mise à jour du diagnostic échouée: \(error.localizedDescription)")
+            }
+        }
     }
 
     @ViewBuilder

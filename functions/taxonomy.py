@@ -28,6 +28,30 @@ ERROR_TYPES = (
 )
 
 
+# Skills practised inside another one: when an exercise targets the key,
+# a mistake the model files under one of the values is a failure at the
+# key ("expand (x+1)(x−2)(x+3)": a slip in a double distributivity is a
+# failure at expanding three factors).
+PART_OF = {
+    "litteral.developper.trois-facteurs": {
+        "litteral.developper.double-distributivite",
+        "litteral.developper.simple-distributivite",
+    },
+    "litteral.developper.developper-reduire": {
+        "litteral.developper.simple-distributivite",
+        "litteral.developper.double-distributivite",
+    },
+}
+
+
+def within_exercise(skill_id, exercise_skills) -> str | None:
+    """The exercise skill a diagnosed skill is part of, else the skill."""
+    for exercise_skill in exercise_skills or []:
+        if skill_id in PART_OF.get(exercise_skill, ()):
+            return exercise_skill
+    return skill_id
+
+
 @lru_cache(maxsize=1)
 def load() -> dict:
     return json.loads(_PATH.read_text(encoding="utf-8"))

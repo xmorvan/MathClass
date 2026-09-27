@@ -27,6 +27,9 @@ struct Exercise: Identifiable, Codable, Hashable {
     /// Skills of the taxonomy the exercise practises (see Taxonomy.swift).
     /// Set by the `tag_exercises` Cloud Function, editable by the teacher.
     var skillIDs: [String]?
+    /// The teacher edited the tags: automatic tagging leaves them alone
+    /// (only an explicit "suggest with AI" replaces them).
+    var skillsSetByTeacher: Bool?
     /// Difficulty level from 1 (easy) to 5 (hard), used for the "levels" mode
     var difficultyLevel: Int
     /// How this exercise was created

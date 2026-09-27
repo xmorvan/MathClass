@@ -98,7 +98,7 @@ class ExerciseRepository: ObservableObject {
         guard let id = exercise.id else { return }
         try await firebase.updateDocument(exercise, in: collectionPath, documentID: id)
         // Tags the teacher chose are kept; an untagged exercise gets some.
-        if exercise.skillIDs?.isEmpty ?? true {
+        if exercise.skillIDs?.isEmpty ?? true, exercise.skillsSetByTeacher != true {
             SkillTaggingService.shared.tag(exerciseIDs: [id])
         }
     }

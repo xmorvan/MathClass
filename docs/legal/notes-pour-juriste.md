@@ -36,7 +36,8 @@ Suppression automatique des copies à douze mois, suppression immédiate d'une c
 
 ## Points à vérifier avant publication
 
-1. Emplacement de la base Cloud Firestore et du bucket Cloud Storage (console Firebase, paramètres du projet). S'ils ne sont pas en Suisse ou dans l'UE, il faut soit créer un nouveau projet au bon endroit, soit l'indiquer.
+1. Emplacements vérifiés le 27 septembre 2026 : Cloud Firestore à Zurich (europe-west6) ; **bucket Cloud Storage aux États-Unis (us-west1)**. L'emplacement d'un bucket ne se change pas : il faut créer un bucket à Zurich, y copier les images, publier une version de l'app qui l'utilise, puis supprimer l'ancien. À faire avant tout usage avec de vrais élèves.
+1 bis. Vertex AI en Europe : le quota de Claude Haiku 4.5 en europe-west1 est toujours à zéro (vérifié le 27 septembre 2026) ; une demande d'augmentation doit être faite dans la console Google Cloud. D'ici là, l'API Anthropic (États-Unis) sert aux seuls tests internes, sans données d'élèves réels.
 2. Conditions de Google Cloud pour les modèles partenaires sur Vertex AI : absence de conservation des requêtes, absence d'entraînement, rôle d'Anthropic (accède-t-il aux requêtes ?). Une source secondaire affirme « zero data retention » ; aucune source Google primaire relue à ce jour.
 3. Entité Google contractante et acceptation des Data Processing and Security Terms (console Google Cloud).
 4. Retrait du modèle Claude Haiku 4.5 possible dès le 15 octobre 2026 : prévoir le modèle de remplacement disponible en Europe sur Vertex AI et mettre à jour les documents si le modèle change.
@@ -54,7 +55,7 @@ France : la position de la CNIL et du ministère de l'Éducation nationale sur l
 
 Consentement : faut-il informer les parents, ou recueillir un accord, avant qu'une copie d'élève soit traitée par une IA ? Qui s'en charge, l'école ou l'éditeur ?
 
-Correction automatique : la mention « aide pédagogique, pas de décision automatisée » suffit-elle au regard de l'art. 21 LPD ?
+Correction et diagnostic automatiques : la mention « aide pédagogique, pas de décision automatisée » suffit-elle au regard de l'art. 21 LPD et de l'art. 22 RGPD ? Depuis le 27 septembre 2026, le modèle propose aussi, pour chaque étape fausse, le savoir-faire en cause et une note sur l'erreur, et l'app en tire un bilan par savoir-faire (« maîtrisé », « fragile », « non maîtrisé »). C'est une forme de profilage d'élèves mineurs : visible par l'enseignant seul, marqué « Proposé par l'IA », corrigeable ou supprimable par l'enseignant, supprimé avec la copie à douze mois. Faut-il une analyse d'impact (LPD art. 22), et une information spécifique des parents ?
 
 Forme juridique et responsabilité : exercer en raison individuelle ou créer une Sàrl avant de signer avec des écoles ; assurance responsabilité civile professionnelle (cyber).
 

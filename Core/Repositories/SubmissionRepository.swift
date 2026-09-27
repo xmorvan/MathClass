@@ -231,6 +231,25 @@ class SubmissionRepository: ObservableObject {
         )
     }
 
+    /// The teacher's correction of the AI diagnosis (skill changed, or a
+    /// step's diagnosis removed with nil).
+    func updateDiagnosis(submissionID: String, diagnosis: [StepDiagnosis?]) async throws {
+        let encoded: [Any] = diagnosis.map { entry in
+            guard let entry else { return NSNull() }
+            return [
+                "skillID": entry.skillID ?? NSNull(),
+                "errorType": entry.errorType ?? NSNull(),
+                "note": entry.note ?? NSNull(),
+                "reviewedByTeacher": entry.reviewedByTeacher ?? false,
+            ] as [String: Any]
+        }
+        try await firebase.updateFields(
+            ["correctionResult.diagnosis": encoded],
+            in: collectionPath,
+            documentID: submissionID
+        )
+    }
+
     func updateSubmission(_ submission: Submission) async throws {
         guard let id = submission.id else { return }
         try await firebase.updateDocument(submission, in: collectionPath, documentID: id)

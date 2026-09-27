@@ -16,6 +16,13 @@ import Foundation
 enum Localizations {
     static let fr2en: [String: String] = [
         // MARK: Added 2026-09 (coverage gaps)
+        "Revu par l'enseignant": "Reviewed by the teacher",
+        "Proposé par l'IA": "Suggested by AI",
+        "Confirmer": "Confirm",
+        "Changer le savoir-faire…": "Change the skill…",
+        "Retirer ce diagnostic": "Remove this diagnosis",
+        "Conséquence d'une erreur précédente (pas une nouvelle lacune).": "Follows from an earlier mistake (not a new gap).",
+        "Savoir-faire en cause": "Skill at fault",
         "Savoir-faire": "Skills",
         "Proposer avec l'IA": "Suggest with AI",
         "Pas encore étiqueté : les savoir-faire sont proposés automatiquement à l'enregistrement.": "Not tagged yet: skills are suggested automatically when saving.",

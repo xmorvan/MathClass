@@ -217,6 +217,7 @@ struct ExerciseListView_macOS: View {
                         SkillTagsEditor(exercise: exercise) { skillIDs in
                             var updated = exercise
                             updated.skillIDs = skillIDs
+                            updated.skillsSetByTeacher = true
                             Task { try? await viewModel.updateExercise(updated) }
                         }
 

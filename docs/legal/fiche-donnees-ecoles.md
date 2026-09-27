@@ -1,10 +1,10 @@
 # MathClass et les données des élèves
 
-Fiche d'information pour les directions d'établissement et les délégués à la protection des données. Version du 25 septembre 2026.
+Fiche d'information pour les directions d'établissement et les délégués à la protection des données. Version du 25 septembre 2026, mise à jour le 27 septembre 2026.
 
 ## Ce que fait MathClass
 
-L'élève résout un exercice de mathématiques à la main sur iPad, avec le stylet. MathClass transcrit son raisonnement, l'élève vérifie la transcription, puis chaque étape est corrigée. L'enseignant suit la classe en direct et consulte les statistiques après la séance.
+L'élève résout un exercice de mathématiques à la main sur iPad, avec le stylet. L'iPad lit son écriture, l'élève vérifie la lecture, puis chaque étape est corrigée. Quand une étape est fausse, MathClass propose à l'enseignant un diagnostic : le savoir-faire en cause et l'erreur commise. L'enseignant suit la classe en direct et consulte, après la séance, le bilan de chaque élève et de la classe par savoir-faire.
 
 ## Ce que l'élève fournit
 
@@ -16,15 +16,17 @@ L'enseignant voit uniquement les classes qu'il a créées. L'élève voit unique
 
 ## Intelligence artificielle
 
-La transcription et la correction font appel au modèle Claude (Anthropic), exécuté par Google Cloud dans l'Union européenne. Le modèle reçoit l'image du tracé et les étapes de calcul, jamais le nom de l'élève ni un identifiant. Les données ne servent pas à entraîner de modèle. La correction est une aide : l'élève valide la transcription et l'enseignant voit chaque résultat.
+L'écriture est lue sur l'iPad, sans rien transmettre. La correction se fait d'abord par calcul symbolique ; le modèle Claude (Anthropic), exécuté par Google Cloud dans l'Union européenne, n'intervient que lorsque ce calcul ne suffit pas, et pour proposer le diagnostic des erreurs. Il reçoit l'énoncé, la réponse attendue et les étapes de calcul, jamais le nom de l'élève ni un identifiant. Les données ne servent pas à entraîner de modèle.
+
+Tout est une aide pour l'enseignant : l'élève valide la lecture de sa copie ; chaque diagnostic est marqué « Proposé par l'IA » et l'enseignant peut le confirmer, le corriger ou le retirer ; aucune note ni décision n'est prise automatiquement. Les diagnostics ne sont pas montrés aux élèves.
 
 ## Où sont les données
 
-Les fonctions serveur tournent à Zurich. La base de données et les images sont stockées chez Google (emplacement : À VÉRIFIER avant diffusion de cette fiche). Les comptes de connexion sont gérés par Firebase Authentication aux États-Unis ; pour un élève, il ne s'agit que d'un identifiant anonyme, sans nom. Google est certifié Swiss-U.S. Data Privacy Framework.
+Les fonctions serveur et la base de données sont à Zurich. Les images des copies seront stockées à Zurich (transfert en cours ; à confirmer avant diffusion de cette fiche). Les comptes de connexion sont gérés par Firebase Authentication aux États-Unis ; pour un élève, il ne s'agit que d'un identifiant anonyme, sans nom. Google est certifié Swiss-U.S. Data Privacy Framework.
 
 ## Combien de temps
 
-Les copies et les résultats sont supprimés automatiquement douze mois après leur envoi. L'enseignant peut supprimer une classe à tout moment : toutes les données de la classe disparaissent immédiatement. En fin de contrat, toutes les données de l'établissement sont supprimées dans les 30 jours.
+Les copies, les résultats et les diagnostics sont supprimés automatiquement douze mois après leur envoi. L'enseignant peut supprimer une classe à tout moment : toutes les données de la classe disparaissent immédiatement. En fin de contrat, toutes les données de l'établissement sont supprimées dans les 30 jours.
 
 ## Ce qui n'existe pas dans MathClass
 

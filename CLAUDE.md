@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Security-rules tests:** `cd firestore-tests && npm install && npm test` (emulators, needs Java)
 - **End-to-end smoke test:** `cd firestore-tests && npm run e2e` (teacher → student → correction → teacher through the real client SDK, all emulators, fake Claude)
 - **Functions tests:** `cd functions && venv/bin/python -m pytest tests`
+- **Real-Claude benchmarks** (cost a few cents; run after changing grading or diagnosis prompts): `tests/grading_benchmark.py` (146 copies, verdict and first error) and `tests/diagnosis_benchmark.py` (73 wrong copies, skill named at the first wrong step). Key: `ANTHROPIC_API_KEY=$(firebase functions:secrets:access ANTHROPIC_API_KEY)`.
 - **Swift tests:** scheme `MathClass`, `xcodebuild test -scheme MathClass -destination 'platform=iOS Simulator,name=<iPad on iOS ≥ 18.1>'` (target `MathClassTests`)
 - Requires `GoogleService-Info.plist` in the project root (not in source control)
 - **MyScript (iPad handwriting → LaTeX, on device):** needs `MathClass/MyScript/MyCertificate.c` (the app certificate for bundle id `xavier-morvan.MathClass`, from license.myscript.com > Applications > MathClass; not in source control) and the recognition assets from `scripts/fetch-myscript-assets.sh`. Without them the app falls back to cloud recognition (`recognize_handwriting`). SDK: Swift package `libiink` 4.5.1 (iPad target only).
@@ -74,6 +75,8 @@ The teacher's statistics are a diagnosis on a built-in taxonomy **domaine › co
 - Exercises carry `skillIDs` (see `tag_exercises`).
 - On every wrong copy, `correct_submission` asks Claude which skill failed at each wrong step, how (`errorType`: sign_error, arithmetic, algebra, method, conceptual, incomplete, notation, misread, consequence) and a one-line note for the teacher: `correctionResult.diagnosis`. An error made while practising the exercise's own skill counts against that skill; steps that only follow from an earlier mistake are `consequence` and are not gaps.
 - `Features/ViewModels/SkillDiagnosis.swift` turns the copies into per-student, per-skill records (right copy = success on the exercise's skills; wrong copy = failure on the diagnosed skills), with mastery (not mastered / shaky / to confirm / mastered) and the teacher sentences; `MathClass-Shared/DiagnosisViews.swift` shows them per student, per domain and per class (Mac and iPad).
+- The teacher stays in control: diagnoses are shown as "Proposé par l'IA" and can be confirmed, changed or removed (`MathClass-Shared/StepDiagnosisCard.swift`, `reviewedByTeacher`); tags the teacher edits carry `skillsSetByTeacher` and are never replaced by automatic tagging. Scripts that backfill tags or diagnoses must respect both flags.
+- Claude never receives a student's name, class or IDs (statement, expected answer, steps, exercise skills; the drawing only in the cloud-recognition fallback). Data locations and GDPR/LPD status: `docs/legal/` (the Storage bucket is still in us-west1 and Vertex EU has no quota yet).
 - The per-class teacher catalog (Chapter › Competency) still exists but no longer drives the statistics.
 
 ### Localization

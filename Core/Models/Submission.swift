@@ -123,6 +123,9 @@ struct StepDiagnosis: Codable, Hashable {
     var errorType: String?
     /// One sentence for the teacher, citing what the student wrote.
     var note: String?
+    /// The teacher checked or corrected this diagnosis (otherwise it is
+    /// the AI's proposal).
+    var reviewedByTeacher: Bool?
 
     /// A step that is only wrong because an earlier one was.
     var isConsequence: Bool { errorType == "consequence" }

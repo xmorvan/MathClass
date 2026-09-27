@@ -82,6 +82,20 @@ def test_tag_handler_tags_own_untagged_exercises(monkeypatch):
     assert result["skillIDs"]["e2"] == ["litteral.reduire.termes-semblables"]  # kept
 
 
+def test_teacher_tags_survive_automatic_tagging_but_not_an_explicit_request(monkeypatch):
+    db = FakeFirestore({"exercises/e1": {"teacherID": "teacher-1", "statement": "Calculer -5 + 22",
+                                         "skillIDs": ["nombres.relatifs.additionner"], "skillsSetByTeacher": True}})
+    monkeypatch.setattr(te, "_get_firestore", lambda: db)
+    monkeypatch.setattr(te.claude_client, "create_client",
+                        lambda: _answer({"skillIDs": ["nombres.entiers-decimaux.addition-soustraction"]}))
+    monkeypatch.setattr(te.auth_guard, "require_teacher", lambda req: req.auth.uid)
+    te.tag_exercises_handler(make_request({"exerciseIDs": ["e1"]}, auth=teacher_auth()))
+    assert db.docs["exercises/e1"]["skillIDs"] == ["nombres.relatifs.additionner"]
+    te.tag_exercises_handler(make_request({"exerciseIDs": ["e1"], "force": True}, auth=teacher_auth()))
+    assert db.docs["exercises/e1"]["skillIDs"] == ["nombres.entiers-decimaux.addition-soustraction"]
+    assert db.docs["exercises/e1"]["skillsSetByTeacher"] is False
+
+
 def test_tag_handler_refuses_another_teachers_exercise(monkeypatch):
     db = FakeFirestore({"exercises/e1": {"teacherID": "someone-else", "statement": "x"}})
     monkeypatch.setattr(te, "_get_firestore", lambda: db)
@@ -151,22 +165,6 @@ def test_failed_copy_is_diagnosed_and_saved(monkeypatch):
     assert result["diagnosis"][1]["skillID"] == "equations.premier-degre.deux-etapes"
     assert persisted["diagnosis"][1]["note"] == "18 / 3 = 5"
     assert persisted["error_tags"] == [None, "arithmetic"]
-
-
-def test_error_in_the_exercise_competency_counts_against_the_exercise_skill():
-    client = _answer({"diagnosis": [{"skillID": "litteral.developper.double-distributivite",
-                                     "errorType": "algebra", "note": "x"}]})
-    diagnosis = cs._diagnose_errors(client, "Développer (x+1)(x-2)(x+3)", "", ["..."], [False],
-                                    ["litteral.developper.trois-facteurs"])
-    assert diagnosis[0]["skillID"] == "litteral.developper.trois-facteurs"
-
-
-def test_error_in_a_more_basic_skill_is_kept():
-    client = _answer({"diagnosis": [{"skillID": "nombres.relatifs.regle-des-signes",
-                                     "errorType": "sign_error", "note": "x"}]})
-    diagnosis = cs._diagnose_errors(client, "Résoudre", "", ["..."], [False],
-                                    ["equations.premier-degre.deux-etapes"])
-    assert diagnosis[0]["skillID"] == "nombres.relatifs.regle-des-signes"
 
 
 def test_an_incomplete_system_is_diagnosed_as_incomplete(monkeypatch):
