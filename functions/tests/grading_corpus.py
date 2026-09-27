@@ -159,6 +159,10 @@ CASES = [
        ["x < -3"], False, 0),
     _c("systeme-ok", "11e", r"Résoudre le système $x + y = 10$ et $x - y = 2$",
        r"x = 6 \text{ et } y = 4", ["2x = 12", "x = 6", "y = 4"], True),
+    _c("systeme-une-inconnue", "11e", r"Résoudre le système $x + y = 10$ et $x - y = 2$",
+       r"x = 6 \text{ et } y = 4", ["2x = 12", "x = 6"], False, 1),
+    _c("systeme-reponse-groupee", "11e", r"Résoudre le système $x + y = 10$ et $x - y = 2$",
+       r"x = 6 \text{ et } y = 4", ["2x = 12", "x = 6", "y = 10 - 6 = 4"], True),
     _c("systeme-faux", "11e", r"Résoudre le système $x + y = 10$ et $x - y = 2$",
        r"x = 6 \text{ et } y = 4", ["x = 5", "y = 5"], False, 0),
 

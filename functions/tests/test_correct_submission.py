@@ -694,3 +694,16 @@ def test_written_decimals_are_exact():
 def test_probability_name_and_integration_constant_are_not_calculations():
     assert cs.sympy_check_equivalence(r"P(X = 2) = \binom{3}{2} \times 0,5^3", r"\frac{3}{8}") is True
     assert cs.sympy_check_equivalence(r"F(x) = x^3 + \ln(x) + C", r"F(x) = x^3 + \ln x") is True
+
+
+def test_a_system_answered_for_one_unknown_is_incomplete():
+    expected = r"x = 6 \text{ et } y = 4"
+    assert cs.answer_is_incomplete(expected, ["2x = 12", "x = 6"]) is True
+    assert cs.answer_is_incomplete(expected, ["2x = 12", "x = 6", "y = 10 - 6 = 4"]) is False
+    assert cs.answer_is_incomplete(expected, [r"x = 6 \text{ et } y = 4"]) is False
+    assert cs.answer_is_incomplete(expected, [r"S = \{(6 ; 4)\}"]) is False
+
+
+def test_alternatives_for_one_unknown_are_left_to_the_solution_sets():
+    assert cs.answer_is_incomplete(r"x = 2 \text{ ou } x = 3", ["(x-2)(x-3)=0", r"S = \{2 ; 3\}"]) is False
+    assert cs.answer_is_incomplete(r"x = -1 \text{ ou } x = 3", [r"x_1 = -1", r"x_2 = 3"]) is False
